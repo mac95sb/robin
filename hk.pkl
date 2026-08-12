@@ -1,0 +1,39 @@
+amends "package://github.com/jdx/hk/releases/download/v1.54.1/hk@1.54.1#/Config.pkl"
+
+min_hk_version = "1.54.1"
+
+local swiftFormat = new Step {
+  types = List("swift")
+  fix = new Command { argv = List("swift", "format", "format", "--in-place", "--parallel", "{{files}}") }
+  check = new Command { argv = List("swift", "format", "lint", "--strict", "--parallel", "{{files}}") }
+}
+
+local swiftBuild = new Step {
+  check = new Command { argv = List("swift", "build") }
+}
+
+local swiftTest = new Step {
+  check = new Command { argv = List("swift", "test") }
+}
+
+hooks {
+  ["pre-commit"] {
+    steps {
+      ["swift-format"] = swiftFormat
+      ["swift-build"] = swiftBuild
+    }
+  }
+  ["pre-push"] {
+    steps {
+      ["swift-format"] = swiftFormat
+      ["swift-test"] = swiftTest
+    }
+  }
+  ["check"] {
+    steps {
+      ["swift-format"] = swiftFormat
+      ["swift-build"] = swiftBuild
+      ["swift-test"] = swiftTest
+    }
+  }
+}

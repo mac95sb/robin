@@ -1,0 +1,33 @@
+min_version = "2026.7.0"
+
+[tools]
+swift = "6.3.3"
+pkl = "0.32.1"
+hk = "1.54.1"
+
+[env]
+HK_MISE = "1"
+
+[tasks.build]
+description = "Build the Robin package"
+run = "swift build"
+
+[tasks.test]
+description = "Run the Robin test suite"
+run = "swift test"
+
+[tasks.format]
+description = "Format Swift sources in place"
+run = "swift format format --in-place --recursive --parallel Sources Tests Package.swift"
+
+[tasks.lint]
+description = "Check Swift source formatting"
+run = "swift format lint --strict --recursive --parallel Sources Tests Package.swift"
+
+[tasks.check]
+description = "Run the same checks used by CI"
+run = "hk check --all"
+
+[tasks.hooks]
+description = "Explicitly install this project's Git hooks"
+run = "hk install"
