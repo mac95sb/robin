@@ -3,18 +3,8 @@ import Testing
 
 @testable import RobinValidation
 
-@Suite("Form schema, field wrapper and macro-generated names")
-struct FormSchemaTests {
-  @Test func fieldWrapperAndMacroProduceStableProjection() {
-    struct FormState {
-      @Field("email") var email = "hello@example.com"
-    }
-    let state = FormState()
-    #expect(state.$email.name == "email")
-    #expect(#generatedFieldName("email") == "form.email")
-    #expect(#generatedFieldName("displayName") == "form.displayName")
-  }
-
+@Suite("Form decoding and fallback rendering")
+struct FormDecoderTests {
   @Test func oneSchemaDecodesHTMLAndAPIWithCSRFAndValidation() throws {
     let html = try FormDecoder.decodeHTMLForm(
       "email=hello%40example.com&displayName=Robin+User",

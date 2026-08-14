@@ -5,8 +5,8 @@ import Testing
 
 @testable import RobinValidation
 
-@Suite("NIO request lifecycle and streamed HTML")
-struct HTTPStreamingTests {
+@Suite("NIO request lifecycle")
+struct PrototypeHTTPHandlerTests {
   private func router() -> TypedRouter {
     TypedRouter(routes: [
       TypedRoute(method: .GET, segments: [.literal("users"), .parameter("id")]) { parameters in

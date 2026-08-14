@@ -17,10 +17,3 @@ public struct ToolPolicy: Codable, Equatable, Sendable {
     guard buildBudgetMilliseconds > 0 else { throw .invalidBuildBudget }
   }
 }
-
-/// An invalid value in a Robin tool policy.
-public enum ToolPolicyError: Error, Equatable, Sendable {
-  case unsupportedSchema(Int)
-  case invalidSeverity(String)
-  case invalidBuildBudget
-}

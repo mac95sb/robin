@@ -1,29 +1,6 @@
 import Foundation
 import Markdown
 
-/// A typed block-level node parsed from a content document.
-public enum ContentNode: Equatable, Sendable {
-  case heading(level: Int, text: String)
-  case paragraph(String)
-  case code(language: String?, source: String)
-  case table([[String]])
-  case footnote(id: String, text: String)
-  case embed(EmbedNode)
-}
-
-/// A diagnostic emitted while converting source content into typed nodes.
-public enum ContentDiagnostic: Error, Equatable, Sendable {
-  case rawHTMLRejected
-  case invalidEmbed(String)
-  case unsupportedNode(String)
-}
-
-/// The typed nodes and nonfatal diagnostics produced by parsing content.
-public struct ParsedContent: Equatable, Sendable {
-  public let nodes: [ContentNode]
-  public let diagnostics: [ContentDiagnostic]
-}
-
 /// Converts Markdown into Robin's typed content representation.
 public enum MarkdownContentParser {
   /// Parses Markdown while rejecting raw HTML and embeds from hosts outside the allowlist.

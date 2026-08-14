@@ -1,10 +1,5 @@
 import Foundation
 
-/// A category of generated output stored under the `.robin` directory.
-public enum RobinArtifact: String, CaseIterable, Sendable {
-  case build, cache, coverage, generated, inspector, logs, preview, testResults, temporary
-}
-
 /// Resolves and validates paths within a project's `.robin` output directory.
 public struct OutputLayout: Sendable {
   public let projectRoot: URL

@@ -4,7 +4,7 @@ import Testing
 @testable import RobinValidation
 
 @Suite("Markdown content parsing and embed/host validation")
-struct ContentTests {
+struct MarkdownContentParserTests {
   @Test func realMarkdownBecomesTypedNodesAndRejectsRawHTML() throws {
     let url = try #require(
       Bundle.module.url(forResource: "long-form", withExtension: "md", subdirectory: "Fixtures")

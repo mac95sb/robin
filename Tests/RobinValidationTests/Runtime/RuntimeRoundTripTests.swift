@@ -2,8 +2,8 @@ import Testing
 
 @testable import RobinValidation
 
-@Suite("Runtime state, bindings and actions")
-struct RuntimeStateTests {
+@Suite("Runtime integration")
+struct RuntimeRoundTripTests {
   @Test func bindingAndActionCompleteServerRoundTrip() async throws {
     let store = StateStore()
     try await store.set(1, forKey: "count")

@@ -15,7 +15,3 @@ enum ApplicationMode: Sendable {
     }
   }
 }
-
-enum ApplicationCompositionError: Error {
-  case empty
-}

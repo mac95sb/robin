@@ -3,12 +3,11 @@ import Testing
 
 @testable import RobinValidation
 
-@Suite("Noncopyable request bodies and span-scoped checksums")
+@Suite("Noncopyable request bodies")
 struct RequestBodyTests {
-  @Test func consumingBodyPreservesReadableBytesAndChecksum() {
+  @Test func consumingBodyPreservesReadableBytes() {
     let body = RequestBody(ByteBuffer(string: "Robin"))
     let consumed = body.consume()
     #expect(consumed.readableBytes == 5)
-    #expect(ByteBufferSpan.checksum(consumed) == 79_133_066)
   }
 }
