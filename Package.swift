@@ -20,6 +20,7 @@ let package = Package(
   products: [
     .library(name: "RobinCore", targets: ["RobinCore"]),
     .library(name: "RobinHTML", targets: ["RobinHTML"]),
+    .library(name: "RobinStyle", targets: ["RobinStyle"]),
     .library(name: "RobinRendering", targets: ["RobinRendering"]),
     .library(name: "RobinContent", targets: ["RobinContent"]),
     .library(name: "RobinForms", targets: ["RobinForms"]),
@@ -54,7 +55,11 @@ let package = Package(
       dependencies: ["RobinCore"],
       swiftSettings: upcomingFeatures
     ),
-
+    .target(
+      name: "RobinStyle",
+      dependencies: ["RobinCore", "RobinHTML"],
+      swiftSettings: upcomingFeatures
+    ),
     .macro(
       name: "RobinMacros",
       dependencies: [
@@ -135,6 +140,11 @@ let package = Package(
     .testTarget(
       name: "RobinHTMLTests",
       dependencies: ["RobinCore", "RobinHTML"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinStyleTests",
+      dependencies: ["RobinCore", "RobinHTML", "RobinStyle"],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
