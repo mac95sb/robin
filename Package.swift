@@ -20,6 +20,7 @@ let package = Package(
   products: [
     .library(name: "RobinCore", targets: ["RobinCore"]),
     .library(name: "RobinHTML", targets: ["RobinHTML"]),
+    .library(name: "RobinStyle", targets: ["RobinStyle"]),
   ],
   dependencies: [
     .package(url: "https://github.com/vapor/sqlite-nio.git", from: "1.10.0"),
@@ -43,7 +44,11 @@ let package = Package(
       dependencies: ["RobinCore"],
       swiftSettings: upcomingFeatures
     ),
-
+    .target(
+      name: "RobinStyle",
+      dependencies: ["RobinCore", "RobinHTML"],
+      swiftSettings: upcomingFeatures
+    ),
     .macro(
       name: "RobinMacros",
       dependencies: [
@@ -83,6 +88,11 @@ let package = Package(
     .testTarget(
       name: "RobinHTMLTests",
       dependencies: ["RobinCore", "RobinHTML"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinStyleTests",
+      dependencies: ["RobinCore", "RobinHTML", "RobinStyle"],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(

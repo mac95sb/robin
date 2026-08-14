@@ -1,0 +1,354 @@
+import Foundation
+@_spi(Rendering) import RobinCore
+@_spi(Rendering) import RobinHTML
+
+/// Compiles typed Render IR styles into deterministic CSS.
+///
+/// The compiler operates only on style signatures reachable from the supplied
+/// render tree. Theme tokens are resolved during compilation, so the generated
+/// stylesheet contains concrete CSS values rather than token names.
+public enum StyleCompiler {
+  /// Compiles every nonempty element style signature reachable from a render tree.
+  ///
+  /// Compilation proceeds through these stages:
+  ///
+  /// 1. Traverse elements, fragments, and enhancement content and collect each
+  ///    element's complete, nonempty style signature.
+  /// 2. Normalize each signature so the last declaration for a given CSS
+  ///    property and condition wins, then sort the surviving declarations by
+  ///    layer, condition, and property.
+  /// 3. Deduplicate equal normalized signatures and resolve their color,
+  ///    typography, spacing, radius, and breakpoint tokens against `theme`.
+  ///    Colors under ``Condition/dark`` resolve from ``Theme/darkColors``;
+  ///    all other color declarations resolve from ``Theme/lightColors``.
+  /// 4. Deduplicate signatures that become identical after token resolution and derive each class
+  ///    name from a stable hash of the resolved signature.
+  /// 5. Emit rules globally in base, responsive, state, and mode order, with class names as the
+  ///    deterministic tie breaker, then join them using `mode`'s whitespace format.
+  ///
+  /// Repeated normalized signatures share one class assignment. An element with
+  /// no styles produces no assignment or CSS rule.
+  ///
+  /// - Parameters:
+  ///   - root: The resolved Render IR tree whose reachable styles are compiled.
+  ///   - theme: The design-token values used to resolve declarations and
+  ///     tokenized minimum-width conditions.
+  ///   - mode: The whitespace formatting to use for the emitted stylesheet.
+  /// - Returns: The deterministic class assignments and emitted stylesheet.
+  /// - Throws: A ``ThemeError`` when a collected declaration or condition
+  ///   references a token absent from the applicable theme dictionary.
+  public static func compile(
+    _ root: RobinHTML.RenderNode,
+    theme: Theme,
+    mode: CSSOutputMode
+  ) throws -> CompiledStyles {
+    let signatures = collect(from: root)
+    var resolvedBySignature: [[StyleDeclaration]: ResolvedSignature] = [:]
+
+    for signature in signatures {
+      let normalized = normalized(signature)
+      if resolvedBySignature[normalized] == nil {
+        resolvedBySignature[normalized] = try resolve(normalized, theme: theme)
+      }
+    }
+
+    let resolvedGroups = Dictionary(grouping: resolvedBySignature.keys) {
+      resolvedBySignature[$0]!.canonical
+    }
+    let ordered = resolvedGroups.map { canonical, signatures in
+      let signatures = signatures.sorted {
+        canonicalSourceSignature($0) < canonicalSourceSignature($1)
+      }
+      let resolved = resolvedBySignature[signatures[0]]!
+      return (
+        canonical: canonical,
+        signatures: signatures,
+        resolved: resolved,
+        className: "r-\(stableHash(canonical))"
+      )
+    }.sorted {
+      ($0.className, $0.canonical) < ($1.className, $1.canonical)
+    }
+
+    let separator = mode == .development ? "\n" : ""
+    let css = ordered.flatMap { group in
+      group.resolved.rules(className: group.className, mode: mode)
+    }.sorted(by: ruleOrder).map(\.css).joined(separator: separator)
+
+    return CompiledStyles(
+      assignments: ordered.flatMap { group in
+        group.signatures.map { .init(signature: $0, className: group.className) }
+      },
+      css: css
+    )
+  }
+
+  static func normalized(
+    _ styles: [StyleDeclaration]
+  ) -> [StyleDeclaration] {
+    var declarations: [DeclarationKey: InterpretedStyle] = [:]
+    for style in styles {
+      let interpreted = InterpretedStyle(style)
+      declarations[
+        .init(property: interpreted.property, condition: interpreted.condition)
+      ] = interpreted
+    }
+    return declarations.values.sorted(by: declarationOrder).map(\.source)
+  }
+
+  private static func collect(
+    from node: RobinHTML.RenderNode
+  ) -> [[StyleDeclaration]] {
+    switch node.renderingStorage {
+    case .text: []
+    case .fragment(let children): children.flatMap(collect)
+    case .enhancement(let enhancement): enhancement.content.flatMap(collect)
+    case .element(let element):
+      (element.styles.isEmpty ? [] : [element.styles]) + element.children.flatMap(collect)
+    }
+  }
+
+  private static func resolve(
+    _ styles: [StyleDeclaration],
+    theme: Theme
+  ) throws -> ResolvedSignature {
+    try .init(
+      declarations: styles.map { source in
+        let style = InterpretedStyle(source)
+        return ResolvedDeclaration(
+          property: style.property,
+          value: try resolve(style.value, condition: style.condition, theme: theme),
+          condition: try resolve(style.condition, theme: theme)
+        )
+      })
+  }
+
+  private static func resolve(
+    _ value: StyleValue,
+    condition: StyleCondition,
+    theme: Theme
+  ) throws -> String {
+    switch value {
+    case .keyword(let value): return value
+    case .color(let name):
+      let token = ColorToken(rawValue: name)
+      let palette = condition == .dark ? theme.darkColors : theme.lightColors
+      guard let color = palette[token] else { throw ThemeError.missingColor(token) }
+      return serialize(color)
+    case .spacing(let name):
+      let token = SpacingToken(rawValue: name)
+      guard let value = theme.spacing[token] else { throw ThemeError.missingSpacing(token) }
+      return "\(value)px"
+    case .radius(let name):
+      let token = RadiusToken(rawValue: name)
+      guard let value = theme.radii[token] else { throw ThemeError.missingRadius(token) }
+      return "\(value)px"
+    case .fontFamily(let name):
+      let token = TypographyToken(rawValue: name)
+      guard let value = theme.typography[token] else { throw ThemeError.missingTypography(token) }
+      return "\"\(escapeCSSString(value.family))\""
+    case .fontSize(let name):
+      let token = TypographyToken(rawValue: name)
+      guard let value = theme.typography[token] else { throw ThemeError.missingTypography(token) }
+      return "\(value.size)px"
+    case .fontWeight(let value): return String(value)
+    case .fontWeightToken(let name):
+      let token = TypographyToken(rawValue: name)
+      guard let typography = theme.typography[token] else {
+        throw ThemeError.missingTypography(token)
+      }
+      return String(typography.weight)
+    case .pixels(let value): return "\(max(value, 0))px"
+    }
+  }
+
+  private static func resolve(
+    _ condition: StyleCondition,
+    theme: Theme
+  ) throws -> ResolvedCondition {
+    switch condition {
+    case .always:
+      return .always
+    case .minimumWidth(let width):
+      return .minimumWidth(width)
+    case .minimumWidthToken(let name):
+      let token = BreakpointToken(rawValue: name)
+      guard let width = theme.breakpoints[token] else { throw ThemeError.missingBreakpoint(token) }
+      return .minimumWidth(width)
+    case .hover:
+      return .hover
+    case .focus:
+      return .focus
+    case .dark:
+      return .dark
+    }
+  }
+
+  private static func serialize(_ color: Color) -> String {
+    let lightness = decimal(color.lightness)
+    let chroma = decimal(color.chroma)
+    let hue = decimal(color.hue)
+    if color.alpha == 1 { return "oklch(\(lightness) \(chroma) \(hue))" }
+    return "oklch(\(lightness) \(chroma) \(hue) / \(decimal(color.alpha)))"
+  }
+
+  private static func decimal(_ value: Double) -> String {
+    String(format: "%.4f", locale: Locale(identifier: "en_US_POSIX"), value)
+      .replacingOccurrences(of: #"0+$"#, with: "", options: .regularExpression)
+      .replacingOccurrences(of: #"\.$"#, with: "", options: .regularExpression)
+  }
+
+  private static func escapeCSSString(_ value: String) -> String {
+    var escaped = ""
+    for scalar in value.unicodeScalars {
+      switch scalar {
+      case "\\": escaped += "\\\\"
+      case "\"": escaped += "\\\""
+      case "\n": escaped += "\\A "
+      case "\r": escaped += "\\D "
+      case "\u{000C}": escaped += "\\C "
+      default:
+        if scalar.value < 0x20 || scalar.value == 0x7F {
+          escaped += "\\\(String(scalar.value, radix: 16).uppercased()) "
+        } else {
+          escaped.unicodeScalars.append(scalar)
+        }
+      }
+    }
+    return escaped
+  }
+
+  private static func ruleOrder(_ lhs: ResolvedRule, _ rhs: ResolvedRule) -> Bool {
+    if lhs.condition != rhs.condition {
+      return lhs.condition < rhs.condition
+    }
+    return lhs.className < rhs.className
+  }
+
+  private static func declarationOrder(_ lhs: InterpretedStyle, _ rhs: InterpretedStyle) -> Bool {
+    let left = (lhs.condition.layer.rawValue, lhs.condition.sortKey, lhs.property.rawValue)
+    let right = (rhs.condition.layer.rawValue, rhs.condition.sortKey, rhs.property.rawValue)
+    return left < right
+  }
+
+  private static func canonicalSourceSignature(
+    _ signature: [StyleDeclaration]
+  ) -> String {
+    signature.map { declaration in
+      let payload =
+        switch declaration.payload {
+        case .keyword(let value): "keyword:\(field(value))"
+        case .token(let value): "token:\(field(value))"
+        case .integer(let value): "integer:\(value)"
+        }
+      return "\(field(declaration.property))\(field(payload))\(field(declaration.condition))"
+    }.joined()
+  }
+
+  private static func field(_ value: String) -> String {
+    "\(value.utf8.count):\(value)"
+  }
+
+  private static func stableHash(_ value: String) -> String {
+    var hash: UInt64 = 14_695_981_039_346_656_037
+    for byte in value.utf8 {
+      hash ^= UInt64(byte)
+      hash &*= 1_099_511_628_211
+    }
+    return String(hash, radix: 36)
+  }
+}
+
+private struct DeclarationKey: Hashable {
+  let property: StyleProperty
+  let condition: StyleCondition
+}
+
+private struct ResolvedSignature {
+  let declarations: [ResolvedDeclaration]
+  var canonical: String { declarations.map(\.canonical).joined(separator: ";") }
+
+  func rules(className: String, mode: CSSOutputMode) -> [ResolvedRule] {
+    Dictionary(grouping: declarations, by: \.condition).map { condition, declarations in
+      let space = mode == .development ? " " : ""
+      let newline = mode == .development ? "\n" : ""
+      let body = declarations.map { "\($0.property.rawValue):\(space)\($0.value);" }
+        .joined(separator: newline)
+      let selector = condition.selector(className: className)
+      let rule =
+        mode == .development
+        ? "\(selector) {\n\(body)\n}"
+        : "\(selector){\(body)}"
+      return ResolvedRule(
+        className: className,
+        condition: condition,
+        css: condition.wrap(rule)
+      )
+    }
+  }
+}
+
+private struct ResolvedRule {
+  let className: String
+  let condition: ResolvedCondition
+  let css: String
+}
+
+private struct ResolvedDeclaration {
+  let property: StyleProperty
+  let value: String
+  let condition: ResolvedCondition
+  var canonical: String { "\(condition.key)|\(property.rawValue):\(value)" }
+}
+
+private enum ResolvedCondition: Hashable, Comparable {
+  case always
+  case minimumWidth(Int)
+  case hover
+  case focus
+  case dark
+
+  var key: String {
+    switch self {
+    case .always: "0"
+    case .minimumWidth(let width): "1:\(width)"
+    case .hover: "2:hover"
+    case .focus: "2:focus"
+    case .dark: "3:dark"
+    }
+  }
+
+  static func < (lhs: Self, rhs: Self) -> Bool {
+    switch (lhs, rhs) {
+    case (.always, .always), (.hover, .hover), (.focus, .focus), (.dark, .dark): false
+    case (.minimumWidth(let lhsWidth), .minimumWidth(let rhsWidth)): lhsWidth < rhsWidth
+    default: lhs.rank < rhs.rank
+    }
+  }
+
+  private var rank: Int {
+    switch self {
+    case .always: 0
+    case .minimumWidth: 1
+    case .focus: 2
+    case .hover: 3
+    case .dark: 4
+    }
+  }
+
+  func selector(className: String) -> String {
+    switch self {
+    case .hover: ".\(className):hover"
+    case .focus: ".\(className):focus"
+    default: ".\(className)"
+    }
+  }
+
+  func wrap(_ rule: String) -> String {
+    switch self {
+    case .minimumWidth(let width): "@media (min-width:\(width)px){\(rule)}"
+    case .dark: "@media (prefers-color-scheme:dark){\(rule)}"
+    default: rule
+    }
+  }
+}
