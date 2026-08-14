@@ -19,6 +19,7 @@ let package = Package(
   platforms: [.macOS(.v14)],
   products: [
     .library(name: "RobinCore", targets: ["RobinCore"]),
+    .library(name: "RobinHTML", targets: ["RobinHTML"]),
     .library(name: "RobinRendering", targets: ["RobinRendering"]),
     .library(name: "RobinContent", targets: ["RobinContent"]),
     .library(name: "RobinForms", targets: ["RobinForms"]),
@@ -48,6 +49,12 @@ let package = Package(
       ],
       swiftSettings: lowLevelFeatures
     ),
+    .target(
+      name: "RobinHTML",
+      dependencies: ["RobinCore"],
+      swiftSettings: upcomingFeatures
+    ),
+
     .macro(
       name: "RobinMacros",
       dependencies: [
@@ -123,6 +130,11 @@ let package = Package(
         "RobinCore",
         .product(name: "NIOCore", package: "swift-nio"),
       ],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinHTMLTests",
+      dependencies: ["RobinCore", "RobinHTML"],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
