@@ -18,7 +18,15 @@ let package = Package(
   name: "robin",
   platforms: [.macOS(.v14)],
   products: [
-    .library(name: "RobinCore", targets: ["RobinCore"])
+    .library(name: "RobinCore", targets: ["RobinCore"]),
+    .library(name: "RobinRendering", targets: ["RobinRendering"]),
+    .library(name: "RobinContent", targets: ["RobinContent"]),
+    .library(name: "RobinForms", targets: ["RobinForms"]),
+    .library(name: "RobinRouting", targets: ["RobinRouting"]),
+    .library(name: "RobinRuntime", targets: ["RobinRuntime"]),
+    .library(name: "RobinStyling", targets: ["RobinStyling"]),
+    .library(name: "RobinStreaming", targets: ["RobinStreaming"]),
+    .library(name: "RobinTooling", targets: ["RobinTooling"]),
   ],
   dependencies: [
     .package(url: "https://github.com/vapor/sqlite-nio.git", from: "1.10.0"),
@@ -35,7 +43,10 @@ let package = Package(
   targets: [
     .target(
       name: "RobinCore",
-      swiftSettings: upcomingFeatures
+      dependencies: [
+        .product(name: "NIOCore", package: "swift-nio")
+      ],
+      swiftSettings: lowLevelFeatures
     ),
     .macro(
       name: "RobinMacros",
@@ -57,20 +68,61 @@ let package = Package(
       ]
     ),
     .target(
-      name: "RobinValidation",
+      name: "RobinRendering",
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinContent",
       dependencies: [
-        "RobinMacros",
+        "RobinRendering",
         .product(name: "Markdown", package: "swift-markdown"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinForms",
+      dependencies: ["RobinMacros", "RobinRendering"],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinRouting",
+      dependencies: [
+        "RobinRendering",
+        .product(name: "NIOHTTP1", package: "swift-nio"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinRuntime",
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinStyling",
+      dependencies: [
+        .product(name: "OrderedCollections", package: "swift-collections")
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinStreaming",
+      dependencies: [
+        "RobinRendering",
+        "RobinRouting",
         .product(name: "NIOCore", package: "swift-nio"),
         .product(name: "NIOHTTP1", package: "swift-nio"),
-        .product(name: "OrderedCollections", package: "swift-collections"),
-        .product(name: "SQLiteNIO", package: "sqlite-nio"),
       ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinTooling",
       swiftSettings: lowLevelFeatures
     ),
     .testTarget(
       name: "RobinCoreTests",
-      dependencies: ["RobinCore"],
+      dependencies: [
+        "RobinCore",
+        .product(name: "NIOCore", package: "swift-nio"),
+      ],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
@@ -84,13 +136,51 @@ let package = Package(
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
-      name: "RobinValidationTests",
+      name: "RobinRenderingTests",
+      dependencies: ["RobinRendering"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinContentTests",
+      dependencies: ["RobinContent", "RobinRendering"],
+      resources: [.copy("Fixtures")],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinFormsTests",
+      dependencies: ["RobinForms"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinRoutingTests",
+      dependencies: ["RobinRendering", "RobinRouting"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinRuntimeTests",
+      dependencies: ["RobinRuntime"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinStylingTests",
+      dependencies: ["RobinStyling"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinStreamingTests",
       dependencies: [
-        "RobinValidation",
+        "RobinRendering",
+        "RobinRouting",
+        "RobinStreaming",
         .product(name: "NIOCore", package: "swift-nio"),
         .product(name: "NIOEmbedded", package: "swift-nio"),
         .product(name: "NIOHTTP1", package: "swift-nio"),
       ],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinToolingTests",
+      dependencies: ["RobinTooling"],
       resources: [.copy("Fixtures")],
       swiftSettings: upcomingFeatures
     ),
