@@ -110,7 +110,9 @@ public enum HTMLRenderer {
     _ element: RenderElement,
     styles: (any StyleClassResolving)?
   ) throws -> String {
-    var attributes = element.attributes.map { ($0.name, $0.value) }
+    var attributes: [(name: String, value: String?)] = element.attributes.map {
+      ($0.name, $0.value)
+    }
     if !element.styles.isEmpty {
       guard let className = styles?.className(for: element.styles) else {
         throw RenderDiagnostic.unresolvedStyleDeclarations(element: element.kind)
@@ -118,10 +120,12 @@ public enum HTMLRenderer {
       attributes.append(("class", className))
     }
     let serializedAttributes = attributes.sorted {
-      ($0.0, $0.1) < ($1.0, $1.1)
-    }.map { " \($0.0)=\"\(escape($0.1))\"" }.joined()
+      ($0.name, $0.value ?? "") < ($1.name, $1.value ?? "")
+    }.map { attribute in
+      attribute.value.map { " \(attribute.name)=\"\(escape($0))\"" } ?? " \(attribute.name)"
+    }.joined()
 
-    if element.kind == .input { return "<input\(serializedAttributes)>" }
+    if element.kind.isVoid { return "<\(element.kind.rawValue)\(serializedAttributes)>" }
     let children = try element.children.map { try serialize($0, styles: styles) }.joined()
     return "<\(element.kind.rawValue)\(serializedAttributes)>\(children)</\(element.kind.rawValue)>"
   }
@@ -135,16 +139,27 @@ extension RenderElement.Attribute {
     case .name: "name"
     case .value: "value"
     case .accessibilityLabel: "aria-label"
+    case .href: "href"
+    case .source: "src"
+    case .alternateText: "alt"
+    case .action: "action"
+    case .formMethod: "method"
+    case .labelFor: "for"
+    case .open: "open"
     }
   }
 
-  fileprivate var value: String {
+  /// The serialized attribute value, or `nil` for a bare boolean attribute.
+  fileprivate var value: String? {
     switch self {
     case .identifier(let value), .name(let value), .value(let value),
-      .accessibilityLabel(let value):
+      .accessibilityLabel(let value), .href(let value), .source(let value),
+      .alternateText(let value), .action(let value), .labelFor(let value):
       value
     case .buttonType(let value): value.rawValue
     case .inputType(let value): value.rawValue
+    case .formMethod(let value): value.rawValue
+    case .open: nil
     }
   }
 }

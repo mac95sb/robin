@@ -34,7 +34,10 @@ enum RenderValidator {
           diagnostics.append(.duplicateAttribute(element: element.kind, name: name))
         }
       }
-      if insideButton && (element.kind == .button || element.kind == .input) {
+      if insideButton
+        && (element.kind == .button || element.kind == .input || element.kind == .a
+          || element.kind == .textarea)
+      {
         diagnostics.append(.interactiveElementNestedInButton)
       }
       for child in element.children {
@@ -53,6 +56,13 @@ extension RenderElement.Attribute {
     case .name: "name"
     case .value: "value"
     case .accessibilityLabel: "aria-label"
+    case .href: "href"
+    case .source: "src"
+    case .alternateText: "alt"
+    case .action: "action"
+    case .formMethod: "method"
+    case .labelFor: "for"
+    case .open: "open"
     }
   }
 }

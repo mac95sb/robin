@@ -9,12 +9,32 @@ import RobinCore
 public struct RenderElement: Equatable, Sendable {
   /// The closed set of element kinds emitted by the current component vocabulary.
   public enum Kind: String, Equatable, Sendable {
+    /// A hyperlink.
+    case a
     /// An article landmark.
     case article
+    /// A tangential aside landmark.
+    case aside
+    /// A quoted block of content.
+    case blockquote
     /// An interactive button.
     case button
+    /// An inline or preformatted code fragment.
+    case code
+    /// A disclosure widget.
+    case details
+    /// A modal or non-modal dialog.
+    case dialog
     /// A neutral block-level container used by structural layout components.
     case div
+    /// Emphasized inline text.
+    case em
+    /// Self-contained content with an optional caption.
+    case figure
+    /// The caption for a ``figure`` element.
+    case figcaption
+    /// A form for collecting and submitting user input.
+    case form
     /// A footer landmark.
     case footer
     /// A level-one heading.
@@ -31,18 +51,54 @@ public struct RenderElement: Equatable, Sendable {
     case h6
     /// A header landmark.
     case header
+    /// An image.
+    case img
     /// A form input control.
     case input
+    /// A caption for a form control.
+    case label
+    /// A list item.
+    case li
     /// The document's main landmark.
     case main
     /// A navigation landmark.
     case nav
+    /// An ordered list.
+    case ol
     /// A paragraph.
     case p
+    /// A preformatted text block.
+    case pre
+    /// A search landmark.
+    case search
     /// A thematic section.
     case section
     /// An inline text container.
     case span
+    /// The disclosure summary label for a ``details`` element.
+    case summary
+    /// Strongly emphasized inline text.
+    case strong
+    /// A table.
+    case table
+    /// A table data cell.
+    case td
+    /// A multiline text input control.
+    case textarea
+    /// A table header cell.
+    case th
+    /// A table row.
+    case tr
+    /// An unordered list.
+    case ul
+
+    /// Whether the element never has children and serializes without a closing tag.
+    var isVoid: Bool {
+      switch self {
+      case .img, .input: true
+      default: false
+      }
+    }
   }
 
   /// The closed set of structural attributes understood by the renderer.
@@ -59,6 +115,28 @@ public struct RenderElement: Equatable, Sendable {
     case value(String)
     /// An accessible label for the element.
     case accessibilityLabel(String)
+    /// A hyperlink's destination, serialized as `href`.
+    case href(String)
+    /// A media element's source, serialized as `src`.
+    case source(String)
+    /// An image's alternative text, serialized as `alt`.
+    case alternateText(String)
+    /// A form's submission endpoint, serialized as `action`.
+    case action(String)
+    /// A form's submission method.
+    case formMethod(FormMethod)
+    /// A label's associated control identifier, serialized as `for`.
+    case labelFor(String)
+    /// A disclosure or dialog's expanded/visible state, serialized as the bare `open` attribute.
+    case open
+
+    /// A typed HTML form submission method.
+    public enum FormMethod: String, Equatable, Sendable {
+      /// Submits the form as a URL query string via `GET`.
+      case get
+      /// Submits the form as a request body via `POST`.
+      case post
+    }
 
     /// A typed HTML button behavior.
     public enum ButtonType: String, Equatable, Sendable {
