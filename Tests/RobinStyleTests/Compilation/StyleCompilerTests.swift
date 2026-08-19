@@ -23,9 +23,9 @@ private let theme = Theme(
     .border: Color(lightness: 0.4, chroma: 0.02, hue: 250),
   ],
   typography: [.body: Typography(family: "System", size: 16, weight: 400)],
-  spacing: [.medium: 16],
-  radii: [.medium: 8],
-  breakpoints: [.wide: 960]
+  spacing: [.md: 16],
+  radii: [.md: 8],
+  breakpoints: [.lg: 960]
 )
 
 private enum PropertyKey {
@@ -55,7 +55,7 @@ struct StyleCompilerTests {
   @Test func resolvesTokensDeduplicatesAndIsIndependentOfTraversalOrder() throws {
     let styles = [
       tokenDeclaration(PropertyKey.color, ColorToken.foreground.rawValue),
-      tokenDeclaration(PropertyKey.padding, SpacingToken.medium.rawValue),
+      tokenDeclaration(PropertyKey.padding, SpacingToken.md.rawValue),
     ]
     let first = RobinHTML.RenderNode.fragment([
       .element(.init(kind: .p, styles: styles)),
@@ -109,8 +109,8 @@ struct StyleCompilerTests {
       tokenDeclaration(PropertyKey.color, ColorToken.foreground.rawValue),
       tokenDeclaration(
         PropertyKey.padding,
-        SpacingToken.medium.rawValue,
-        condition: ConditionKey.minimumWidth(.wide)
+        SpacingToken.md.rawValue,
+        condition: ConditionKey.minimumWidth(.lg)
       ),
       tokenDeclaration(
         PropertyKey.color,
@@ -137,7 +137,7 @@ struct StyleCompilerTests {
       lightColors: [:],
       darkColors: [:],
       typography: [:],
-      spacing: [.small: 4, .large: 24],
+      spacing: [.sm: 4, .lg: 24],
       radii: [:],
       breakpoints: [narrow: 80, wide: 960]
     )
@@ -147,12 +147,12 @@ struct StyleCompilerTests {
         styles: [
           tokenDeclaration(
             PropertyKey.padding,
-            SpacingToken.large.rawValue,
+            SpacingToken.lg.rawValue,
             condition: ConditionKey.minimumWidth(wide)
           ),
           tokenDeclaration(
             PropertyKey.padding,
-            SpacingToken.small.rawValue,
+            SpacingToken.sm.rawValue,
             condition: ConditionKey.minimumWidth(narrow)
           ),
         ]

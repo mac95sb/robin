@@ -47,3 +47,58 @@ public struct Theme: Equatable, Sendable {
     self.breakpoints = breakpoints
   }
 }
+
+extension Theme {
+  /// Robin's default theme, implementing the full named token scale.
+  public static let `default` = Theme(
+    lightColors: [
+      .background: Color(lightness: 0.98, chroma: 0.01, hue: 250),
+      .foreground: Color(lightness: 0.2, chroma: 0.02, hue: 250),
+      .accent: Color(lightness: 0.55, chroma: 0.18, hue: 250),
+      .border: Color(lightness: 0.85, chroma: 0.02, hue: 250),
+    ],
+    darkColors: [
+      .background: Color(lightness: 0.15, chroma: 0.01, hue: 250),
+      .foreground: Color(lightness: 0.95, chroma: 0.01, hue: 250),
+      .accent: Color(lightness: 0.7, chroma: 0.16, hue: 250),
+      .border: Color(lightness: 0.35, chroma: 0.02, hue: 250),
+    ],
+    typography: [
+      .body: Typography(family: "system-ui", size: 16, weight: 400),
+      .heading: Typography(family: "system-ui", size: 32, weight: 700),
+    ],
+    spacing: [
+      .xs: 4,
+      .sm: 8,
+      .md: 16,
+      .lg: 24,
+      .xl: 32,
+      .xxl: 48,
+    ],
+    radii: [
+      .xs: 2,
+      .sm: 4,
+      .md: 8,
+      .lg: 12,
+      .xl: 16,
+      .full: 9999,
+    ],
+    shadows: [
+      .sm: Shadow(
+        color: Color(lightness: 0.15, chroma: 0.02, hue: 250, alpha: 0.08), radius: 2, y: 1),
+      .md: Shadow(
+        color: Color(lightness: 0.15, chroma: 0.02, hue: 250, alpha: 0.1), radius: 6, y: 3),
+      .lg: Shadow(
+        color: Color(lightness: 0.15, chroma: 0.02, hue: 250, alpha: 0.12), radius: 12, y: 6),
+      .xl: Shadow(
+        color: Color(lightness: 0.15, chroma: 0.02, hue: 250, alpha: 0.14), radius: 20, y: 10),
+    ],
+    breakpoints: [
+      .sm: 640,
+      .md: 768,
+      .lg: 1024,
+      .xl: 1280,
+      .xxl: 1536,
+    ]
+  )
+}

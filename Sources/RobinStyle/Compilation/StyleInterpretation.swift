@@ -8,6 +8,7 @@ enum StyleProperty: String, Hashable {
   case borderStyle = "border-style"
   case borderWidth = "border-width"
   case color
+  case contentVisibility = "content-visibility"
   case display
   case flexDirection = "flex-direction"
   case fontFamily = "font-family"
