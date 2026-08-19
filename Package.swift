@@ -115,6 +115,7 @@ let package = Package(
     ),
     .target(
       name: "RobinTooling",
+      dependencies: ["RobinCore"],
       swiftSettings: lowLevelFeatures
     ),
     .testTarget(
@@ -180,7 +181,7 @@ let package = Package(
     ),
     .testTarget(
       name: "RobinToolingTests",
-      dependencies: ["RobinTooling"],
+      dependencies: ["RobinCore", "RobinTooling"],
       resources: [.copy("Fixtures")],
       swiftSettings: upcomingFeatures
     ),
