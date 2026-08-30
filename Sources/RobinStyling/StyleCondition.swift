@@ -17,6 +17,15 @@ public enum StyleCondition: Equatable, Hashable, Sendable {
   /// - Parameter selector: The raw selector passed to `:has(...)`.
   case has(String)
 
+  /// Applies the declarations while a disclosure element is expanded.
+  case disclosureOpen
+
+  /// Applies the declarations while a popover is showing.
+  case popoverOpen
+
+  /// Applies the declarations while a dialog is open.
+  case dialogOpen
+
   /// Applies the declarations at or above a minimum inline-size, scoped to the nearest
   /// containment ancestor via `@container`.
   case containerMinWidth(Int)
@@ -33,6 +42,9 @@ public enum StyleCondition: Equatable, Hashable, Sendable {
     switch self {
     case .always: "always"
     case .has(let selector): "has:\(selector)"
+    case .disclosureOpen: "disclosure-open"
+    case .popoverOpen: "popover-open"
+    case .dialogOpen: "dialog-open"
     case .containerMinWidth(let width): "container:\(width)"
     case .pageMinWidth(let width): "page:\(width)"
     case .startingStyle: "starting-style"

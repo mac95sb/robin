@@ -34,4 +34,24 @@ struct ExtendedPropertiesTests {
     #expect(result.css.contains("anchor-name:--card-anchor"))
     #expect(result.css.contains("position-anchor:--card-anchor"))
   }
+
+  @Test func scrollDrivenAnimationPropertiesCompile() throws {
+    let style = TypedStyle([
+      .init(.scrollTimelineName, "--page-scroll"),
+      .init(.viewTimelineName, "--card-view"),
+      .init(.animationTimeline, "--page-scroll"),
+    ])
+
+    let result = try TypedCSSCompiler.compile([style])
+
+    #expect(result.css.contains("animation-timeline:--page-scroll"))
+    #expect(result.css.contains("scroll-timeline-name:--page-scroll"))
+    #expect(result.css.contains("view-timeline-name:--card-view"))
+  }
+
+  @Test func crossDocumentViewTransitionsCompileWithoutRuntime() throws {
+    let result = try TypedCSSCompiler.compile([], viewTransitions: .enabled)
+
+    #expect(result.css == "@view-transition{navigation:auto}")
+  }
 }

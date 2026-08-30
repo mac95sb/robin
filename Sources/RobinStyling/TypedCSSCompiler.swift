@@ -16,13 +16,15 @@ public enum TypedCSSCompiler {
   /// - Parameters:
   ///   - styles: The styles to compile, in order.
   ///   - animations: The typed keyframe animations to compile, in any order.
+  ///   - viewTransitions: Whether cross-document View Transitions are enabled.
   /// - Returns: The generated class names (one per input style, in order) and the deduplicated
   ///   stylesheet.
   /// - Throws: ``TypedCSSCompilerError/missingContainmentAncestor`` when a style conditioned on
   ///   ``StyleCondition/containerMinWidth(_:)`` has no declared containment ancestor.
   public static func compile(
     _ styles: [TypedStyle],
-    animations: [KeyframeAnimation] = []
+    animations: [KeyframeAnimation] = [],
+    viewTransitions: ViewTransitionNavigation = .disabled
   ) throws -> CompiledStyles {
     var rules:
       OrderedDictionary<String, (declarations: [StyleDeclaration], condition: StyleCondition)> = [:]
@@ -52,7 +54,14 @@ public enum TypedCSSCompiler {
 
     let keyframesCSS = animations.sorted { $0.name < $1.name }.map(emit).joined(separator: "\n")
 
-    let css = [classCSS, keyframesCSS].filter { !$0.isEmpty }.joined(separator: "\n")
+    let viewTransitionCSS =
+      switch viewTransitions {
+      case .disabled: ""
+      case .enabled: "@view-transition{navigation:auto}"
+      }
+
+    let css = [classCSS, keyframesCSS, viewTransitionCSS].filter { !$0.isEmpty }.joined(
+      separator: "\n")
 
     return CompiledStyles(classNames: classNames, css: css)
   }
@@ -62,11 +71,11 @@ public enum TypedCSSCompiler {
     case .always:
       return rule
     case .has(let selector):
-      // The relational pseudo-class is appended to the generated selector itself.
-      guard let closingBrace = rule.firstIndex(of: "{") else { return rule }
-      let selectorPart = rule[rule.startIndex..<closingBrace]
-      let bodyPart = rule[closingBrace...]
-      return "\(selectorPart):has(\(selector))\(bodyPart)"
+      return append(":has(\(selector))", toSelectorIn: rule)
+    case .disclosureOpen, .dialogOpen:
+      return append("[open]", toSelectorIn: rule)
+    case .popoverOpen:
+      return append(":popover-open", toSelectorIn: rule)
     case .containerMinWidth(let width):
       return "@container (min-width:\(width)px){\(rule)}"
     case .pageMinWidth(let width):
@@ -74,6 +83,11 @@ public enum TypedCSSCompiler {
     case .startingStyle:
       return "@starting-style{\(rule)}"
     }
+  }
+
+  private static func append(_ suffix: String, toSelectorIn rule: String) -> String {
+    guard let closingBrace = rule.firstIndex(of: "{") else { return rule }
+    return "\(rule[..<closingBrace])\(suffix)\(rule[closingBrace...])"
   }
 
   private static func emit(_ animation: KeyframeAnimation) -> String {

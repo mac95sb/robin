@@ -48,4 +48,20 @@ struct StyleConditionTests {
 
     #expect(result.classNames[0] != result.classNames[1])
   }
+
+  @Test(
+    "Native open states lower without client runtime",
+    arguments: [
+      (StyleCondition.disclosureOpen, "[open]"),
+      (StyleCondition.popoverOpen, ":popover-open"),
+      (StyleCondition.dialogOpen, "[open]"),
+    ]
+  )
+  func nativeOpenStateLowers(condition: StyleCondition, selector: String) throws {
+    let style = TypedStyle([.init(.display, "block")], condition: condition)
+
+    let result = try TypedCSSCompiler.compile([style])
+
+    #expect(result.css.contains("\(selector){display:block}"))
+  }
 }
