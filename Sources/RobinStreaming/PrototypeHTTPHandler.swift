@@ -1,7 +1,7 @@
 import NIOCore
 import NIOHTTP1
 import RobinRendering
-import RobinRouting
+import RobinRoutingValidation
 
 /// A validation-only NIO handler that routes request heads and streams rendered HTML.
 ///

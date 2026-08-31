@@ -17,9 +17,9 @@ struct StyleCompilerTests {
     TypedStyle([.init(.display, "grid"), .init(.gap, "0.5rem")]),
   ]
 
-  @Test func normalizesDeduplicatesOrdersAndEmitsByteStableCSS() {
-    let first = TypedCSSCompiler.compile(styles)
-    let second = TypedCSSCompiler.compile(styles.reversed())
+  @Test func normalizesDeduplicatesOrdersAndEmitsByteStableCSS() throws {
+    let first = try TypedCSSCompiler.compile(styles)
+    let second = try TypedCSSCompiler.compile(styles.reversed())
 
     #expect(first.css == second.css)
     #expect(first.classNames[0] == first.classNames[1])

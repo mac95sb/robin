@@ -2,7 +2,7 @@ import NIOCore
 import NIOEmbedded
 import NIOHTTP1
 import RobinRendering
-import RobinRouting
+import RobinRoutingValidation
 import Testing
 
 @testable import RobinStreaming
