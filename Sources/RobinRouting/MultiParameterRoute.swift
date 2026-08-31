@@ -1,4 +1,33 @@
-extension Route {
+extension RouteDefinition {
+  /// Appends another heterogeneous parameter to this route, allowing arbitrary typed composition.
+  public func appending<Next: Sendable>(
+    _ literals: [String] = [],
+    parameter: PathParameter<Next>,
+    suffix: [String] = []
+  ) -> RouteDefinition<(Value, Next)> {
+    let nextRoute = RouteDefinition<Next>.path(literals, parameter: parameter, suffix: suffix)
+    let firstCount = pattern.segments.count
+    let combinedPattern = RoutePattern(pattern.segments + nextRoute.pattern.segments)
+
+    return RouteDefinition<(Value, Next)>(
+      metadata: metadata,
+      pattern: combinedPattern,
+      match: { components in
+        guard components.count == combinedPattern.segments.count else { return nil }
+        let firstPath = "/" + components.prefix(firstCount).joined(separator: "/")
+        let nextPath = "/" + components.dropFirst(firstCount).joined(separator: "/")
+        guard let first = self.match(firstPath), let next = nextRoute.match(nextPath) else {
+          return nil
+        }
+        return (first, next)
+      },
+      generate: { value in
+        self.url(for: value.0).split(separator: "/").map(String.init)
+          + nextRoute.url(for: value.1).split(separator: "/").map(String.init)
+      }
+    )
+  }
+
   /// Creates a route with two heterogeneous typed path parameters.
   public static func path<First, Second>(
     _ prefix: [String] = [],
@@ -7,13 +36,17 @@ extension Route {
     second: PathParameter<Second>,
     suffix: [String] = [],
     metadata: RouteMetadata = .init()
-  ) -> Route<(First, Second)> where Value == (First, Second), First: Sendable, Second: Sendable {
-    let firstRoute = Route<First>.path(prefix, parameter: first, suffix: middle)
-    let secondRoute = Route<Second>.path([], parameter: second, suffix: suffix)
+  ) -> RouteDefinition<(First, Second)>
+  where
+    Value == (First, Second), First: Sendable,
+    Second: Sendable
+  {
+    let firstRoute = RouteDefinition<First>.path(prefix, parameter: first, suffix: middle)
+    let secondRoute = RouteDefinition<Second>.path([], parameter: second, suffix: suffix)
     let firstCount = firstRoute.pattern.segments.count
     let pattern = RoutePattern(firstRoute.pattern.segments + secondRoute.pattern.segments)
 
-    return Route<(First, Second)>(
+    return RouteDefinition<(First, Second)>(
       metadata: metadata,
       pattern: pattern,
       match: { components in

@@ -22,10 +22,22 @@ public struct RoutePattern: Equatable, Sendable {
 public struct RegisteredRoute: Equatable, Sendable {
   public let identifier: String
   public let pattern: RoutePattern
+  public let metadata: RouteMetadata
+  public let method: OpenAPIDocument.Method?
+  public let version: Version?
 
-  public init(_ identifier: String, pattern: RoutePattern) {
+  public init(
+    _ identifier: String,
+    pattern: RoutePattern,
+    metadata: RouteMetadata = .init(),
+    method: OpenAPIDocument.Method? = nil,
+    version: Version? = nil
+  ) {
     self.identifier = identifier
     self.pattern = pattern
+    self.metadata = metadata
+    self.method = method
+    self.version = version
   }
 }
 
@@ -39,7 +51,7 @@ public enum RouteConflictDetector {
   private final class Node {
     var literals: [String: Node] = [:]
     var parameter: Node?
-    var owner: String?
+    var owners: [String: String] = [:]
   }
 
   public static func validate(_ routes: [RegisteredRoute]) throws {
@@ -56,8 +68,11 @@ public enum RouteConflictDetector {
           node = node.parameter!
         }
       }
-      if let owner = node.owner { throw RouteConflict(first: owner, second: route.identifier) }
-      node.owner = route.identifier
+      let key = route.method?.rawValue ?? "*"
+      let conflict =
+        node.owners["*"] ?? node.owners[key] ?? (key == "*" ? node.owners.values.first : nil)
+      if let conflict { throw RouteConflict(first: conflict, second: route.identifier) }
+      node.owners[key] = route.identifier
     }
   }
 }

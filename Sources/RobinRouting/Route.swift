@@ -5,7 +5,7 @@ import RobinCore
 ///
 /// A route applies the same literal segments and parameter codec in both directions, keeping
 /// accepted paths and generated URLs aligned.
-public struct Route<Value: Sendable>: Sendable {
+public struct RouteDefinition<Value: Sendable>: Sendable {
   /// Descriptive route metadata available to build and API tooling.
   public let metadata: RouteMetadata
   public let pattern: RoutePattern
@@ -134,7 +134,7 @@ public struct Route<Value: Sendable>: Sendable {
   }
 }
 
-extension Route where Value == Void {
+extension RouteDefinition where Value == Void {
   /// Creates a route containing only literal path segments.
   ///
   /// Empty leading and trailing literals are ignored so generated URLs match the same paths they
@@ -170,10 +170,7 @@ extension CharacterSet {
   )
 }
 
-extension Route: ApplicationRoute {
-  public var applicationRouteIdentifier: String {
-    metadata.operationID ?? pattern.openAPIPath
-  }
+extension RouteDefinition: Route {}
 
-  public var isAPIRoute: Bool { false }
-}
+/// A concise compatibility name for a typed route definition.
+public typealias TypedRoute<Value: Sendable> = RouteDefinition<Value>
