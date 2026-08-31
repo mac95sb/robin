@@ -1,5 +1,5 @@
 import RobinCore
-import RobinHTML
+@_spi(Rendering) import RobinHTML
 import Testing
 
 private struct TestRoute: ApplicationRoute {
@@ -14,4 +14,18 @@ private struct APIOnlyApplication: Application {
 
 @Test func applicationWithRoutesInfersAPIMode() throws {
   #expect(try APIOnlyApplication().mode == .api)
+}
+
+@Test func clientNavigationIsRejectedForAPIApplications() {
+  struct App: Application {
+    var metadata: Metadata { Metadata() }
+    var clientNavigation: ClientNavigation { .enabled }
+    var routes: some Routes { TestRoute() }
+  }
+
+  #expect(
+    throws: ApplicationCompositionError.clientNavigationRequiresStaticSite(.api)
+  ) {
+    try App().clientNavigationRuntime
+  }
 }

@@ -53,4 +53,17 @@ extension Application {
       try ApplicationMode(hasViews: !pages.pages.isEmpty, hasControllers: !routes.routes.isEmpty)
     }
   }
+
+  /// Resolves the optional client-navigation module after validating the inferred mode.
+  @_spi(Rendering)
+  public var clientNavigationRuntime: String? {
+    get throws {
+      guard clientNavigation == .enabled else { return nil }
+      let mode = try mode
+      guard mode == .static else {
+        throw ApplicationCompositionError.clientNavigationRequiresStaticSite(mode)
+      }
+      return clientNavigation.runtimeModule
+    }
+  }
 }

@@ -1,5 +1,5 @@
 import RobinCore
-import RobinHTML
+@_spi(Rendering) import RobinHTML
 import Testing
 
 @Suite("Application")
@@ -30,6 +30,20 @@ struct ApplicationTests {
     }
 
     #expect(App().clientNavigation == .automatic)
+  }
+
+  @Test func enabledStaticNavigationProducesCapabilityScopedRuntime() throws {
+    struct App: Application {
+      var metadata: Metadata { Metadata() }
+      var clientNavigation: ClientNavigation { .enabled }
+      var pages: some Pages { HomePage() }
+    }
+
+    let module = try #require(try App().clientNavigationRuntime)
+    #expect(module.contains("fetch(url"))
+    #expect(module.contains("history.pushState"))
+    #expect(module.contains("document.startViewTransition"))
+    #expect(module.contains("popstate"))
   }
 
   @Test func pagesBuilderCollectsMultiplePagesInSourceOrder() throws {
