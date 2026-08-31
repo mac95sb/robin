@@ -25,6 +25,8 @@ public indirect enum Condition: Equatable, Hashable, Sendable {
   case checked
   case open
   case has(String)
+  case containerMinimumWidth(BreakpointToken)
+  case startingStyle
   case and(Condition, Condition)
   case or(Condition, Condition)
   case not(Condition)

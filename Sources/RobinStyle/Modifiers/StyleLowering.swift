@@ -51,6 +51,8 @@ extension Condition {
     case .hover: .hover
     case .focus: .focus
     case .dark: .dark
+    case .containerMinimumWidth(let token): .containerMinimumWidthToken(token.rawValue)
+    case .startingStyle: .startingStyle
     case .below, .between, .checked, .open, .has, .and, .or, .not:
       .expression(encoded)
     }
@@ -71,6 +73,8 @@ extension Condition {
     case .and(let lhs, let rhs): "and:\(lhs.encoded.utf8.count):\(lhs.encoded)\(rhs.encoded)"
     case .or(let lhs, let rhs): "or:\(lhs.encoded.utf8.count):\(lhs.encoded)\(rhs.encoded)"
     case .not(let value): "not:\(value.encoded)"
+    case .containerMinimumWidth(let token): "container-min:\(token.rawValue)"
+    case .startingStyle: "starting-style"
     }
   }
 }

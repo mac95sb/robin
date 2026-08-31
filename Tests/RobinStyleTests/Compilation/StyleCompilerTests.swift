@@ -123,7 +123,7 @@ struct StyleCompilerTests {
     let result = try StyleCompiler.compile(root, theme: theme, mode: .development)
 
     #expect(result.css.contains("\n"))
-    let base = try #require(result.css.range(of: ".r-"))
+    let base = try #require(result.css.range(of: ".r1-"))
     let responsive = try #require(result.css.range(of: "@media (min-width:960px)"))
     let mode = try #require(result.css.range(of: "@media (prefers-color-scheme:dark)"))
     #expect(base.lowerBound < responsive.lowerBound)

@@ -1,13 +1,18 @@
 @_spi(Rendering) import RobinCore
 
 enum StyleProperty: String, Hashable {
+  case anchorName = "anchor-name"
   case alignItems = "align-items"
+  case animationDuration = "animation-duration"
+  case animationName = "animation-name"
+  case animationTimeline = "animation-timeline"
   case backgroundColor = "background-color"
   case borderColor = "border-color"
   case borderRadius = "border-radius"
   case borderStyle = "border-style"
   case borderWidth = "border-width"
   case color
+  case containerType = "container-type"
   case contentVisibility = "content-visibility"
   case display
   case flexDirection = "flex-direction"
@@ -26,6 +31,11 @@ enum StyleProperty: String, Hashable {
   case gridTemplateRows = "grid-template-rows"
   case justifyContent = "justify-content"
   case padding
+  case positionAnchor = "position-anchor"
+  case scrollTimelineName = "scroll-timeline-name"
+  case top
+  case transitionBehavior = "transition-behavior"
+  case viewTimelineName = "view-timeline-name"
   case boxShadow = "box-shadow"
   case margin
   case width
@@ -103,6 +113,8 @@ enum StyleCondition: Hashable {
   case focus
   case dark
   case expression(String)
+  case containerMinimumWidthToken(String)
+  case startingStyle
 
   init(key: String) {
     switch key {
@@ -110,9 +122,12 @@ enum StyleCondition: Hashable {
     case "hover": self = .hover
     case "focus": self = .focus
     case "dark": self = .dark
+    case "starting-style": self = .startingStyle
     default:
       if let value = key.removingPrefix("minimum-width-token:") {
         self = .minimumWidthToken(value)
+      } else if let value = key.removingPrefix("container-minimum-width-token:") {
+        self = .containerMinimumWidthToken(value)
       } else if let value = key.removingPrefix("minimum-width:"), let width = Int(value) {
         self = .minimumWidth(width)
       } else if let value = key.removingPrefix("expression:") {
@@ -132,16 +147,18 @@ enum StyleCondition: Hashable {
     case .focus: "focus"
     case .dark: "dark"
     case .expression(let value): "expression:\(value)"
+    case .containerMinimumWidthToken(let name): "container-minimum-width-token:\(name)"
+    case .startingStyle: "starting-style"
     }
   }
 
   var layer: StyleLayer {
     switch self {
     case .always: .base
-    case .minimumWidth, .minimumWidthToken: .responsive
+    case .minimumWidth, .minimumWidthToken, .containerMinimumWidthToken: .responsive
     case .hover, .focus: .state
     case .dark: .mode
-    case .expression: .state
+    case .expression, .startingStyle: .state
     }
   }
 
@@ -154,6 +171,8 @@ enum StyleCondition: Hashable {
     case .hover: "2:hover"
     case .dark: "3:dark"
     case .expression(let value): "2:expression:\(value)"
+    case .containerMinimumWidthToken(let name): "1:container:\(name)"
+    case .startingStyle: "2:starting-style"
     }
   }
 }

@@ -1,5 +1,6 @@
 import SwiftCompilerPlugin
 import SwiftSyntax
+import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
 enum FieldNameMacroError: Error, CustomStringConvertible {
@@ -25,7 +26,20 @@ public struct FieldNameMacro: ExpressionMacro {
   }
 }
 
+/// Adds the typed color-token-set conformance to a string-backed enum.
+public struct ColorTokenSetMacro: ExtensionMacro {
+  public static func expansion(
+    of node: AttributeSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    [try ExtensionDeclSyntax("extension \(type.trimmed): ColorTokenSetDefinition {}")]
+  }
+}
+
 @main
 struct RobinMacrosPlugin: CompilerPlugin {
-  let providingMacros: [Macro.Type] = [FieldNameMacro.self]
+  let providingMacros: [Macro.Type] = [FieldNameMacro.self, ColorTokenSetMacro.self]
 }

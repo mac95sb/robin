@@ -19,4 +19,5 @@ public enum ThemeError: Error, Equatable, Sendable {
   case missingBreakpoint(BreakpointToken)
   case missingShadow(ShadowToken)
   case invalidCondition(String)
+  case missingContainmentAncestor
 }

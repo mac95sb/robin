@@ -59,7 +59,7 @@ let package = Package(
     ),
     .target(
       name: "RobinStyle",
-      dependencies: ["RobinCore", "RobinHTML"],
+      dependencies: ["RobinCore", "RobinHTML", "RobinMacros"],
       swiftSettings: upcomingFeatures
     ),
     .macro(
@@ -67,6 +67,7 @@ let package = Package(
       dependencies: [
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
       ],
       swiftSettings: lowLevelFeatures

@@ -40,9 +40,11 @@ public enum StyleCompiler {
   public static func compile(
     _ root: RobinHTML.RenderNode,
     theme: Theme,
-    mode: CSSOutputMode
+    mode: CSSOutputMode,
+    animations: [KeyframeAnimation] = [],
+    viewTransitions: ViewTransitionNavigation = .disabled
   ) throws -> CompiledStyles {
-    let signatures = collect(from: root)
+    let signatures = try collect(from: root, hasContainmentAncestor: false)
     var resolvedBySignature: [[StyleDeclaration]: ResolvedSignature] = [:]
 
     for signature in signatures {
@@ -64,16 +66,30 @@ public enum StyleCompiler {
         canonical: canonical,
         signatures: signatures,
         resolved: resolved,
-        className: "r-\(stableHash(canonical))"
+        className: "r1-\(stableHash(canonical))"
       )
     }.sorted {
       ($0.className, $0.canonical) < ($1.className, $1.canonical)
     }
 
+    var owners: [String: String] = [:]
+    for group in ordered {
+      if let owner = owners[group.className], owner != group.canonical {
+        throw StyleCompilerError.selectorCollision(group.className)
+      }
+      owners[group.className] = group.canonical
+    }
+
     let separator = mode == .development ? "\n" : ""
-    let css = ordered.flatMap { group in
+    let rules = ordered.flatMap { group in
       group.resolved.rules(className: group.className, mode: mode)
-    }.sorted(by: ruleOrder).map(\.css).joined(separator: separator)
+    }.sorted(by: ruleOrder).map(\.css)
+    let keyframes = Dictionary(grouping: animations, by: \.name).values.compactMap(\.first)
+      .sorted { $0.name < $1.name }.map(\.css)
+    let viewTransitionCSS =
+      viewTransitions == .enabled ? "@view-transition{navigation:auto}" : nil
+    let css = (rules + keyframes + [viewTransitionCSS].compactMap { $0 }).joined(
+      separator: separator)
 
     return CompiledStyles(
       assignments: ordered.flatMap { group in
@@ -97,14 +113,37 @@ public enum StyleCompiler {
   }
 
   private static func collect(
-    from node: RobinHTML.RenderNode
-  ) -> [[StyleDeclaration]] {
+    from node: RobinHTML.RenderNode,
+    hasContainmentAncestor: Bool
+  ) throws -> [[StyleDeclaration]] {
     switch node.renderingStorage {
-    case .text: []
-    case .fragment(let children): children.flatMap(collect)
-    case .enhancement(let enhancement): enhancement.content.flatMap(collect)
+    case .text: return []
+    case .fragment(let children):
+      return try children.flatMap {
+        try collect(from: $0, hasContainmentAncestor: hasContainmentAncestor)
+      }
+    case .enhancement(let enhancement):
+      return try enhancement.content.flatMap {
+        try collect(from: $0, hasContainmentAncestor: hasContainmentAncestor)
+      }
     case .element(let element):
-      (element.styles.isEmpty ? [] : [element.styles]) + element.children.flatMap(collect)
+      if !hasContainmentAncestor,
+        element.styles.contains(where: {
+          $0.condition.hasPrefix("container-minimum-width-token:")
+        })
+      {
+        throw ThemeError.missingContainmentAncestor
+      }
+      let declaresContainment = element.styles.contains {
+        $0.property == StyleProperty.containerType.rawValue
+          && $0.payload != .keyword(ContainerType.normal.rawValue)
+      }
+      return (element.styles.isEmpty ? [] : [element.styles])
+        + (try element.children.flatMap {
+          try collect(
+            from: $0,
+            hasContainmentAncestor: hasContainmentAncestor || declaresContainment)
+        })
     }
   }
 
@@ -189,6 +228,12 @@ public enum StyleCompiler {
     case .expression(let value):
       let resolved = try ConditionExpression.parse(value).resolve(theme: theme)
       return .expression(media: resolved.media, selector: resolved.selector)
+    case .containerMinimumWidthToken(let name):
+      let token = BreakpointToken(rawValue: name)
+      guard let width = theme.breakpoints[token] else { throw ThemeError.missingBreakpoint(token) }
+      return .containerMinimumWidth(width)
+    case .startingStyle:
+      return .startingStyle
     }
   }
 
@@ -316,6 +361,8 @@ private enum ResolvedCondition: Hashable, Comparable {
   case focus
   case dark
   case expression(media: String?, selector: String)
+  case containerMinimumWidth(Int)
+  case startingStyle
 
   var key: String {
     switch self {
@@ -325,6 +372,8 @@ private enum ResolvedCondition: Hashable, Comparable {
     case .focus: "2:focus"
     case .dark: "3:dark"
     case .expression(let media, let selector): "2:\(media ?? ""):\(selector)"
+    case .containerMinimumWidth(let width): "1:container:\(width)"
+    case .startingStyle: "2:starting-style"
     }
   }
 
@@ -334,6 +383,8 @@ private enum ResolvedCondition: Hashable, Comparable {
     case (.minimumWidth(let lhsWidth), .minimumWidth(let rhsWidth)): lhsWidth < rhsWidth
     case (.expression(let lhsMedia, let lhsSelector), .expression(let rhsMedia, let rhsSelector)):
       (lhsMedia ?? "", lhsSelector) < (rhsMedia ?? "", rhsSelector)
+    case (.containerMinimumWidth(let lhsWidth), .containerMinimumWidth(let rhsWidth)):
+      lhsWidth < rhsWidth
     default: lhs.rank < rhs.rank
     }
   }
@@ -346,6 +397,8 @@ private enum ResolvedCondition: Hashable, Comparable {
     case .hover: 3
     case .dark: 4
     case .expression: 2
+    case .containerMinimumWidth: 1
+    case .startingStyle: 2
     }
   }
 
@@ -363,6 +416,8 @@ private enum ResolvedCondition: Hashable, Comparable {
     case .minimumWidth(let width): "@media (min-width:\(width)px){\(rule)}"
     case .dark: "@media (prefers-color-scheme:dark){\(rule)}"
     case .expression(let media, _): media.map { "@media \($0){\(rule)}" } ?? rule
+    case .containerMinimumWidth(let width): "@container (min-width:\(width)px){\(rule)}"
+    case .startingStyle: "@starting-style{\(rule)}"
     default: rule
     }
   }
