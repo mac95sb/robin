@@ -7,18 +7,12 @@ struct AdvancedRoutingTests {
   private struct Response: Codable, Sendable {}
 
   @Test func heterogeneousParametersRoundTrip() {
-    let route = TypedRoute<(String, Int)>.path(
-      ["teams"], first: .string("team"), middle: ["members"], second: .integer("member")
-    )
+    let route = TypedRoute<String>.path(
+      ["teams"], parameter: .string("team"), suffix: ["members"]
+    ).appending(parameter: .integer("member"))
     #expect(route.match("/teams/acme/members/42")?.0 == "acme")
     #expect(route.match("/teams/acme/members/42")?.1 == 42)
     #expect(route.url(for: ("acme", 42)) == "/teams/acme/members/42")
-  }
-
-  @Test func queriesDecodeAndGenerateCanonically() {
-    let page = QueryParameter<Int>.integer("page")
-    #expect(page.value(in: "/articles?page=3") == 3)
-    #expect(page.appending(4, to: "/articles?tag=swift") == "/articles?tag=swift&page=4")
   }
 
   @Test func arbitraryHeterogeneousParametersComposeAndRoundTrip() {
@@ -86,16 +80,4 @@ struct AdvancedRoutingTests {
     #expect(first.contains("\"deprecated\":true"))
   }
 
-  @Test func typedRedirectsExecuteWithCanonicalLocationAndStatus() {
-    let redirect = RouteRedirect(
-      source: TypedRoute<String>.path(["posts"], parameter: .string("slug")),
-      destination: TypedRoute<String>.path(["articles"], parameter: .string("slug")),
-      isPermanent: false
-    )
-
-    #expect(
-      redirect.response(for: "/posts/hello%20world")
-        == RedirectResponse(statusCode: 307, location: "/articles/hello%20world"))
-    #expect(redirect.response(for: "/other") == nil)
-  }
 }

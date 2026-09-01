@@ -9,7 +9,7 @@ struct AdvancedCSSModifierTests {
       Text { "Responsive" }.padding(.md, on: .containerMinimumWidth(.md))
     }.containerType(.inlineSize)
     let compiled = try StyleCompiler.compile(
-      ComponentResolver.resolve(valid), theme: .default, mode: .production)
+      .fragment(valid.body.nodes), theme: .default, mode: .production)
 
     #expect(compiled.css.contains("container-type:inline-size"))
     #expect(compiled.css.contains("@container (min-width:768px)"))
@@ -17,7 +17,7 @@ struct AdvancedCSSModifierTests {
     let invalid = Text { "Orphan" }.padding(.md, on: .containerMinimumWidth(.md))
     #expect(throws: ThemeError.missingContainmentAncestor) {
       try StyleCompiler.compile(
-        ComponentResolver.resolve(invalid), theme: .default, mode: .production)
+        .fragment(invalid.body.nodes), theme: .default, mode: .production)
     }
   }
 
@@ -39,7 +39,7 @@ struct AdvancedCSSModifierTests {
     }.anchor(anchor).scrollTimeline(timeline)
 
     let compiled = try StyleCompiler.compile(
-      ComponentResolver.resolve(component),
+      .fragment(component.body.nodes),
       theme: .default,
       mode: .production,
       animations: [animation],
@@ -60,7 +60,7 @@ struct AdvancedCSSModifierTests {
   @Test func generatedSelectorsCarryAnExplicitVersion() throws {
     let component = Text { "Versioned" }.padding(.sm)
     let compiled = try StyleCompiler.compile(
-      ComponentResolver.resolve(component), theme: .default, mode: .production)
+      .fragment(component.body.nodes), theme: .default, mode: .production)
     #expect(compiled.css.hasPrefix(".r1-"))
   }
 }

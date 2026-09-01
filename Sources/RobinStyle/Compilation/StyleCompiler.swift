@@ -12,7 +12,7 @@ public enum StyleCompiler {
   ///
   /// Compilation proceeds through these stages:
   ///
-  /// 1. Traverse elements, fragments, and enhancement content and collect each
+  /// 1. Traverse elements and fragments and collect each
   ///    element's complete, nonempty style signature.
   /// 2. Normalize each signature so the last declaration for a given CSS
   ///    property and condition wins, then sort the surviving declarations by
@@ -66,7 +66,7 @@ public enum StyleCompiler {
         canonical: canonical,
         signatures: signatures,
         resolved: resolved,
-        className: "r1-\(stableHash(canonical))"
+        className: "r1-\(CSSSerialization.stableHash(canonical))"
       )
     }.sorted {
       ($0.className, $0.canonical) < ($1.className, $1.canonical)
@@ -120,10 +120,6 @@ public enum StyleCompiler {
     case .text: return []
     case .fragment(let children):
       return try children.flatMap {
-        try collect(from: $0, hasContainmentAncestor: hasContainmentAncestor)
-      }
-    case .enhancement(let enhancement):
-      return try enhancement.content.flatMap {
         try collect(from: $0, hasContainmentAncestor: hasContainmentAncestor)
       }
     case .element(let element):
@@ -238,17 +234,11 @@ public enum StyleCompiler {
   }
 
   private static func serialize(_ color: Color) -> String {
-    let lightness = decimal(color.lightness)
-    let chroma = decimal(color.chroma)
-    let hue = decimal(color.hue)
+    let lightness = CSSSerialization.decimal(color.lightness)
+    let chroma = CSSSerialization.decimal(color.chroma)
+    let hue = CSSSerialization.decimal(color.hue)
     if color.alpha == 1 { return "oklch(\(lightness) \(chroma) \(hue))" }
-    return "oklch(\(lightness) \(chroma) \(hue) / \(decimal(color.alpha)))"
-  }
-
-  private static func decimal(_ value: Double) -> String {
-    String(format: "%.4f", locale: Locale(identifier: "en_US_POSIX"), value)
-      .replacingOccurrences(of: #"0+$"#, with: "", options: .regularExpression)
-      .replacingOccurrences(of: #"\.$"#, with: "", options: .regularExpression)
+    return "oklch(\(lightness) \(chroma) \(hue) / \(CSSSerialization.decimal(color.alpha)))"
   }
 
   private static func escapeCSSString(_ value: String) -> String {
@@ -302,7 +292,16 @@ public enum StyleCompiler {
     "\(value.utf8.count):\(value)"
   }
 
-  private static func stableHash(_ value: String) -> String {
+}
+
+enum CSSSerialization {
+  static func decimal(_ value: Double) -> String {
+    String(format: "%.4f", locale: Locale(identifier: "en_US_POSIX"), value)
+      .replacingOccurrences(of: #"0+$"#, with: "", options: .regularExpression)
+      .replacingOccurrences(of: #"\.$"#, with: "", options: .regularExpression)
+  }
+
+  static func stableHash(_ value: String) -> String {
     var hash: UInt64 = 14_695_981_039_346_656_037
     for byte in value.utf8 {
       hash ^= UInt64(byte)

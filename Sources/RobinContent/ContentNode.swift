@@ -1,5 +1,3 @@
-import RobinRendering
-
 /// The kind of an ``ContentNode/admonition(kind:title:body:)`` callout.
 ///
 /// The kind maps to a semantic CSS class (`admonition-<kind>`) at render time,
@@ -66,5 +64,5 @@ public enum ContentNode: Equatable, Sendable {
   case admonition(AdmonitionNode)
 
   /// A typed external embed.
-  case embed(EmbedNode)
+  case embed(source: String, title: String)
 }

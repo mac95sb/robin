@@ -20,14 +20,6 @@ public struct Search: Component {
 
   /// The resolved search landmark and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .search,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: content.nodes
-        )
-      )
-    )
+    .element(.search, id: identifier, children: content.nodes)
   }
 }

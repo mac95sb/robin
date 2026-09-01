@@ -1,6 +1,5 @@
 import Foundation
 import Markdown
-import RobinRendering
 
 /// Converts Markdown into Robin's typed content representation.
 public enum MarkdownContentParser {
@@ -54,8 +53,7 @@ public enum MarkdownContentParser {
         let source = arguments["source"] ?? ""
         let host = URL(string: source)?.host
         if source.hasPrefix("https://"), let host, allowedEmbedHosts.contains(host) {
-          nodes.append(
-            .embed(EmbedNode(source: source, title: arguments["title"] ?? "Embedded content")))
+          nodes.append(.embed(source: source, title: arguments["title"] ?? "Embedded content"))
         } else {
           diagnostics.append(.invalidEmbed(source))
         }

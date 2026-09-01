@@ -13,11 +13,7 @@ public struct Anchor: Equatable, Hashable, Sendable {
 
   /// Creates an anchor from an ASCII identifier. Robin supplies the required CSS prefix.
   public init(_ identifier: String) throws {
-    let allowed = identifier.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }
-    guard allowed, identifier.first?.isLetter == true else {
-      throw AdvancedStyleError.invalidIdentifier(identifier)
-    }
-    self.cssName = "--r-\(identifier)"
+    self.cssName = try cssCustomIdentifier(identifier)
   }
 }
 
@@ -31,11 +27,7 @@ public struct AnimationTimeline: Equatable, Hashable, Sendable {
   let cssName: String
 
   public init(_ identifier: String) throws {
-    let allowed = identifier.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }
-    guard allowed, identifier.first?.isLetter == true else {
-      throw AdvancedStyleError.invalidIdentifier(identifier)
-    }
-    self.cssName = "--r-\(identifier)"
+    self.cssName = try cssCustomIdentifier(identifier)
   }
 }
 
@@ -50,6 +42,14 @@ public enum AdvancedStyleError: Error, Equatable, Sendable {
   case invalidIdentifier(String)
   case invalidKeyframePercentage(Int)
   case emptyAnimation
+}
+
+private func cssCustomIdentifier(_ identifier: String) throws -> String {
+  let allowed = identifier.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }
+  guard allowed, identifier.first?.isLetter == true else {
+    throw AdvancedStyleError.invalidIdentifier(identifier)
+  }
+  return "--r-\(identifier)"
 }
 
 extension Component {

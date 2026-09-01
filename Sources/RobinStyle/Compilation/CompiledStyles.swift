@@ -15,7 +15,7 @@ public struct CompiledStyles: Equatable, Sendable {
 }
 
 @_spi(Rendering)
-extension CompiledStyles: RobinHTML.StyleClassResolving {
+extension CompiledStyles {
   /// Finds the generated class name for a style signature.
   public func className(for styles: [StyleDeclaration]) -> String? {
     assignments.first { $0.signature == StyleCompiler.normalized(styles) }?.className

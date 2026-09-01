@@ -21,14 +21,6 @@ public struct Article: Component {
 
   /// The resolved article and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .article,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: content.nodes
-        )
-      )
-    )
+    .element(.article, id: identifier, children: content.nodes)
   }
 }

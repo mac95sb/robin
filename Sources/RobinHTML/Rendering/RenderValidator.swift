@@ -22,10 +22,6 @@ enum RenderValidator {
     case .text: break
     case .fragment(let children):
       for child in children { walk(child, insideButton: insideButton, diagnostics: &diagnostics) }
-    case .enhancement(let enhancement):
-      for child in enhancement.content {
-        walk(child, insideButton: insideButton, diagnostics: &diagnostics)
-      }
     case .element(let element):
       var names = Set<String>()
       for attribute in element.attributes {

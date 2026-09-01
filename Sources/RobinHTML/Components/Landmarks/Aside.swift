@@ -20,14 +20,6 @@ public struct Aside: Component {
 
   /// The resolved aside and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .aside,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: content.nodes
-        )
-      )
-    )
+    .element(.aside, id: identifier, children: content.nodes)
   }
 }

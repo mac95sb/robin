@@ -1,13 +1,13 @@
-import RobinRendering
+@_spi(Rendering) import RobinHTML
 import Testing
 
 @testable import RobinStreaming
 
 @Suite("Streamed HTML chunks")
 struct StreamedHTMLTests {
-  @Test func renderedHTMLIsDividedIntoBoundedChunks() {
-    let chunks = StreamedHTML.chunks(
-      for: .element(ElementNode(.p) { "User a b" }),
+  @Test func renderedHTMLIsDividedIntoBoundedChunks() throws {
+    let chunks = try StreamedHTML.chunks(
+      for: .element(.init(kind: .p, children: [.text("User a b")])),
       chunkSize: 4
     )
 

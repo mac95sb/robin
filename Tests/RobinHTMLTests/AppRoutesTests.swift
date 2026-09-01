@@ -4,7 +4,6 @@ import Testing
 
 private struct TestRoute: ApplicationRoute {
   let applicationRouteIdentifier = "test"
-  let isAPIRoute = false
 }
 
 private struct APIOnlyApp: App {

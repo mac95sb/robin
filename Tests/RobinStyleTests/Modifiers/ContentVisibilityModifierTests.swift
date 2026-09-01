@@ -12,9 +12,8 @@ private struct TextFixture: RobinHTML.Component {
 @Suite("Content visibility modifier")
 struct ContentVisibilityModifierTests {
   @Test func contentVisibilityAutoCompilesToTheContentVisibilityProperty() throws {
-    let root = RobinHTML.ComponentResolver.resolve(
-      TextFixture().contentVisibility(.auto)
-    )
+    let component = TextFixture().contentVisibility(.auto)
+    let root = RobinHTML.RenderNode.fragment(component.body.nodes)
 
     let result = try StyleCompiler.compile(root, theme: .default, mode: .production)
 

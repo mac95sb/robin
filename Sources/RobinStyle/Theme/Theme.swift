@@ -78,19 +78,6 @@ extension Theme {
   }
 }
 
-/// Selects complete themes by verified tenant identity; theme identity participates in cache keys.
-public struct ThemeSelection<Tenant: Hashable & Sendable>: Sendable {
-  public let fallback: Theme
-  public let tenants: [Tenant: Theme]
-
-  public init(fallback: Theme, tenants: [Tenant: Theme] = [:]) {
-    self.fallback = fallback
-    self.tenants = tenants
-  }
-
-  public func theme(for tenant: Tenant?) -> Theme { tenant.flatMap { tenants[$0] } ?? fallback }
-}
-
 extension Theme: ApplicationTheme {}
 
 extension Theme {

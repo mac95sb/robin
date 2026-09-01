@@ -4,42 +4,14 @@ import RobinHTML
 extension RobinHTML.Component {
   func styled(
     _ property: StyleProperty,
-    _ value: ModifierValue,
+    _ value: StyleValue,
     on condition: Condition
   ) -> StyleDeclaration {
     StyleDeclaration(
       property: property.rawValue,
-      payload: value.styleValue.payload,
+      payload: value.payload,
       condition: condition.styleCondition.key
     )
-  }
-}
-
-enum ModifierValue {
-  case keyword(String)
-  case color(String)
-  case radius(String)
-  case spacing(String)
-  case fontFamily(String)
-  case fontSize(String)
-  case fontWeightToken(String)
-  case pixels(Int)
-  case number(Int)
-  case shadow(String)
-
-  var styleValue: StyleValue {
-    switch self {
-    case .keyword(let value): .keyword(value)
-    case .color(let value): .color(value)
-    case .radius(let value): .radius(value)
-    case .spacing(let value): .spacing(value)
-    case .fontFamily(let value): .fontFamily(value)
-    case .fontSize(let value): .fontSize(value)
-    case .fontWeightToken(let value): .fontWeightToken(value)
-    case .pixels(let value): .pixels(value)
-    case .number(let value): .number(value)
-    case .shadow(let value): .shadow(value)
-    }
   }
 }
 

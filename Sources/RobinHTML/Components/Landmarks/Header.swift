@@ -21,14 +21,6 @@ public struct Header: Component {
 
   /// The resolved header landmark and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .header,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: content.nodes
-        )
-      )
-    )
+    .element(.header, id: identifier, children: content.nodes)
   }
 }

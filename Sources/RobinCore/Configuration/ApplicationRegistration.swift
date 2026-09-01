@@ -1,7 +1,6 @@
 /// A transport-neutral route registration consumed by application composition.
 public protocol ApplicationRoute: Sendable {
   var applicationRouteIdentifier: String { get }
-  var isAPIRoute: Bool { get }
 }
 
 /// A theme value selected by an application without coupling RobinHTML back to RobinStyle.

@@ -12,7 +12,7 @@ struct LayoutModifierTests {
     .flex(direction: .column, justify: .spaceBetween, align: .center, gap: .md)
     .frame(minWidth: 240, maxWidth: 960)
     .aspectRatio(16, 9)
-    let node = ComponentResolver.resolve(component)
+    let node = RenderNode.fragment(component.body.nodes)
     let compiled = try StyleCompiler.compile(node, theme: .default, mode: .production)
     #expect(compiled.css.contains("display:flex"))
     #expect(compiled.css.contains("flex-direction:column"))

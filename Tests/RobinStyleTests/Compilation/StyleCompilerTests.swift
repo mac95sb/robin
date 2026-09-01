@@ -167,10 +167,8 @@ struct StyleCompilerTests {
   }
 
   @Test func typographyModifierUsesTypedWeightAndTextAlignment() throws {
-    let root = RobinHTML.ComponentResolver.resolve(
-      TextFixture()
-        .font(.body, align: .center)
-    )
+    let component = TextFixture().font(.body, align: .center)
+    let root = RobinHTML.RenderNode.fragment(component.body.nodes)
 
     let result = try StyleCompiler.compile(root, theme: theme, mode: .production)
 

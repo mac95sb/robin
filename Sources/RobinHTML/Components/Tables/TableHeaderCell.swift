@@ -22,14 +22,6 @@ public struct TableHeaderCell: Component {
 
   /// The resolved table header cell and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .th,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: Text.phrasingContent(content).nodes
-        )
-      )
-    )
+    .element(.th, id: identifier, children: Text.phrasingContent(content).nodes)
   }
 }

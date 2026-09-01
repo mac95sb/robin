@@ -21,14 +21,6 @@ public struct TableRow: Component {
 
   /// The resolved table row and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .tr,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: content.nodes
-        )
-      )
-    )
+    .element(.tr, id: identifier, children: content.nodes)
   }
 }

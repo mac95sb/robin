@@ -10,10 +10,6 @@ extension Route {
   public var applicationRouteIdentifier: String {
     metadata.operationID ?? pattern.openAPIPath
   }
-
-  public var isAPIRoute: Bool { false }
-  public var openAPIMethod: OpenAPIDocument.Method? { nil }
-  public var apiVersion: Version? { nil }
 }
 
 /// A JSON controller route that reuses ordinary matching and reverse-routing machinery.
@@ -23,12 +19,6 @@ public protocol APIRoute: Route {
 
   var method: OpenAPIDocument.Method { get }
   var version: Version? { get }
-}
-
-extension APIRoute {
-  public var isAPIRoute: Bool { true }
-  public var openAPIMethod: OpenAPIDocument.Method? { method }
-  public var apiVersion: Version? { version }
 }
 
 /// A concrete API route backed by typed path, request, and response contracts.
