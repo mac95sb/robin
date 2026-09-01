@@ -1,4 +1,5 @@
 import Foundation
+import SystemPackage
 
 /// Resolves and validates paths within a project's `.robin` output directory.
 ///
@@ -38,13 +39,24 @@ public struct OutputLayout: Sendable {
   /// - Returns: `true` when `candidate` is the `.robin` root or lies inside it.
   public func contains(_ candidate: URL) -> Bool {
     let root = normalizedPath(robinRoot)
-    let path = normalizedPath(candidate)
-    return path == root || path.hasPrefix(root + "/")
+    var path = normalizedPath(candidate)
+    return path == root || path.removePrefix(root)
   }
 
-  private func normalizedPath(_ url: URL) -> String {
-    var path = url.standardizedFileURL.path(percentEncoded: false)
-    while path.count > 1 && path.hasSuffix("/") { path.removeLast() }
-    return path
+  private func normalizedPath(_ url: URL) -> FilePath {
+    var existing = url.standardizedFileURL
+    var missingComponents: [String] = []
+    while !FileManager.default.fileExists(atPath: existing.path(percentEncoded: false)) {
+      let parent = existing.deletingLastPathComponent()
+      guard parent != existing else { break }
+      missingComponents.append(existing.lastPathComponent)
+      existing = parent
+    }
+    var resolved = existing.resolvingSymlinksInPath()
+    for component in missingComponents.reversed() {
+      resolved.appendPathComponent(component)
+    }
+    return FilePath(resolved.path(percentEncoded: false))
+      .lexicallyNormalized()
   }
 }

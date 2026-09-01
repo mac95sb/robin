@@ -1,3 +1,4 @@
+import Algorithms
 import NIOCore
 import RobinHTML
 
@@ -9,8 +10,6 @@ public enum StreamedHTML {
   public static func chunks(for node: RenderNode, chunkSize: Int = 64) throws -> [ByteBuffer] {
     precondition(chunkSize > 0)
     let bytes = Array(try HTMLRenderer.render(node).utf8)
-    return stride(from: 0, to: bytes.count, by: chunkSize).map { offset in
-      ByteBuffer(bytes: bytes[offset..<min(offset + chunkSize, bytes.count)])
-    }
+    return bytes.chunks(ofCount: chunkSize).map(ByteBuffer.init(bytes:))
   }
 }
