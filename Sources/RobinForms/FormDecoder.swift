@@ -1,5 +1,5 @@
 import Foundation
-import RobinRendering
+import RobinHTML
 
 /// Decodes signup forms from supported transport representations.
 public enum FormDecoder {

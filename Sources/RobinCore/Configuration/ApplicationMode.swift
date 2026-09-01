@@ -3,7 +3,7 @@
 /// The mode is derived from which halves of an application are present: views
 /// without controllers render statically, controllers without views serve an
 /// API, and both together render server-side on each request.
-enum ApplicationMode: Sendable {
+public enum ApplicationMode: Equatable, Sendable {
   /// Views with no controllers: pre-rendered static output.
   case `static`
 
@@ -20,7 +20,7 @@ enum ApplicationMode: Sendable {
   ///   - hasControllers: Whether the application registers any controllers.
   /// - Throws: ``ApplicationCompositionError/empty`` when the application
   ///   registers neither views nor controllers.
-  init(hasViews: Bool, hasControllers: Bool) throws {
+  public init(hasViews: Bool, hasControllers: Bool) throws {
     switch (hasViews, hasControllers) {
     case (true, false):
       self = .static

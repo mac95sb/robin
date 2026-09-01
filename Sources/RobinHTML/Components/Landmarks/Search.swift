@@ -1,0 +1,25 @@
+/// A section containing search or filtering controls.
+///
+/// `Search` lowers to `<search>`.
+public struct Search: Component {
+  private let identifier: String?
+  private let content: ComponentContent
+
+  /// Creates a search landmark containing the components produced by a view builder.
+  ///
+  /// - Parameters:
+  ///   - id: An optional document-wide element identifier.
+  ///   - content: A view builder that creates the search landmark's child components.
+  public init(
+    id: String? = nil,
+    @ViewBuilder content: () -> ComponentContent
+  ) {
+    self.identifier = id
+    self.content = content()
+  }
+
+  /// The resolved search landmark and its child content.
+  public var body: ComponentContent {
+    .element(.search, id: identifier, children: content.nodes)
+  }
+}
