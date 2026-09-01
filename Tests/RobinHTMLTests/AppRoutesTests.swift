@@ -7,17 +7,17 @@ private struct TestRoute: ApplicationRoute {
   let isAPIRoute = false
 }
 
-private struct APIOnlyApplication: Application {
+private struct APIOnlyApp: App {
   var metadata: Metadata { Metadata(title: "API") }
   var routes: some Routes { TestRoute() }
 }
 
-@Test func applicationWithRoutesInfersAPIMode() throws {
-  #expect(try APIOnlyApplication().mode == .api)
+@Test func appWithRoutesInfersAPIMode() throws {
+  #expect(try APIOnlyApp().mode == .api)
 }
 
 @Test func clientNavigationIsRejectedForAPIApplications() {
-  struct App: Application {
+  struct TestApp: App {
     var metadata: Metadata { Metadata() }
     var clientNavigation: ClientNavigation { .enabled }
     var routes: some Routes { TestRoute() }
@@ -26,6 +26,6 @@ private struct APIOnlyApplication: Application {
   #expect(
     throws: ApplicationCompositionError.clientNavigationRequiresStaticSite(.api)
   ) {
-    try App().clientNavigationRuntime
+    try TestApp().clientNavigationRuntime
   }
 }

@@ -1,19 +1,19 @@
 @_spi(Rendering) import RobinCore
 
-/// The single entry point for a Robin application, analogous to SwiftUI's `App`.
+/// The single entry point for a Robin application, matching SwiftUI's `App` vocabulary.
 ///
-/// `Application` declares site-level ``Metadata`` defaults and the application's routable pages.
+/// `App` declares site-level ``Metadata`` defaults and the application's routable pages.
 /// Robin infers the application's rendering mode exclusively from the resolved page and
 /// controller registrations; application code never declares or overrides a mode.
 ///
 /// RobinHTML resolves the static-site half of that inference — one or more registered pages.
 /// Controller-route registration, and the resulting API/SSR modes, are established once the
-/// application depends on `RobinRouting`; an `Application` conforming here always resolves to
+/// application depends on `RobinRouting`; an `App` conforming here always resolves to
 /// ``ApplicationMode/static``.
-public protocol Application: Sendable {
+public protocol App: Sendable {
   /// The concrete type produced by ``pages``.
-  associatedtype PagesBody: Pages = EmptyPages
-  associatedtype RoutesBody: Routes = EmptyRoutes
+  associatedtype PageRegistration: Pages = EmptyPages
+  associatedtype RouteRegistration: Routes = EmptyRoutes
 
   /// Site-level metadata defaults that every ``Page`` overlays.
   var metadata: Metadata { get }
@@ -25,26 +25,26 @@ public protocol Application: Sendable {
   var clientNavigation: ClientNavigation { get }
 
   /// The application's routable pages.
-  @PagesBuilder var pages: PagesBody { get }
-  @RoutesBuilder var routes: RoutesBody { get }
+  @PagesBuilder var pages: PageRegistration { get }
+  @RoutesBuilder var routes: RouteRegistration { get }
 }
 
-extension Application {
+extension App {
   /// The default client navigation strategy: no runtime chunk ships.
   public var clientNavigation: ClientNavigation { .automatic }
   public var theme: any ApplicationTheme { DefaultApplicationTheme() }
 }
 
-extension Application where PagesBody == EmptyPages {
+extension App where PageRegistration == EmptyPages {
   /// The default empty page registration.
   public var pages: EmptyPages { EmptyPages() }
 }
 
-extension Application where RoutesBody == EmptyRoutes {
+extension App where RouteRegistration == EmptyRoutes {
   public var routes: EmptyRoutes { EmptyRoutes() }
 }
 
-extension Application {
+extension App {
   /// The rendering mode inferred from the application's resolved pages.
   ///
   /// - Throws: ``ApplicationCompositionError/empty`` when the application registers no pages.

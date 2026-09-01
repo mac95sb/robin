@@ -1,4 +1,4 @@
-/// A typed collection of routable ``Page`` values registered by an ``Application``.
+/// A typed collection of routable ``Page`` values registered by an ``App``.
 public protocol Pages: Sendable {
   /// The registered pages in source order.
   var pages: [any Page] { get }
@@ -6,7 +6,7 @@ public protocol Pages: Sendable {
 
 /// An empty page registration.
 ///
-/// The default for an ``Application`` that registers no pages.
+/// The default for an ``App`` that registers no pages.
 public struct EmptyPages: Pages {
   public let pages: [any Page] = []
 

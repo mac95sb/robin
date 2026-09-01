@@ -2,44 +2,44 @@ import RobinCore
 @_spi(Rendering) import RobinHTML
 import Testing
 
-@Suite("Application")
-struct ApplicationTests {
-  @Test func applicationWithPagesInfersStaticMode() throws {
-    struct App: Application {
+@Suite("App")
+struct AppTests {
+  @Test func appWithPagesInfersStaticMode() throws {
+    struct TestApp: App {
       var metadata: Metadata { Metadata() }
       var pages: some Pages { HomePage() }
     }
 
-    #expect(try App().mode == .static)
+    #expect(try TestApp().mode == .static)
   }
 
-  @Test func applicationWithNoPagesThrowsCompositionError() {
-    struct App: Application {
+  @Test func appWithNoPagesThrowsCompositionError() {
+    struct TestApp: App {
       var metadata: Metadata { Metadata() }
     }
 
     #expect(throws: ApplicationCompositionError.empty) {
-      try App().mode
+      try TestApp().mode
     }
   }
 
   @Test func clientNavigationDefaultsToAutomatic() {
-    struct App: Application {
+    struct TestApp: App {
       var metadata: Metadata { Metadata() }
       var pages: some Pages { HomePage() }
     }
 
-    #expect(App().clientNavigation == .automatic)
+    #expect(TestApp().clientNavigation == .automatic)
   }
 
   @Test func enabledStaticNavigationProducesCapabilityScopedRuntime() throws {
-    struct App: Application {
+    struct TestApp: App {
       var metadata: Metadata { Metadata() }
       var clientNavigation: ClientNavigation { .enabled }
       var pages: some Pages { HomePage() }
     }
 
-    let module = try #require(try App().clientNavigationRuntime)
+    let module = try #require(try TestApp().clientNavigationRuntime)
     #expect(module.contains("fetch(url"))
     #expect(module.contains("history.pushState"))
     #expect(module.contains("document.startViewTransition"))
@@ -47,7 +47,7 @@ struct ApplicationTests {
   }
 
   @Test func pagesBuilderCollectsMultiplePagesInSourceOrder() throws {
-    struct App: Application {
+    struct TestApp: App {
       var metadata: Metadata { Metadata() }
       var pages: some Pages {
         HomePage()
@@ -55,7 +55,7 @@ struct ApplicationTests {
       }
     }
 
-    let pages = App().pages.pages
+    let pages = TestApp().pages.pages
 
     #expect(pages.count == 2)
   }

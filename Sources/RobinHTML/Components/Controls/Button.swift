@@ -16,25 +16,25 @@ public struct Button: Component {
   private let kind: Kind
   private let identifier: String?
   private let accessibilityLabel: String?
-  private let label: ComponentContent
+  private let content: ComponentContent
 
-  /// Creates a button with the given structural attributes and label.
+  /// Creates a button with the given structural attributes and content.
   ///
   /// - Parameters:
   ///   - kind: The button's form behavior. The default is ``Kind/button``.
   ///   - id: An optional document-wide element identifier.
   ///   - accessibilityLabel: An optional accessible name emitted as `aria-label`.
-  ///   - label: A view builder that creates the button's visible label content.
+  ///   - content: A trailing view builder that creates the button's visible content.
   public init(
     _ kind: Kind = .button,
     id: String? = nil,
     accessibilityLabel: String? = nil,
-    @ViewBuilder label: () -> ComponentContent
+    @ViewBuilder content: () -> ComponentContent
   ) {
     self.kind = kind
     self.identifier = id
     self.accessibilityLabel = accessibilityLabel
-    self.label = label()
+    self.content = content()
   }
 
   /// The resolved structural content for the button.
@@ -47,7 +47,7 @@ public struct Button: Component {
         .init(
           kind: .button,
           attributes: attributes,
-          children: Text.phrasingContent(label.body).nodes
+          children: Text.phrasingContent(content.body).nodes
         )
       )
     )
