@@ -16,7 +16,7 @@ struct ApplicationResponderTests {
   }
 
   @Test func typedControllerMatchesDecodesAndEncodesWithoutNIO() async throws {
-    let route = TypedRoute<Int>.path(["users"], parameter: .integer("id"))
+    let route = RouteDefinition<Int>.path(["users"], parameter: .integer("id"))
     let controller = Controller(route, method: .post, version: try Version(1)) {
       (id: Int, input: Input, _: RequestContext) in
       Output(id: id, name: input.name)
@@ -48,7 +48,7 @@ struct ApplicationResponderTests {
   }
 
   @Test func invalidJSONIsAClientErrorAndUnknownRoutesAreNotFound() async throws {
-    let route = TypedRoute<Void>.path("users")
+    let route = RouteDefinition<Void>.path("users")
     let controller = Controller(route, method: .post) {
       (_: Void, input: Input, _: RequestContext) in input
     }

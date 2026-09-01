@@ -1,9 +1,18 @@
 /// Tool-only policy loaded from `robin.pkl`.
 public struct ToolPolicy: Codable, Equatable, Sendable {
+  /// The policy schema version understood by the toolchain.
   public let schemaVersion: Int
+  /// The configured lint severity name.
   public let lintSeverity: String
+  /// The maximum permitted build duration in milliseconds.
   public let buildBudgetMilliseconds: Int
 
+  /// Creates a tool-only policy.
+  ///
+  /// - Parameters:
+  ///   - schemaVersion: The policy schema version.
+  ///   - lintSeverity: Either `warning` or `error`.
+  ///   - buildBudgetMilliseconds: A positive build-duration budget.
   public init(schemaVersion: Int, lintSeverity: String, buildBudgetMilliseconds: Int) {
     self.schemaVersion = schemaVersion
     self.lintSeverity = lintSeverity

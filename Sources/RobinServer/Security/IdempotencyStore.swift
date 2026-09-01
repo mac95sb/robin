@@ -15,7 +15,10 @@ public actor IdempotencyStore {
 
   /// Creates a bounded process-local idempotency store.
   ///
-  /// - Parameter capacity: The positive number of completed responses retained.
+  /// - Parameters:
+  ///   - capacity: The positive number of completed responses retained.
+  ///   - lifetime: How long a completed response remains reusable.
+  ///   - now: The monotonic clock source, injectable for deterministic tests.
   public init(
     capacity: Int = 1_024,
     lifetime: Duration = .seconds(86_400),

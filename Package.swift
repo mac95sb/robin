@@ -26,7 +26,6 @@ let package = Package(
     .library(name: "RobinRouting", targets: ["RobinRouting"]),
     .library(name: "RobinRuntime", targets: ["RobinRuntime"]),
     .library(name: "RobinServer", targets: ["RobinServer"]),
-    .library(name: "RobinStreaming", targets: ["RobinStreaming"]),
     .library(name: "RobinTooling", targets: ["RobinTooling"]),
   ],
   dependencies: [
@@ -48,7 +47,6 @@ let package = Package(
     .package(url: "https://github.com/swift-server/swift-service-lifecycle.git", from: "2.11.0"),
     .package(url: "https://github.com/apple/swift-crypto.git", from: "4.5.0"),
     .package(url: "https://github.com/apple/swift-collections.git", from: "1.3.0"),
-    .package(url: "https://github.com/apple/swift-algorithms.git", from: "1.2.0"),
     .package(url: "https://github.com/apple/swift-system.git", from: "1.8.0"),
     .package(url: "https://github.com/swiftlang/swift-markdown.git", from: "0.8.0"),
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "603.0.0"),
@@ -152,15 +150,6 @@ let package = Package(
       swiftSettings: lowLevelFeatures
     ),
     .target(
-      name: "RobinStreaming",
-      dependencies: [
-        "RobinHTML",
-        .product(name: "Algorithms", package: "swift-algorithms"),
-        .product(name: "NIOCore", package: "swift-nio"),
-      ],
-      swiftSettings: lowLevelFeatures
-    ),
-    .target(
       name: "RobinTooling",
       dependencies: ["RobinCore"],
       swiftSettings: lowLevelFeatures
@@ -231,13 +220,6 @@ let package = Package(
         .product(name: "NIOCore", package: "swift-nio"),
         .product(name: "NIOEmbedded", package: "swift-nio"),
         .product(name: "NIOHTTP1", package: "swift-nio"),
-      ],
-      swiftSettings: upcomingFeatures
-    ),
-    .testTarget(
-      name: "RobinStreamingTests",
-      dependencies: [
-        "RobinStreaming"
       ],
       swiftSettings: upcomingFeatures
     ),

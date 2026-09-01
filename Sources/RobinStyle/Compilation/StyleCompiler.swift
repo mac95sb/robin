@@ -35,6 +35,8 @@ public enum StyleCompiler {
   ///   - theme: The design-token values used to resolve declarations and
   ///     tokenized minimum-width conditions.
   ///   - mode: The whitespace formatting to use for the emitted stylesheet.
+  ///   - animations: The keyframe animations referenced by reachable declarations.
+  ///   - viewTransitions: Whether to emit native cross-document view-transition CSS.
   /// - Returns: The deterministic class assignments and emitted stylesheet.
   /// - Throws: A ``ThemeError`` when a collected declaration or condition
   ///   references a token absent from the applicable theme dictionary.

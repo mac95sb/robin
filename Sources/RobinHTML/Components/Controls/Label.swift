@@ -2,8 +2,8 @@
 
 /// A caption for a form control.
 ///
-/// `Label` lowers to `<label for>`, associating its text with the control whose `id` matches
-/// ``for``.
+/// `Label` lowers to `<label for>`, associating its text with the control whose `id` matches the
+/// `for` attribute.
 public struct Label: Component {
   private let target: String
   private let identifier: String?
@@ -12,7 +12,7 @@ public struct Label: Component {
   /// Creates a label for a form control.
   ///
   /// - Parameters:
-  ///   - for: The identifier of the control this label describes, serialized as `for`.
+  ///   - target: The identifier of the control this label describes, serialized as `for`.
   ///   - id: An optional document-wide element identifier.
   ///   - content: A view builder that creates the label's visible content.
   public init(

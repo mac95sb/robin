@@ -6,7 +6,8 @@ extension Middleware {
   /// Logs request completion and records request counts and durations.
   ///
   /// Pass a metrics factory to avoid changing the process-wide Swift Metrics backend. A
-  /// ``PrometheusMetricsFactory`` and its registry can be shared with ``prometheus(path:registry:)``.
+  /// `PrometheusMetricsFactory` and its registry can be shared with
+  /// ``prometheus(path:registry:)``.
   public static func observability(
     logger: Logger,
     metricsFactory: (any MetricsFactory)? = nil

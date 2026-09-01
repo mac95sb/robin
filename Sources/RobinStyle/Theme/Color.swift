@@ -5,7 +5,11 @@ import Foundation
 /// Components are normalized at initialization so downstream contrast,
 /// interpolation, and CSS serialization operate on canonical values.
 public struct Color: Equatable, Hashable, Sendable {
-  public enum ParseError: Error, Equatable, Sendable { case invalidHex(String) }
+  /// An invalid textual color representation.
+  public enum ParseError: Error, Equatable, Sendable {
+    /// The supplied string is not a supported hexadecimal color.
+    case invalidHex(String)
+  }
   /// Perceptual lightness in the closed range `0...1`.
   public let lightness: Double
 
@@ -42,6 +46,13 @@ public struct Color: Equatable, Hashable, Sendable {
     self.alpha = alpha.isFinite ? min(max(alpha, 0), 1) : 1
   }
 
+  /// Creates an OKLCH color with positional component arguments.
+  ///
+  /// - Parameters:
+  ///   - lightness: Perceptual lightness.
+  ///   - chroma: Chroma intensity.
+  ///   - hue: The hue angle in degrees.
+  ///   - alpha: Opacity, defaulting to fully opaque.
   public static func oklch(_ lightness: Double, _ chroma: Double, _ hue: Double, alpha: Double = 1)
     -> Self
   {
@@ -73,6 +84,12 @@ public struct Color: Equatable, Hashable, Sendable {
     return (max(first, second) + 0.05) / (min(first, second) + 0.05)
   }
 
+  /// Interpolates toward another color along the shortest hue path.
+  ///
+  /// - Parameters:
+  ///   - other: The destination color.
+  ///   - progress: Interpolation progress clamped to `0...1`.
+  /// - Returns: The interpolated canonical color.
   public func interpolated(to other: Self, progress: Double) -> Self {
     let amount = min(max(progress, 0), 1)
     let rawHueDelta = (other.hue - hue).truncatingRemainder(dividingBy: 360)

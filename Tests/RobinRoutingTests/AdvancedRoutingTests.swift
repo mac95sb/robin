@@ -7,7 +7,7 @@ struct AdvancedRoutingTests {
   private struct Response: Codable, Sendable {}
 
   @Test func heterogeneousParametersRoundTrip() {
-    let route = TypedRoute<String>.path(
+    let route = RouteDefinition<String>.path(
       ["teams"], parameter: .string("team"), suffix: ["members"]
     ).appending(parameter: .integer("member"))
     #expect(route.match("/teams/acme/members/42")?.0 == "acme")
@@ -16,7 +16,7 @@ struct AdvancedRoutingTests {
   }
 
   @Test func arbitraryHeterogeneousParametersComposeAndRoundTrip() {
-    let route = TypedRoute<String>.path(
+    let route = RouteDefinition<String>.path(
       ["organizations"], parameter: .string("organization"), suffix: ["repositories"]
     ).appending(parameter: .integer("repository"), suffix: ["releases"])
       .appending(parameter: .string("release"))
@@ -36,7 +36,7 @@ struct AdvancedRoutingTests {
   }
 
   @Test func registryAllowsDifferentMethodsButRejectsDuplicateOperations() throws {
-    let definition = TypedRoute<Void>.path("users")
+    let definition = RouteDefinition<Void>.path("users")
     let get = APIEndpoint<Void, Request, Response>(definition, method: .get)
     let post = APIEndpoint<Void, Request, Response>(definition, method: .post)
     _ = try RouteRegistry([get, post])
@@ -61,7 +61,7 @@ struct AdvancedRoutingTests {
   }
 
   @Test func apiProtocolRegistryScopesVersionsAndContinuouslyGeneratesOpenAPI() throws {
-    let definition = TypedRoute<Void>.path(
+    let definition = RouteDefinition<Void>.path(
       "users", metadata: .init(operationID: "listUsers", summary: "List users"))
     let endpoint = APIEndpoint<Void, Request, Response>(
       definition, method: .get, version: try Version(2, status: .deprecated))

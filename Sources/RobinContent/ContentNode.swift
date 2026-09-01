@@ -1,4 +1,4 @@
-/// The kind of an ``ContentNode/admonition(kind:title:body:)`` callout.
+/// The semantic kind of an admonition callout.
 ///
 /// The kind maps to a semantic CSS class (`admonition-<kind>`) at render time,
 /// letting a design system style notes, warnings, and tips differently.

@@ -12,6 +12,8 @@ public struct CodeBlock: Component {
   ///
   /// - Parameters:
   ///   - id: An optional document-wide element identifier.
+  ///   - language: An optional syntax-language identifier.
+  ///   - theme: An optional curated syntax-highlighting theme.
   ///   - content: A view builder that creates the code block's content.
   public init(
     id: String? = nil,

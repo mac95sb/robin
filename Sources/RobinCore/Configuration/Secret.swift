@@ -2,8 +2,16 @@
 public struct Secret<Value: Sendable>: Sendable {
   private let value: Value
 
+  /// Wraps a value that must remain redacted from descriptions.
+  ///
+  /// - Parameter value: The secret value to consume.
   public init(_ value: consuming Value) { self.value = value }
 
+  /// Provides temporary read access to the wrapped value.
+  ///
+  /// - Parameter operation: The operation allowed to borrow the secret.
+  /// - Returns: The result returned by `operation`.
+  /// - Throws: An error thrown by `operation`.
   public func withValue<Result>(_ operation: (borrowing Value) throws -> Result) rethrows -> Result
   {
     try operation(value)

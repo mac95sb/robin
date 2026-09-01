@@ -1,6 +1,8 @@
 /// A key for a typed Robin configuration value.
 public protocol ConfigurationKey {
+  /// The value stored for this key.
   associatedtype Value: Sendable
+  /// The value returned when a scope has no override.
   static var defaultValue: Value { get }
 }
 
@@ -8,8 +10,12 @@ public protocol ConfigurationKey {
 public struct ConfigurationValues: Sendable {
   private var storage: [ObjectIdentifier: any Sendable] = [:]
 
+  /// Creates an empty collection that resolves every key to its default value.
   public init() {}
 
+  /// Accesses the value associated with a configuration key.
+  ///
+  /// Reading an unset key returns its declared default value.
   public subscript<Key: ConfigurationKey>(_ key: Key.Type) -> Key.Value {
     get { storage[ObjectIdentifier(key)] as? Key.Value ?? Key.defaultValue }
     set { storage[ObjectIdentifier(key)] = newValue }
