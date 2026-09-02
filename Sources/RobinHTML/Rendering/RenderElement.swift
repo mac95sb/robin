@@ -121,6 +121,10 @@ public struct RenderElement: Equatable, Sendable {
     case href(String)
     /// A media element's source, serialized as `src`.
     case source(String)
+    /// Responsive image candidates, serialized as `srcset`.
+    case sourceSet([SourceCandidate])
+    /// The responsive image slot-size expression, serialized as `sizes`.
+    case sizes(String)
     /// An image's alternative text, serialized as `alt`.
     case alternateText(String)
     /// A form's submission endpoint, serialized as `action`.
@@ -141,6 +145,24 @@ public struct RenderElement: Equatable, Sendable {
     case syntaxTheme(SyntaxHighlightTheme)
     /// The semantic role of a highlighted source-code region.
     case syntaxHighlight(CaseHighlight.Kind)
+
+    /// One image source and its intrinsic pixel width.
+    public struct SourceCandidate: Equatable, Sendable {
+      /// The image source reference.
+      public let source: String
+      /// The source width in pixels.
+      public let width: Int
+
+      /// Creates a responsive image candidate.
+      ///
+      /// - Parameters:
+      ///   - source: The image source reference.
+      ///   - width: The positive intrinsic width in pixels.
+      public init(source: String, width: Int) {
+        self.source = source
+        self.width = width
+      }
+    }
 
     /// A typed HTML form submission method.
     public enum FormMethod: String, Equatable, Sendable {

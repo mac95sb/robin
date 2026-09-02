@@ -38,7 +38,12 @@ public struct OutputLayout: Sendable {
   /// - Parameter candidate: The file URL to test.
   /// - Returns: `true` when `candidate` is the `.robin` root or lies inside it.
   public func contains(_ candidate: URL) -> Bool {
+    let expectedRoot = FilePath(
+      projectRoot.resolvingSymlinksInPath()
+        .appendingPathComponent(".robin", isDirectory: true).path(percentEncoded: false)
+    ).lexicallyNormalized()
     let root = normalizedPath(robinRoot)
+    guard root == expectedRoot else { return false }
     var path = normalizedPath(candidate)
     return path == root || path.removePrefix(root)
   }

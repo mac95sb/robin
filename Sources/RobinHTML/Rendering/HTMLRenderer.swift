@@ -139,6 +139,8 @@ extension RenderElement.Attribute {
     case .accessibilityLabel: "aria-label"
     case .href: "href"
     case .source: "src"
+    case .sourceSet: "srcset"
+    case .sizes: "sizes"
     case .alternateText: "alt"
     case .action: "action"
     case .formMethod: "method"
@@ -157,9 +159,13 @@ extension RenderElement.Attribute {
     switch self {
     case .identifier(let value), .name(let value), .value(let value),
       .accessibilityLabel(let value), .href(let value), .source(let value),
+      .sizes(let value),
       .alternateText(let value), .action(let value), .labelFor(let value),
       .title(let value), .sandbox(let value):
       value
+    case .sourceSet(let candidates):
+      candidates.sorted { ($0.width, $0.source) < ($1.width, $1.source) }
+        .map { "\($0.source) \($0.width)w" }.joined(separator: ", ")
     case .syntaxLanguage(let value): value
     case .syntaxTheme(let value): value.rawValue
     case .syntaxHighlight(let value): value.rawValue

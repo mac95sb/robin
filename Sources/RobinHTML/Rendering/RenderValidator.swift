@@ -29,6 +29,11 @@ enum RenderValidator {
         if !names.insert(name).inserted {
           diagnostics.append(.duplicateAttribute(element: element.kind, name: name))
         }
+        if case .sourceSet(let candidates) = attribute {
+          diagnostics += candidates.compactMap {
+            $0.width > 0 ? nil : .invalidResponsiveImageWidth($0.width)
+          }
+        }
       }
       if insideButton
         && (element.kind == .button || element.kind == .input || element.kind == .a
@@ -54,6 +59,8 @@ extension RenderElement.Attribute {
     case .accessibilityLabel: "aria-label"
     case .href: "href"
     case .source: "src"
+    case .sourceSet: "srcset"
+    case .sizes: "sizes"
     case .alternateText: "alt"
     case .action: "action"
     case .formMethod: "method"

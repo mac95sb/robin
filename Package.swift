@@ -26,6 +26,7 @@ let package = Package(
     .library(name: "RobinRouting", targets: ["RobinRouting"]),
     .library(name: "RobinRuntime", targets: ["RobinRuntime"]),
     .library(name: "RobinServer", targets: ["RobinServer"]),
+    .library(name: "RobinBuild", targets: ["RobinBuild"]),
     .library(name: "RobinTooling", targets: ["RobinTooling"]),
   ],
   dependencies: [
@@ -150,6 +151,17 @@ let package = Package(
       swiftSettings: lowLevelFeatures
     ),
     .target(
+      name: "RobinBuild",
+      dependencies: [
+        "RobinContent",
+        "RobinCore",
+        "RobinHTML",
+        "RobinStyle",
+        .product(name: "Crypto", package: "swift-crypto"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
       name: "RobinTooling",
       dependencies: ["RobinCore"],
       swiftSettings: lowLevelFeatures
@@ -220,6 +232,14 @@ let package = Package(
         .product(name: "NIOCore", package: "swift-nio"),
         .product(name: "NIOEmbedded", package: "swift-nio"),
         .product(name: "NIOHTTP1", package: "swift-nio"),
+      ],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinBuildTests",
+      dependencies: [
+        "RobinBuild", "RobinCore", "RobinHTML", "RobinStyle",
+        .product(name: "Crypto", package: "swift-crypto"),
       ],
       swiftSettings: upcomingFeatures
     ),

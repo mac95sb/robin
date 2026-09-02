@@ -27,5 +27,9 @@ struct OutputLayoutTests {
     #expect(layout.contains(temporary.appendingPathComponent("outside")) == false)
     #expect(layout.contains(layout.robinRoot.appendingPathComponent("../outside")) == false)
     #expect(layout.contains(link.appendingPathComponent("probe")) == false)
+
+    try FileManager.default.removeItem(at: layout.robinRoot)
+    try FileManager.default.createSymbolicLink(at: layout.robinRoot, withDestinationURL: outside)
+    #expect(layout.contains(layout.path(for: .build)) == false)
   }
 }
