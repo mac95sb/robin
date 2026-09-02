@@ -46,7 +46,7 @@ public actor ServerRuntime {
     self.quiescingHelper = quiescingHelper
   }
 
-  /// Starts an HTTP/1 listener for an API or server application.
+  /// Starts an HTTP listener for an API or server application.
   ///
   /// This method binds before returning. The caller owns the returned runtime and must call
   /// ``shutdown()`` during graceful termination.
@@ -79,7 +79,10 @@ public actor ServerRuntime {
     clientAddressResolver: @escaping ClientAddressResolver = { _, peer in peer },
     tls: ServerTLSConfiguration? = nil
   ) async throws -> ServerRuntime {
-    precondition(maximumBodyBytes >= 0 && maximumHeaderBytes > 0 && maximumHeaderCount > 0)
+    precondition(
+      maximumBodyBytes >= 0 && maximumHeaderBytes > 0 && maximumHeaderCount > 0
+        && requestTimeout > .zero
+    )
     guard try application.mode != .static else { throw ServerStartupError.staticApplication }
     let responder = try ApplicationResponder(
       application,

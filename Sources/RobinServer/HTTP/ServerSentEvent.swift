@@ -29,7 +29,12 @@ public struct ServerSentEvent: Equatable, Sendable {
     var lines: [String] = []
     if let event { lines.append("event: \(event)") }
     if let id { lines.append("id: \(id)") }
-    if let retry { lines.append("retry: \(retry.components.seconds * 1_000)") }
+    if let retry {
+      let components = retry.components
+      let milliseconds =
+        components.seconds * 1_000 + components.attoseconds / 1_000_000_000_000_000
+      lines.append("retry: \(milliseconds)")
+    }
     lines += data.split(separator: "\n", omittingEmptySubsequences: false).map { "data: \($0)" }
     return Array((lines.joined(separator: "\n") + "\n\n").utf8)
   }
