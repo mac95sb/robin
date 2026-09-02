@@ -62,9 +62,11 @@ struct AppTests {
 }
 
 private struct HomePage: Page {
+  let path = "/"
   var body: ComponentContent { Text { "Home" } }
 }
 
 private struct AboutPage: Page {
+  let path = "/about"
   var body: ComponentContent { Text { "About" } }
 }

@@ -1,3 +1,4 @@
+import Crypto
 import Foundation
 @_spi(Rendering) import RobinCore
 @_spi(Rendering) import RobinHTML
@@ -34,6 +35,8 @@ public enum StyleCompiler {
   ///   - theme: The design-token values used to resolve declarations and
   ///     tokenized minimum-width conditions.
   ///   - mode: The whitespace formatting to use for the emitted stylesheet.
+  ///   - animations: The keyframe animations referenced by reachable declarations.
+  ///   - viewTransitions: Whether to emit native cross-document view-transition CSS.
   /// - Returns: The deterministic class assignments and emitted stylesheet.
   /// - Throws: A ``ThemeError`` when a collected declaration or condition
   ///   references a token absent from the applicable theme dictionary.
@@ -302,12 +305,7 @@ enum CSSSerialization {
   }
 
   static func stableHash(_ value: String) -> String {
-    var hash: UInt64 = 14_695_981_039_346_656_037
-    for byte in value.utf8 {
-      hash ^= UInt64(byte)
-      hash &*= 1_099_511_628_211
-    }
-    return String(hash, radix: 36)
+    SHA256.hash(data: Data(value.utf8)).prefix(8).map { String(format: "%02x", $0) }.joined()
   }
 }
 

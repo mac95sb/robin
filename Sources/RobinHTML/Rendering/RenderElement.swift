@@ -3,7 +3,7 @@ import RobinCore
 /// An element in Robin's structural render representation.
 ///
 /// Render elements contain only typed structural data. Style declarations are carried as opaque
-/// ``StyleDeclaration`` values: their shape is defined by `RobinCore`, while their interpretation
+/// `StyleDeclaration` values: their shape is defined by `RobinCore`, while their interpretation
 /// and compilation into CSS belong entirely to `RobinStyle`. Renderer implementations translate
 /// this representation into their output format.
 public struct RenderElement: Equatable, Sendable {

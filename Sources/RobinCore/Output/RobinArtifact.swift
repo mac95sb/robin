@@ -1,4 +1,21 @@
 /// A category of generated output stored under the `.robin` directory.
 public enum RobinArtifact: String, CaseIterable, Sendable {
-  case build, cache, coverage, generated, inspector, logs, preview, testResults, temporary
+  /// Compiled application output.
+  case build
+  /// Reusable cached data.
+  case cache
+  /// Test and documentation coverage reports.
+  case coverage
+  /// Generated source and metadata.
+  case generated
+  /// Inspector application state.
+  case inspector
+  /// Build and runtime logs.
+  case logs
+  /// Preview-server output.
+  case preview
+  /// Structured test results.
+  case testResults
+  /// Short-lived intermediate output.
+  case temporary
 }

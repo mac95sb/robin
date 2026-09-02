@@ -1,7 +1,7 @@
 /// A typed path-segment codec used for route matching and reverse routing.
 ///
 /// Decoding receives one percent-decoded path segment and can reject it by returning `nil`.
-/// Encoding produces an unescaped segment, which ``Route/url(for:)`` percent-encodes when it
+/// Encoding produces an unescaped segment, which ``RouteDefinition/url(for:)`` percent-encodes when it
 /// constructs a URL.
 public struct PathParameter<Value: Sendable>: Sendable {
   /// The parameter name used by route metadata and diagnostics.

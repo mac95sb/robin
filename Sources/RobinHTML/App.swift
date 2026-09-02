@@ -2,21 +2,18 @@
 
 /// The single entry point for a Robin application, matching SwiftUI's `App` vocabulary.
 ///
-/// `App` declares site-level ``Metadata`` defaults and the application's routable pages.
+/// `App` declares site-level `Metadata` defaults, routable pages, and controller routes.
 /// Robin infers the application's rendering mode exclusively from the resolved page and
 /// controller registrations; application code never declares or overrides a mode.
-///
-/// RobinHTML resolves the static-site half of that inference — one or more registered pages.
-/// Controller-route registration, and the resulting API/SSR modes, are established once the
-/// application depends on `RobinRouting`; an `App` conforming here always resolves to
-/// ``ApplicationMode/static``.
 public protocol App: Sendable {
   /// The concrete type produced by ``pages``.
   associatedtype PageRegistration: Pages = EmptyPages
+  /// The concrete type produced by ``routes``.
   associatedtype RouteRegistration: Routes = EmptyRoutes
 
   /// Site-level metadata defaults that every ``Page`` overlays.
   var metadata: Metadata { get }
+  /// The application's design theme.
   var theme: any ApplicationTheme { get }
 
   /// The client-side navigation strategy for a Static Site application.
@@ -26,12 +23,14 @@ public protocol App: Sendable {
 
   /// The application's routable pages.
   @PagesBuilder var pages: PageRegistration { get }
+  /// The application's controller-route registrations.
   @RoutesBuilder var routes: RouteRegistration { get }
 }
 
 extension App {
   /// The default client navigation strategy: no runtime chunk ships.
   public var clientNavigation: ClientNavigation { .automatic }
+  /// The default unconfigured application theme.
   public var theme: any ApplicationTheme { DefaultApplicationTheme() }
 }
 
@@ -41,13 +40,14 @@ extension App where PageRegistration == EmptyPages {
 }
 
 extension App where RouteRegistration == EmptyRoutes {
+  /// The default empty controller-route registration.
   public var routes: EmptyRoutes { EmptyRoutes() }
 }
 
 extension App {
-  /// The rendering mode inferred from the application's resolved pages.
+  /// The rendering mode inferred from the application's pages and controller routes.
   ///
-  /// - Throws: ``ApplicationCompositionError/empty`` when the application registers no pages.
+  /// - Throws: `ApplicationCompositionError.empty` when the application registers neither.
   public var mode: ApplicationMode {
     get throws {
       try ApplicationMode(hasViews: !pages.pages.isEmpty, hasControllers: !routes.routes.isEmpty)

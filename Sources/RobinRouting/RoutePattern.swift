@@ -1,13 +1,21 @@
 /// The structural path shape shared by matching, reverse routing, conflict checks, and OpenAPI.
 public struct RoutePattern: Equatable, Sendable {
+  /// A literal or typed-parameter position in a route path.
   public enum Segment: Equatable, Sendable {
+    /// A path segment that must match the supplied text exactly.
     case literal(String)
+    /// A named path-parameter position.
     case parameter(String)
   }
 
+  /// The ordered segments in the route path.
   public let segments: [Segment]
+  /// Creates a structural route pattern.
+  ///
+  /// - Parameter segments: The route segments in path order.
   public init(_ segments: [Segment]) { self.segments = segments }
 
+  /// The root-relative OpenAPI path template.
   public var openAPIPath: String {
     "/"
       + segments.map {
@@ -19,13 +27,27 @@ public struct RoutePattern: Equatable, Sendable {
   }
 }
 
+/// A route after application API scoping has been resolved.
 public struct RegisteredRoute: Equatable, Sendable {
+  /// The stable registration identifier.
   public let identifier: String
+  /// The fully scoped route pattern.
   public let pattern: RoutePattern
+  /// Descriptive route metadata.
   public let metadata: RouteMetadata
+  /// The HTTP method for API routes.
   public let method: OpenAPIDocument.Method?
+  /// The external version for API routes.
   public let version: Version?
 
+  /// Creates a resolved route registration.
+  ///
+  /// - Parameters:
+  ///   - identifier: The stable registration identifier.
+  ///   - pattern: The fully scoped route pattern.
+  ///   - metadata: Descriptive route metadata.
+  ///   - method: The HTTP method for an API route.
+  ///   - version: The external API version.
   public init(
     _ identifier: String,
     pattern: RoutePattern,
@@ -41,8 +63,11 @@ public struct RegisteredRoute: Equatable, Sendable {
   }
 }
 
+/// Two routes that resolve to the same structural path and method.
 public struct RouteConflict: Error, Equatable, Sendable {
+  /// The identifier registered first.
   public let first: String
+  /// The conflicting identifier registered second.
   public let second: String
 }
 
@@ -54,6 +79,10 @@ public enum RouteConflictDetector {
     var owners: [String: String] = [:]
   }
 
+  /// Validates that routes have distinct structural paths and methods.
+  ///
+  /// - Parameter routes: The resolved routes to inspect.
+  /// - Throws: ``RouteConflict`` when two registrations overlap.
   public static func validate(_ routes: [RegisteredRoute]) throws {
     let root = Node()
     for route in routes {
