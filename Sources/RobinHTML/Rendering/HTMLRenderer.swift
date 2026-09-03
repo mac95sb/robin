@@ -5,7 +5,7 @@ import Foundation
 ///
 /// The renderer escapes text and attribute values, orders attributes consistently, and can map
 /// compiled style declarations to generated class names.
-public enum HTMLRenderer {
+public struct HTMLRenderer {
   /// Validates and renders a resolved component tree without style declarations.
   ///
   /// Validation completes before serialization. If the tree has multiple diagnostics, this

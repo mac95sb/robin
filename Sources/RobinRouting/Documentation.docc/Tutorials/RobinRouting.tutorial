@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinRouting") {
+  @Intro(title: "Define typed routes") {
+    Match requests and generate URLs from one route definition.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Define a typed route")
+
+    @TutorialReference(tutorial: "doc:Define-a-Typed-Route")
+  }
+}

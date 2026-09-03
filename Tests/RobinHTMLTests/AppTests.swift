@@ -44,6 +44,8 @@ struct AppTests {
     #expect(module.contains("history.pushState"))
     #expect(module.contains("document.startViewTransition"))
     #expect(module.contains("popstate"))
+    #expect(module.contains("link[data-robin-style]"))
+    #expect(module.contains("copy.onload"))
   }
 
   @Test func pagesBuilderCollectsMultiplePagesInSourceOrder() throws {

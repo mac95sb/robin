@@ -13,7 +13,7 @@ struct ProcessedAssets {
   let headElements: [String]
 }
 
-enum AssetProcessor {
+struct AssetProcessor {
   static func process(
     _ assets: [BuildAsset],
     toolchain: AssetToolchain,

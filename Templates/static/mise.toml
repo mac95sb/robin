@@ -1,0 +1,30 @@
+min_version = "2026.7.0"
+
+[tools]
+swift = "6.3.3"
+pkl = "0.32.1"
+hk = "1.54.1"
+
+[tasks.dev]
+run = "swift run"
+
+[tasks.build]
+run = "swift run -c release"
+
+[tasks.test]
+run = "swift test"
+
+[tasks.format]
+run = "swift format format --in-place --recursive Sources Tests Package.swift"
+
+[tasks.format-check]
+run = "swift format lint --strict --recursive Sources Tests Package.swift"
+
+[tasks.lint]
+run = "robin lint"
+
+[tasks.doctor]
+run = "robin doctor"
+
+[tasks.check]
+run = "hk check --all"

@@ -16,6 +16,8 @@ public enum BuildError: Error, Equatable, Sendable {
   case invalidPagePath(String)
   /// Two registered pages resolve to the same static output path.
   case duplicatePagePath(String)
+  /// A page declares the same structured-data schema more than once.
+  case duplicateStructuredData(String)
   /// The application selected a theme RobinBuild cannot compile.
   case unsupportedTheme
   /// A static application was configured with executable output.

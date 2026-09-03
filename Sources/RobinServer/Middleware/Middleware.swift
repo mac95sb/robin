@@ -13,6 +13,12 @@ public struct Middleware: Sendable {
     }
 
     /// Continues processing with the supplied request and context.
+    ///
+    /// - Parameters:
+    ///   - request: The request to pass to the remaining middleware and route.
+    ///   - context: Metadata and services associated with the request.
+    /// - Returns: The response produced by the remaining chain.
+    /// - Throws: An error raised by the remaining middleware or route.
     public func respond(to request: Request, context: RequestContext) async throws -> Response {
       try await operation(request, context)
     }

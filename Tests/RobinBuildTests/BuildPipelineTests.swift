@@ -21,8 +21,20 @@ struct BuildPipelineTests {
     let html = try String(
       contentsOf: root.appendingPathComponent(".robin/build/index.html"), encoding: .utf8)
     #expect(html.contains("<!doctype html><html lang=\"en-GB\">"))
-    #expect(html.contains("<title>Home</title>"))
+    #expect(html.contains("<title>Home | Robin</title>"))
+    #expect(html.contains("property=\"og:title\" content=\"Home | Robin\""))
+    #expect(html.contains("name=\"twitter:description\" content=\"Swift-native web apps.\""))
+    #expect(html.contains("type=\"application/ld+json\""))
+    #expect(html.contains("\"@type\":\"SoftwareApplication\""))
+    #expect(html.contains("\"operatingSystem\":\"Linux and macOS\""))
     #expect(html.contains("integrity=\"sha384-"))
+    let about = try String(
+      contentsOf: root.appendingPathComponent(".robin/build/about/index.html"), encoding: .utf8)
+    #expect(html.components(separatedBy: "data-robin-style").count == 3)
+    #expect(about.components(separatedBy: "data-robin-style").count == 2)
+    let stylesheets = result.manifest.artifacts.filter { $0.mediaType == "text/css" }
+    #expect(stylesheets.count == 2)
+    #expect(stylesheets.allSatisfy { !$0.path.contains("home") && !$0.path.contains("about") })
   }
 
   @Test func validatesModeSpecificExecutableArtifacts() throws {
@@ -53,6 +65,18 @@ struct BuildPipelineTests {
       in: OutputLayout(projectRoot: root)
     )
     #expect(result.mode == .api)
+  }
+
+  @Test func rejectsDuplicateStructuredDataSchemas() {
+    let root = temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    #expect(throws: BuildError.duplicateStructuredData("Article")) {
+      try BuildPipeline.build(
+        DuplicateStructuredDataApplication(),
+        in: OutputLayout(projectRoot: root)
+      )
+    }
   }
 
   @Test func fingerprintsTypedAssetsAndRewritesOnlyReferencedPages() throws {
@@ -385,7 +409,19 @@ struct BuildPipelineTests {
 }
 
 private struct StaticApplication: App {
-  var metadata: Metadata { Metadata(title: "Default", language: "en-GB") }
+  var metadata: Metadata {
+    Metadata(
+      title: "Default",
+      site: "Robin",
+      description: "Swift-native web apps.",
+      canonicalURL: "https://example.com",
+      language: "en-GB",
+      structuredData: [
+        .softwareApplication(
+          .init(operatingSystem: "Linux and macOS", category: "DeveloperApplication"))
+      ]
+    )
+  }
   var theme: any ApplicationTheme { Theme.default }
 
   @PagesBuilder var pages: PageList {
@@ -432,6 +468,18 @@ private struct SSRApplication: App {
   }
 }
 
+private struct DuplicateStructuredDataApplication: App {
+  var metadata: Metadata {
+    let article = StructuredData.Article(
+      author: .init("Robin"),
+      datePublished: Date(timeIntervalSince1970: 0)
+    )
+    return Metadata(structuredData: [.article(article), .article(article)])
+  }
+
+  @PagesBuilder var pages: PageList { HomePage() }
+}
+
 private struct TestRoute: ApplicationRoute {
   let applicationRouteIdentifier = "test"
 }
@@ -439,12 +487,15 @@ private struct TestRoute: ApplicationRoute {
 private struct HomePage: Page {
   let path = "/"
   var metadata: Metadata { Metadata(title: "Home") }
-  @ViewBuilder var body: ComponentContent { Text { "Hello" }.font(.body) }
+  @ViewBuilder var body: ComponentContent {
+    Text { "Hello" }.font(.body)
+    Text { "Only home" }.padding(.sm)
+  }
 }
 
 private struct AboutPage: Page {
   let path = "/about"
-  @ViewBuilder var body: ComponentContent { Text { "About" } }
+  @ViewBuilder var body: ComponentContent { Text { "About" }.font(.body) }
 }
 
 private struct AssetPage: Page {

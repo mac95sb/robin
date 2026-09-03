@@ -1,0 +1,17 @@
+@Tutorial(time: 5) {
+  @Intro(title: "Model a Form") {
+    Give form fields stable, typed names shared by rendering and request decoding.
+  }
+
+  @Section(title: "Declare fields") {
+    @Steps {
+      @Step {
+        Add ``Field`` properties to the request model and use ``FileField`` for uploads.
+      }
+
+      @Step {
+        Handle ``FieldValidationError`` as a client input error.
+      }
+    }
+  }
+}

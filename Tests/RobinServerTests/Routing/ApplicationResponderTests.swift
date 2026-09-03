@@ -15,12 +15,40 @@ struct ApplicationResponderTests {
     let name: String
   }
 
-  @Test func typedControllerMatchesDecodesAndEncodesWithoutNIO() async throws {
+  private struct UserController: Controller {
     let route = RouteDefinition<Int>.path(["users"], parameter: .integer("id"))
-    let controller = Controller(route, method: .post, version: try Version(1)) {
-      (id: Int, input: Input, _: RequestContext) in
-      Output(id: id, name: input.name)
+    let method: OpenAPIDocument.Method = .post
+    let version: Version?
+
+    init() throws { version = try Version(1) }
+
+    func handle(_ id: Int, request: Input, context _: RequestContext) -> Output {
+      Output(id: id, name: request.name)
     }
+  }
+
+  private struct InvalidJSONController: Controller {
+    let route = RouteDefinition<Void>.path("users")
+    let method: OpenAPIDocument.Method = .post
+
+    func handle(_: Void, request: Input, context _: RequestContext) -> Input { request }
+  }
+
+  private struct HealthController: Controller {
+    let route = "health"
+
+    func handle(_: Void, request _: EmptyRequest, context _: RequestContext) -> EmptyRequest {
+      EmptyRequest()
+    }
+  }
+
+  @Test func controllerInfersContractsAndDefaultsToGET() {
+    #expect(HealthController().method == .get)
+    #expect(HealthController().pattern == RoutePattern([.literal("health")]))
+  }
+
+  @Test func typedControllerMatchesDecodesAndEncodesWithoutNIO() async throws {
+    let controller = try UserController()
     let responder = try ApplicationResponder(
       routes: [controller],
       transportCapabilities: .persistent
@@ -48,10 +76,7 @@ struct ApplicationResponderTests {
   }
 
   @Test func invalidJSONIsAClientErrorAndUnknownRoutesAreNotFound() async throws {
-    let route = RouteDefinition<Void>.path("users")
-    let controller = Controller(route, method: .post) {
-      (_: Void, input: Input, _: RequestContext) in input
-    }
+    let controller = InvalidJSONController()
     let responder = try ApplicationResponder(
       routes: [controller],
       transportCapabilities: .persistent
@@ -116,5 +141,43 @@ struct ApplicationResponderTests {
     #expect(
       String(decoding: try #require(response.body.bufferedBytes), as: UTF8.self) == "<p>Home</p>"
     )
+  }
+
+  @Test func nestedPageAndRouteGroupsComposeTheirPaths() async throws {
+    struct Guide: Page {
+      let path = "/"
+      var body: ComponentContent { Text { "Guide" } }
+    }
+    struct TestApplication: App {
+      var metadata: Metadata { Metadata() }
+
+      @PagesBuilder var pages: PageList {
+        PageGroup("docs") {
+          PageGroup("guides") { Guide() }
+        }
+      }
+
+      @RoutesBuilder var routes: RouteList {
+        RouteGroup("system") {
+          RouteGroup("status") { HealthController() }
+        }
+      }
+    }
+    let responder = try ApplicationResponder(
+      TestApplication(),
+      transportCapabilities: .persistent
+    )
+
+    let page = await responder.respond(
+      to: Request(HTTPRequest(method: .get, scheme: nil, authority: nil, path: "/docs/guides"))
+    )
+    let route = await responder.respond(
+      to: Request(
+        HTTPRequest(method: .get, scheme: nil, authority: nil, path: "/api/system/status/health")
+      )
+    )
+
+    #expect(page.head.status == .ok)
+    #expect(route.head.status == .ok)
   }
 }

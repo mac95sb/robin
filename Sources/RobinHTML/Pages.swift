@@ -21,13 +21,21 @@ public struct PageList: Pages {
 
 /// Builds page registrations with native Swift conditionals and loops.
 @resultBuilder
-public enum PagesBuilder {
+public struct PagesBuilder {
   /// Resolves a single page into a one-element registration.
   ///
   /// - Parameter expression: The page to register.
   /// - Returns: A registration containing only `expression`.
   public static func buildExpression<P: Page>(_ expression: P) -> PageList {
     PageList(pages: [expression])
+  }
+
+  /// Resolves a page group into its prefixed pages.
+  ///
+  /// - Parameter expression: The page group to register.
+  /// - Returns: The group's pages in source order.
+  public static func buildExpression(_ expression: PageGroup) -> PageList {
+    PageList(pages: expression.pages)
   }
 
   /// Combines page registrations in source order.

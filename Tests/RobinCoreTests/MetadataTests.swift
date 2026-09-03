@@ -7,6 +7,7 @@ struct MetadataTests {
   @Test func pageValuesOverlayApplicationDefaultsFieldByField() {
     let application = Metadata(
       title: "Robin",
+      site: "Robin Framework",
       description: "Application description",
       canonicalURL: "https://example.com",
       language: "en",
@@ -20,6 +21,7 @@ struct MetadataTests {
     let merged = application.merging(page: page)
 
     #expect(merged.title == "Documentation")
+    #expect(merged.composedTitle == "Documentation | Robin Framework")
     #expect(merged.description == "Application description")
     #expect(merged.canonicalURL == "https://example.com/docs")
     #expect(merged.language == "en")

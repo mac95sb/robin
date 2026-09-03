@@ -29,8 +29,13 @@ Build output is available in `.robin/build`; reusable content remains in `.robin
 
 ## Topics
 
+### Start here
+
+- <doc:Build-Application-Artifacts>
+
 ### Build applications
 
+- ``RobinCore/RobinApplication``
 - ``BuildPipeline``
 - ``BuildConfiguration``
 - ``BuildEnvironment``

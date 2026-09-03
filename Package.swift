@@ -27,13 +27,16 @@ let package = Package(
     .library(name: "RobinRuntime", targets: ["RobinRuntime"]),
     .library(name: "RobinServer", targets: ["RobinServer"]),
     .library(name: "RobinBuild", targets: ["RobinBuild"]),
+    .library(name: "RobinTesting", targets: ["RobinTesting"]),
     .library(name: "RobinTooling", targets: ["RobinTooling"]),
+    .executable(name: "robin", targets: ["RobinCLI"]),
   ],
   dependencies: [
     .package(url: "https://github.com/vapor/sqlite-nio.git", from: "1.10.0"),
     .package(url: "https://github.com/vapor/postgres-nio.git", from: "1.33.0"),
     .package(url: "https://github.com/brokenhandsio/swift-webauthn.git", from: "1.0.0-alpha.2"),
     .package(url: "https://github.com/tuist/Noora.git", from: "0.17.0"),
+    .package(url: "https://github.com/apple/swift-argument-parser", from: "1.8.2"),
     .package(url: "https://github.com/apple/swift-nio.git", from: "2.101.0"),
     .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.37.0"),
     .package(url: "https://github.com/apple/swift-nio-http2.git", from: "1.44.0"),
@@ -51,6 +54,7 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-system.git", from: "1.8.0"),
     .package(url: "https://github.com/swiftlang/swift-markdown.git", from: "0.8.0"),
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "603.0.0"),
+    .package(url: "https://github.com/swiftlang/swift-docc-plugin.git", from: "1.5.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-runtime.git", from: "1.0.0"),
   ],
@@ -124,6 +128,7 @@ let package = Package(
     .target(
       name: "RobinServer",
       dependencies: [
+        "RobinBuild",
         "RobinCore",
         "RobinHTML",
         "RobinRouting",
@@ -163,7 +168,28 @@ let package = Package(
     ),
     .target(
       name: "RobinTooling",
-      dependencies: ["RobinCore"],
+      dependencies: ["RobinBuild", "RobinCore"],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinTesting",
+      dependencies: [
+        "RobinCore",
+        "RobinHTML",
+        "RobinMacros",
+        "RobinServer",
+        "RobinStyle",
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .executableTarget(
+      name: "RobinCLI",
+      dependencies: [
+        "RobinCore",
+        "RobinTooling",
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        .product(name: "Noora", package: "Noora"),
+      ],
       swiftSettings: lowLevelFeatures
     ),
     .testTarget(
@@ -245,8 +271,19 @@ let package = Package(
     ),
     .testTarget(
       name: "RobinToolingTests",
-      dependencies: ["RobinCore", "RobinTooling"],
+      dependencies: [
+        "RobinBuild", "RobinCLI", "RobinCore", "RobinTooling",
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+      ],
       resources: [.copy("Fixtures")],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinTestingTests",
+      dependencies: [
+        "RobinBuild", "RobinCore", "RobinHTML", "RobinServer", "RobinTesting", "RobinStyle",
+        .product(name: "HTTPTypes", package: "swift-http-types"),
+      ],
       swiftSettings: upcomingFeatures
     ),
   ],

@@ -4,7 +4,7 @@ import RobinCore
 @_spi(Rendering) import RobinStyle
 
 /// Builds deterministic artifacts from a resolved Robin application.
-public enum BuildPipeline {
+public struct BuildPipeline {
   /// Builds and materializes an application beneath `.robin`.
   ///
   /// The application's registered pages and controllers determine its mode. Configuration can
@@ -150,32 +150,16 @@ public enum BuildPipeline {
     } else {
       throw BuildError.unsupportedTheme
     }
-    let combined = RenderNode.fragment(roots)
-    let styles = try StyleCompiler.compile(
-      combined,
+    let stylesheetOutput = try stylesheetArtifacts(
+      for: roots,
       theme: theme,
       mode: configuration.cssOutputMode,
-      viewTransitions: mode == .ssr ? configuration.viewTransitions : .disabled
+      viewTransitions: mode == .ssr ? configuration.viewTransitions : .disabled,
+      cdnBaseURL: configuration.cdnBaseURL
     )
-
-    var artifacts: [BuildArtifact] = []
-    var dependencies = speculation.artifact.map { [$0.path] } ?? []
-    var stylesheetReference: ResourceReference?
-    if !styles.css.isEmpty {
-      let bytes = Array(styles.css.utf8)
-      let path = fingerprintedPath(name: "robin", extension: "css", bytes: bytes)
-      artifacts.append(
-        try BuildArtifact(
-          kind: .staticFile,
-          path: path,
-          bytes: bytes,
-          mediaType: "text/css",
-          integrity: ContentDigest.sha384Integrity(bytes)
-        ))
-      dependencies.append(path)
-      stylesheetReference = ResourceReference(
-        path: path, bytes: bytes, cdnBaseURL: configuration.cdnBaseURL)
-    }
+    let styles = stylesheetOutput.styles
+    var artifacts = stylesheetOutput.artifacts
+    let sharedDependencies = speculation.artifact.map { [$0.path] } ?? []
 
     var scriptReference: ResourceReference?
     if let module = try application.clientNavigationRuntime {
@@ -190,13 +174,13 @@ public enum BuildPipeline {
           integrity: ContentDigest.sha384Integrity(bytes),
           scriptOrigin: .robinDirectCapability(.navigation, selectedBy: "App.clientNavigation")
         ))
-      dependencies.append(path)
       scriptReference = ResourceReference(
         path: path, bytes: bytes, cdnBaseURL: configuration.cdnBaseURL)
     }
 
     var outputPaths: Set<String> = []
-    for ((page, originalRoot), root) in zip(zip(pages, originalRoots), roots)
+    for (pageIndex, ((page, originalRoot), root)) in zip(zip(pages, originalRoots), roots)
+      .enumerated()
     where mode == .static || configuration.prerenderedPagePaths.contains(page.path) {
       let outputPath = try staticOutputPath(for: page.path)
       guard outputPaths.insert(outputPath).inserted else {
@@ -204,15 +188,25 @@ public enum BuildPipeline {
       }
       let body = try HTMLRenderer.render(root, styles: styles.className(for:))
       var metadata = application.metadata.merging(page: page.metadata)
+      var schemas: Set<String> = []
+      for data in metadata.structuredData where !schemas.insert(data.schemaName).inserted {
+        throw BuildError.duplicateStructuredData(data.schemaName)
+      }
       var referencedAssets = referencedAssetPaths(in: originalRoot, references: assets.references)
       if let image = metadata.image, let reference = assets.references[image.url] {
-        metadata.image = .init(url: reference.browserURL, alternativeText: image.alternativeText)
+        metadata.image = .init(
+          url: reference.browserURL,
+          alternativeText: image.alternativeText,
+          width: image.width,
+          height: image.height,
+          mediaType: image.mediaType
+        )
         referencedAssets.append(reference.outputPath)
       }
-      let document = document(
+      let document = try document(
         body: body,
         metadata: metadata,
-        stylesheet: stylesheetReference,
+        stylesheets: stylesheetOutput.referencesByPage[pageIndex],
         script: scriptReference,
         additionalHeadElements: assets.headElements + [speculation.headElement].compactMap { $0 }
       )
@@ -221,7 +215,10 @@ public enum BuildPipeline {
           kind: .staticFile,
           path: outputPath,
           bytes: Array(document.utf8),
-          dependencies: dependencies + Array(Set(referencedAssets)).sorted()
+          dependencies: sharedDependencies
+            + stylesheetOutput.referencesByPage[pageIndex].map(\.path)
+            + [scriptReference?.path].compactMap { $0 }
+            + Array(Set(referencedAssets)).sorted()
         ))
     }
     return artifacts
@@ -249,30 +246,53 @@ public enum BuildPipeline {
   private static func document(
     body: String,
     metadata: Metadata,
-    stylesheet: ResourceReference?,
+    stylesheets: [ResourceReference],
     script: ResourceReference?,
     additionalHeadElements: [String]
-  ) -> String {
+  ) throws -> String {
     let language = HTMLRenderer.escape(metadata.language ?? "en")
     var head =
       "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
-    if let title = metadata.title {
+    if let title = metadata.composedTitle {
       head += "<title>\(HTMLRenderer.escape(title))</title>"
+      head += "<meta property=\"og:title\" content=\"\(HTMLRenderer.escape(title))\">"
+      head += "<meta name=\"twitter:title\" content=\"\(HTMLRenderer.escape(title))\">"
     }
     if let description = metadata.description {
       head += "<meta name=\"description\" content=\"\(HTMLRenderer.escape(description))\">"
+      head +=
+        "<meta property=\"og:description\" content=\"\(HTMLRenderer.escape(description))\">"
+      head +=
+        "<meta name=\"twitter:description\" content=\"\(HTMLRenderer.escape(description))\">"
     }
     if let canonicalURL = metadata.canonicalURL {
       head += "<link rel=\"canonical\" href=\"\(HTMLRenderer.escape(canonicalURL))\">"
+      head += "<meta property=\"og:url\" content=\"\(HTMLRenderer.escape(canonicalURL))\">"
     }
     if let image = metadata.image {
       head +=
         "<meta property=\"og:image\" content=\"\(HTMLRenderer.escape(image.url))\"><meta property=\"og:image:alt\" content=\"\(HTMLRenderer.escape(image.alternativeText))\">"
+      head +=
+        "<meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:image\" content=\"\(HTMLRenderer.escape(image.url))\"><meta name=\"twitter:image:alt\" content=\"\(HTMLRenderer.escape(image.alternativeText))\">"
+      if let width = image.width {
+        head += "<meta property=\"og:image:width\" content=\"\(width)\">"
+      }
+      if let height = image.height {
+        head += "<meta property=\"og:image:height\" content=\"\(height)\">"
+      }
+      if let mediaType = image.mediaType {
+        head += "<meta property=\"og:image:type\" content=\"\(HTMLRenderer.escape(mediaType))\">"
+      }
+    } else if metadata.composedTitle != nil || metadata.description != nil {
+      head += "<meta name=\"twitter:card\" content=\"summary\">"
     }
-    if let stylesheet {
+    for data in metadata.structuredData {
+      head += "<script type=\"application/ld+json\">\(try data.jsonLD(metadata: metadata))</script>"
+    }
+    for stylesheet in stylesheets {
       let crossorigin = stylesheet.crossOrigin ? " crossorigin=\"anonymous\"" : ""
       head +=
-        "<link rel=\"stylesheet\" href=\"\(HTMLRenderer.escape(stylesheet.browserURL))\" integrity=\"\(stylesheet.integrity)\"\(crossorigin)>"
+        "<link rel=\"stylesheet\" data-robin-style href=\"\(HTMLRenderer.escape(stylesheet.browserURL))\" integrity=\"\(stylesheet.integrity)\"\(crossorigin)>"
     }
     if let script {
       let crossorigin = script.crossOrigin ? " crossorigin=\"anonymous\"" : ""
@@ -282,6 +302,76 @@ public enum BuildPipeline {
     head += additionalHeadElements.joined()
     return
       "<!doctype html><html lang=\"\(language)\"><head>\(head)</head><body>\(body)</body></html>"
+  }
+
+  private static func stylesheetArtifacts(
+    for roots: [RenderNode],
+    theme: Theme,
+    mode: CSSOutputMode,
+    viewTransitions: ViewTransitionNavigation,
+    cdnBaseURL: URL?
+  ) throws -> (
+    styles: CompiledStyles,
+    artifacts: [BuildArtifact],
+    referencesByPage: [[ResourceReference]]
+  ) {
+    let styles = try StyleCompiler.compile(
+      .fragment(roots), theme: theme, mode: mode, viewTransitions: .disabled)
+    var signatureByClass: [String: [StyleDeclaration]] = [:]
+    var pagesByClass: [String: Set<Int>] = [:]
+    for (pageIndex, root) in roots.enumerated() {
+      for signature in styleSignatures(in: root) {
+        guard let className = styles.className(for: signature) else { continue }
+        signatureByClass[className] = signature
+        pagesByClass[className, default: []].insert(pageIndex)
+      }
+    }
+
+    let everyPage = Array(roots.indices)
+    var classesByPages: [[Int]: [String]] = [:]
+    for (className, pages) in pagesByClass {
+      classesByPages[pages.sorted(), default: []].append(className)
+    }
+    if viewTransitions == .enabled, classesByPages[everyPage] == nil {
+      classesByPages[everyPage] = []
+    }
+
+    var artifacts: [BuildArtifact] = []
+    var referencesByPage = Array(repeating: [ResourceReference](), count: roots.count)
+    for pageIndexes in classesByPages.keys.sorted(by: { $0.lexicographicallyPrecedes($1) }) {
+      let signatures = classesByPages[pageIndexes, default: []].sorted().compactMap {
+        signatureByClass[$0]
+      }
+      let compiled = try StyleCompiler.compile(
+        signatures: signatures,
+        theme: theme,
+        mode: mode,
+        viewTransitions: pageIndexes == everyPage ? viewTransitions : .disabled
+      )
+      guard !compiled.css.isEmpty else { continue }
+      let bytes = Array(compiled.css.utf8)
+      let path = "assets/\(ContentDigest.sha256(bytes).prefix(12)).css"
+      let artifact = try BuildArtifact(
+        kind: .staticFile,
+        path: path,
+        bytes: bytes,
+        mediaType: "text/css",
+        integrity: ContentDigest.sha384Integrity(bytes)
+      )
+      let reference = ResourceReference(path: path, bytes: bytes, cdnBaseURL: cdnBaseURL)
+      artifacts.append(artifact)
+      for pageIndex in pageIndexes { referencesByPage[pageIndex].append(reference) }
+    }
+    return (styles, artifacts, referencesByPage)
+  }
+
+  private static func styleSignatures(in node: RenderNode) -> [[StyleDeclaration]] {
+    switch node.renderingStorage {
+    case .text: []
+    case .fragment(let children): children.flatMap(styleSignatures)
+    case .element(let element):
+      (element.styles.isEmpty ? [] : [element.styles]) + element.children.flatMap(styleSignatures)
+    }
   }
 
   private static func deploymentMetadata(mode: ApplicationMode) throws -> BuildArtifact {
