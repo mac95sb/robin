@@ -1,0 +1,17 @@
+@Tutorial(time: 5) {
+  @Intro(title: "Test an Application") {
+    Check routes, accessibility, snapshots, and browser behavior through Robin's public contracts.
+  }
+
+  @Section(title: "Choose the smallest test") {
+    @Steps {
+      @Step {
+        Start with ``RouteTestClient`` or ``AccessibilityAudit`` for deterministic local feedback.
+      }
+
+      @Step {
+        Use ``BrowserSession`` only for behavior that requires a real browser boundary.
+      }
+    }
+  }
+}

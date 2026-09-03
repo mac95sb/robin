@@ -1,6 +1,6 @@
 /// Builds component content with native Swift conditionals and loops.
 @resultBuilder
-public enum ViewBuilder {
+public struct ViewBuilder {
   /// Passes resolved content through the builder.
   ///
   /// - Parameter expression: The resolved component content.

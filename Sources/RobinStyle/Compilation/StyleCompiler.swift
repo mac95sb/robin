@@ -1,3 +1,4 @@
+import Crypto
 import Foundation
 @_spi(Rendering) import RobinCore
 @_spi(Rendering) import RobinHTML
@@ -7,12 +8,12 @@ import Foundation
 /// The compiler operates only on style signatures reachable from the supplied
 /// render tree. Theme tokens are resolved during compilation, so the generated
 /// stylesheet contains concrete CSS values rather than token names.
-public enum StyleCompiler {
+public struct StyleCompiler {
   /// Compiles every nonempty element style signature reachable from a render tree.
   ///
   /// Compilation proceeds through these stages:
   ///
-  /// 1. Traverse elements, fragments, and enhancement content and collect each
+  /// 1. Traverse elements and fragments and collect each
   ///    element's complete, nonempty style signature.
   /// 2. Normalize each signature so the last declaration for a given CSS
   ///    property and condition wins, then sort the surviving declarations by
@@ -34,15 +35,37 @@ public enum StyleCompiler {
   ///   - theme: The design-token values used to resolve declarations and
   ///     tokenized minimum-width conditions.
   ///   - mode: The whitespace formatting to use for the emitted stylesheet.
+  ///   - animations: The keyframe animations referenced by reachable declarations.
+  ///   - viewTransitions: Whether to emit native cross-document view-transition CSS.
   /// - Returns: The deterministic class assignments and emitted stylesheet.
   /// - Throws: A ``ThemeError`` when a collected declaration or condition
   ///   references a token absent from the applicable theme dictionary.
   public static func compile(
     _ root: RobinHTML.RenderNode,
     theme: Theme,
-    mode: CSSOutputMode
+    mode: CSSOutputMode,
+    animations: [KeyframeAnimation] = [],
+    viewTransitions: ViewTransitionNavigation = .disabled
   ) throws -> CompiledStyles {
-    let signatures = collect(from: root)
+    let signatures = try collect(from: root, hasContainmentAncestor: false)
+    return try compile(
+      signatures: signatures,
+      theme: theme,
+      mode: mode,
+      animations: animations,
+      viewTransitions: viewTransitions
+    )
+  }
+
+  /// Compiles style signatures already validated while traversing Render IR.
+  @_spi(Rendering)
+  public static func compile(
+    signatures: [[StyleDeclaration]],
+    theme: Theme,
+    mode: CSSOutputMode,
+    animations: [KeyframeAnimation] = [],
+    viewTransitions: ViewTransitionNavigation = .disabled
+  ) throws -> CompiledStyles {
     var resolvedBySignature: [[StyleDeclaration]: ResolvedSignature] = [:]
 
     for signature in signatures {
@@ -64,16 +87,30 @@ public enum StyleCompiler {
         canonical: canonical,
         signatures: signatures,
         resolved: resolved,
-        className: "r-\(stableHash(canonical))"
+        className: "r1-\(CSSSerialization.stableHash(canonical))"
       )
     }.sorted {
       ($0.className, $0.canonical) < ($1.className, $1.canonical)
     }
 
+    var owners: [String: String] = [:]
+    for group in ordered {
+      if let owner = owners[group.className], owner != group.canonical {
+        throw StyleCompilerError.selectorCollision(group.className)
+      }
+      owners[group.className] = group.canonical
+    }
+
     let separator = mode == .development ? "\n" : ""
-    let css = ordered.flatMap { group in
+    let rules = ordered.flatMap { group in
       group.resolved.rules(className: group.className, mode: mode)
-    }.sorted(by: ruleOrder).map(\.css).joined(separator: separator)
+    }.sorted(by: ruleOrder).map(\.css)
+    let keyframes = Dictionary(grouping: animations, by: \.name).values.compactMap(\.first)
+      .sorted { $0.name < $1.name }.map(\.css)
+    let viewTransitionCSS =
+      viewTransitions == .enabled ? "@view-transition{navigation:auto}" : nil
+    let css = (rules + keyframes + [viewTransitionCSS].compactMap { $0 }).joined(
+      separator: separator)
 
     return CompiledStyles(
       assignments: ordered.flatMap { group in
@@ -97,14 +134,33 @@ public enum StyleCompiler {
   }
 
   private static func collect(
-    from node: RobinHTML.RenderNode
-  ) -> [[StyleDeclaration]] {
+    from node: RobinHTML.RenderNode,
+    hasContainmentAncestor: Bool
+  ) throws -> [[StyleDeclaration]] {
     switch node.renderingStorage {
-    case .text: []
-    case .fragment(let children): children.flatMap(collect)
-    case .enhancement(let enhancement): enhancement.content.flatMap(collect)
+    case .text: return []
+    case .fragment(let children):
+      return try children.flatMap {
+        try collect(from: $0, hasContainmentAncestor: hasContainmentAncestor)
+      }
     case .element(let element):
-      (element.styles.isEmpty ? [] : [element.styles]) + element.children.flatMap(collect)
+      if !hasContainmentAncestor,
+        element.styles.contains(where: {
+          $0.condition.hasPrefix("container-minimum-width-token:")
+        })
+      {
+        throw ThemeError.missingContainmentAncestor
+      }
+      let declaresContainment = element.styles.contains {
+        $0.property == StyleProperty.containerType.rawValue
+          && $0.payload != .keyword(ContainerType.normal.rawValue)
+      }
+      return (element.styles.isEmpty ? [] : [element.styles])
+        + (try element.children.flatMap {
+          try collect(
+            from: $0,
+            hasContainmentAncestor: hasContainmentAncestor || declaresContainment)
+        })
     }
   }
 
@@ -159,6 +215,11 @@ public enum StyleCompiler {
       }
       return String(typography.weight)
     case .pixels(let value): return "\(max(value, 0))px"
+    case .number(let value): return String(value)
+    case .shadow(let name):
+      let token = ShadowToken(rawValue: name)
+      guard let shadow = theme.shadows[token] else { throw ThemeError.missingShadow(token) }
+      return "\(shadow.x)px \(shadow.y)px \(max(shadow.radius, 0))px \(serialize(shadow.color))"
     }
   }
 
@@ -181,21 +242,24 @@ public enum StyleCompiler {
       return .focus
     case .dark:
       return .dark
+    case .expression(let value):
+      let resolved = try ConditionExpression.parse(value).resolve(theme: theme)
+      return .expression(media: resolved.media, selector: resolved.selector)
+    case .containerMinimumWidthToken(let name):
+      let token = BreakpointToken(rawValue: name)
+      guard let width = theme.breakpoints[token] else { throw ThemeError.missingBreakpoint(token) }
+      return .containerMinimumWidth(width)
+    case .startingStyle:
+      return .startingStyle
     }
   }
 
   private static func serialize(_ color: Color) -> String {
-    let lightness = decimal(color.lightness)
-    let chroma = decimal(color.chroma)
-    let hue = decimal(color.hue)
+    let lightness = CSSSerialization.decimal(color.lightness)
+    let chroma = CSSSerialization.decimal(color.chroma)
+    let hue = CSSSerialization.decimal(color.hue)
     if color.alpha == 1 { return "oklch(\(lightness) \(chroma) \(hue))" }
-    return "oklch(\(lightness) \(chroma) \(hue) / \(decimal(color.alpha)))"
-  }
-
-  private static func decimal(_ value: Double) -> String {
-    String(format: "%.4f", locale: Locale(identifier: "en_US_POSIX"), value)
-      .replacingOccurrences(of: #"0+$"#, with: "", options: .regularExpression)
-      .replacingOccurrences(of: #"\.$"#, with: "", options: .regularExpression)
+    return "oklch(\(lightness) \(chroma) \(hue) / \(CSSSerialization.decimal(color.alpha)))"
   }
 
   private static func escapeCSSString(_ value: String) -> String {
@@ -249,13 +313,17 @@ public enum StyleCompiler {
     "\(value.utf8.count):\(value)"
   }
 
-  private static func stableHash(_ value: String) -> String {
-    var hash: UInt64 = 14_695_981_039_346_656_037
-    for byte in value.utf8 {
-      hash ^= UInt64(byte)
-      hash &*= 1_099_511_628_211
-    }
-    return String(hash, radix: 36)
+}
+
+struct CSSSerialization {
+  static func decimal(_ value: Double) -> String {
+    String(format: "%.4f", locale: Locale(identifier: "en_US_POSIX"), value)
+      .replacingOccurrences(of: #"0+$"#, with: "", options: .regularExpression)
+      .replacingOccurrences(of: #"\.$"#, with: "", options: .regularExpression)
+  }
+
+  static func stableHash(_ value: String) -> String {
+    SHA256.hash(data: Data(value.utf8)).prefix(8).map { String(format: "%02x", $0) }.joined()
   }
 }
 
@@ -307,6 +375,9 @@ private enum ResolvedCondition: Hashable, Comparable {
   case hover
   case focus
   case dark
+  case expression(media: String?, selector: String)
+  case containerMinimumWidth(Int)
+  case startingStyle
 
   var key: String {
     switch self {
@@ -315,6 +386,9 @@ private enum ResolvedCondition: Hashable, Comparable {
     case .hover: "2:hover"
     case .focus: "2:focus"
     case .dark: "3:dark"
+    case .expression(let media, let selector): "2:\(media ?? ""):\(selector)"
+    case .containerMinimumWidth(let width): "1:container:\(width)"
+    case .startingStyle: "2:starting-style"
     }
   }
 
@@ -322,6 +396,10 @@ private enum ResolvedCondition: Hashable, Comparable {
     switch (lhs, rhs) {
     case (.always, .always), (.hover, .hover), (.focus, .focus), (.dark, .dark): false
     case (.minimumWidth(let lhsWidth), .minimumWidth(let rhsWidth)): lhsWidth < rhsWidth
+    case (.expression(let lhsMedia, let lhsSelector), .expression(let rhsMedia, let rhsSelector)):
+      (lhsMedia ?? "", lhsSelector) < (rhsMedia ?? "", rhsSelector)
+    case (.containerMinimumWidth(let lhsWidth), .containerMinimumWidth(let rhsWidth)):
+      lhsWidth < rhsWidth
     default: lhs.rank < rhs.rank
     }
   }
@@ -333,6 +411,9 @@ private enum ResolvedCondition: Hashable, Comparable {
     case .focus: 2
     case .hover: 3
     case .dark: 4
+    case .expression: 2
+    case .containerMinimumWidth: 1
+    case .startingStyle: 2
     }
   }
 
@@ -340,6 +421,7 @@ private enum ResolvedCondition: Hashable, Comparable {
     switch self {
     case .hover: ".\(className):hover"
     case .focus: ".\(className):focus"
+    case .expression(_, let selector): ".\(className)\(selector)"
     default: ".\(className)"
     }
   }
@@ -348,7 +430,111 @@ private enum ResolvedCondition: Hashable, Comparable {
     switch self {
     case .minimumWidth(let width): "@media (min-width:\(width)px){\(rule)}"
     case .dark: "@media (prefers-color-scheme:dark){\(rule)}"
+    case .expression(let media, _): media.map { "@media \($0){\(rule)}" } ?? rule
+    case .containerMinimumWidth(let width): "@container (min-width:\(width)px){\(rule)}"
+    case .startingStyle: "@starting-style{\(rule)}"
     default: rule
     }
+  }
+}
+
+private indirect enum ConditionExpression {
+  case minimum(String)
+  case maximum(String)
+  case between(String, String)
+  case pseudo(String)
+  case has(String)
+  case and(Self, Self)
+  case or(Self, Self)
+  case not(Self)
+  case dark
+  case always
+
+  static func parse(_ source: String) throws -> Self {
+    if source == "always" { return .always }
+    if source == "dark" { return .dark }
+    if source.hasPrefix("min:") { return .minimum(String(source.dropFirst(4))) }
+    if source.hasPrefix("max:") { return .maximum(String(source.dropFirst(4))) }
+    if source.hasPrefix("pseudo:") { return .pseudo(String(source.dropFirst(7))) }
+    if source.hasPrefix("between:") {
+      let values = source.dropFirst(8).split(separator: ":", maxSplits: 1).map(String.init)
+      guard values.count == 2 else { throw ThemeError.invalidCondition(source) }
+      return .between(values[0], values[1])
+    }
+    if source.hasPrefix("has:") {
+      let rest = source.dropFirst(4)
+      guard let colon = rest.firstIndex(of: ":"), let length = Int(rest[..<colon]) else {
+        throw ThemeError.invalidCondition(source)
+      }
+      let value = String(rest[rest.index(after: colon)...])
+      guard value.utf8.count == length else { throw ThemeError.invalidCondition(source) }
+      return .has(value)
+    }
+    if source.hasPrefix("not:") { return .not(try parse(String(source.dropFirst(4)))) }
+    if source.hasPrefix("and:") {
+      return try parseBinary(source, prefix: "and:", combine: { .and($0, $1) })
+    }
+    if source.hasPrefix("or:") {
+      return try parseBinary(source, prefix: "or:", combine: { .or($0, $1) })
+    }
+    throw ThemeError.invalidCondition(source)
+  }
+
+  private static func parseBinary(
+    _ source: String,
+    prefix: String,
+    combine: (Self, Self) -> Self
+  ) throws -> Self {
+    let rest = source.dropFirst(prefix.count)
+    guard let colon = rest.firstIndex(of: ":"), let length = Int(rest[..<colon]) else {
+      throw ThemeError.invalidCondition(source)
+    }
+    let values = rest[rest.index(after: colon)...]
+    guard let split = values.index(values.startIndex, offsetBy: length, limitedBy: values.endIndex)
+    else {
+      throw ThemeError.invalidCondition(source)
+    }
+    return combine(try parse(String(values[..<split])), try parse(String(values[split...])))
+  }
+
+  func resolve(theme: Theme) throws -> (media: String?, selector: String) {
+    switch self {
+    case .always: return (nil, "")
+    case .dark: return ("(prefers-color-scheme:dark)", "")
+    case .minimum(let name): return ("(min-width:\(try width(name, theme: theme))px)", "")
+    case .maximum(let name): return ("(max-width:\(try width(name, theme: theme) - 1)px)", "")
+    case .between(let lower, let upper):
+      return (
+        "(min-width:\(try width(lower, theme: theme))px) and (max-width:\(try width(upper, theme: theme) - 1)px)",
+        ""
+      )
+    case .pseudo(let value): return (nil, ":\(value)")
+    case .has(let value): return (nil, ":has(\(value))")
+    case .not(let value):
+      let child = try value.resolve(theme: theme)
+      if let media = child.media { return ("not \(media)", child.selector) }
+      return (nil, ":not(\(child.selector))")
+    case .and(let lhs, let rhs):
+      let left = try lhs.resolve(theme: theme)
+      let right = try rhs.resolve(theme: theme)
+      let media = [left.media, right.media].compactMap { $0 }.joined(separator: " and ")
+      return (media.isEmpty ? nil : media, left.selector + right.selector)
+    case .or(let lhs, let rhs):
+      let left = try lhs.resolve(theme: theme)
+      let right = try rhs.resolve(theme: theme)
+      if left.media == nil, right.media == nil {
+        return (nil, ":is(\(left.selector),\(right.selector))")
+      }
+      guard left.selector.isEmpty, right.selector.isEmpty, let lhsMedia = left.media,
+        let rhsMedia = right.media
+      else { throw ThemeError.invalidCondition("Mixed media/selector disjunction") }
+      return ("\(lhsMedia), \(rhsMedia)", "")
+    }
+  }
+
+  private func width(_ name: String, theme: Theme) throws -> Int {
+    let token = BreakpointToken(rawValue: name)
+    guard let width = theme.breakpoints[token] else { throw ThemeError.missingBreakpoint(token) }
+    return width
   }
 }

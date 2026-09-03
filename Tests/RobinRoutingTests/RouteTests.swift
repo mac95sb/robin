@@ -1,10 +1,11 @@
+import Foundation
 import RobinRouting
 import Testing
 
 @Suite("Typed routes")
 struct RouteTests {
   @Test func typedParameterMatchesAndReverseRoutes() {
-    let route = Route<Int>.path(
+    let route = RouteDefinition<Int>.path(
       ["users"],
       parameter: .integer("id"),
       metadata: .init(operationID: "showUser", summary: "Show a user")
@@ -14,20 +15,22 @@ struct RouteTests {
     #expect(route.match("/users/not-an-integer") == nil)
     #expect(route.url(for: 42) == "/users/42")
     #expect(
-      route.canonicalURL(origin: "https://example.com/", for: 42) == "https://example.com/users/42")
+      route.canonicalURL(origin: URL(string: "https://example.com/")!, for: 42)?.absoluteString
+        == "https://example.com/users/42")
+    #expect(route.canonicalURL(origin: URL(string: "https://example.com/base")!, for: 42) == nil)
     #expect(route.metadata.operationID == "showUser")
   }
 
   @Test func stringParametersAreCanonicallyEncodedAndDecoded() {
-    let route = Route<String>.path(["articles"], parameter: .string("slug"))
+    let route = RouteDefinition<String>.path(["articles"], parameter: .string("slug"))
 
     #expect(route.url(for: "hello world/Swift") == "/articles/hello%20world%2FSwift")
     #expect(route.match("/articles/hello%20world%2FSwift") == "hello world/Swift")
   }
 
   @Test func literalRoutesSupportRootAndStaticPaths() {
-    let root = Route<Void>.path()
-    let docs = Route<Void>.path("docs", "getting-started")
+    let root = RouteDefinition<Void>.path()
+    let docs = RouteDefinition<Void>.path("docs", "getting-started")
 
     #expect(root.match("/") != nil)
     #expect(root.url == "/")
@@ -36,8 +39,8 @@ struct RouteTests {
   }
 
   @Test func emptyRouteEdgeSegmentsAreCanonicalized() {
-    let literal = Route<Void>.path("", "docs", "")
-    let typed = Route<Int>.path(
+    let literal = RouteDefinition<Void>.path("", "docs", "")
+    let typed = RouteDefinition<Int>.path(
       ["", "users"],
       parameter: .integer("id"),
       suffix: ["profile", ""]
@@ -50,24 +53,24 @@ struct RouteTests {
   }
 
   @Test func emptyInteriorSegmentsAreNotCollapsed() {
-    let typed = Route<Int>.path(["users"], parameter: .integer("id"))
-    let literal = Route<Void>.path("docs", "getting-started")
+    let typed = RouteDefinition<Int>.path(["users"], parameter: .integer("id"))
+    let literal = RouteDefinition<Void>.path("docs", "getting-started")
 
     #expect(typed.match("/users//42") == nil)
     #expect(literal.match("/docs//getting-started") == nil)
   }
 
   @Test func malformedPercentEscapesFailMatching() {
-    let route = Route<String>.path(["articles"], parameter: .string("slug"))
+    let route = RouteDefinition<String>.path(["articles"], parameter: .string("slug"))
 
     #expect(route.match("/articles/incomplete%2") == nil)
     #expect(route.match("/articles/invalid%GG") == nil)
   }
 
   @Test func trailingSlashesRemainIgnoredWhenMatching() {
-    let root = Route<Void>.path()
-    let typed = Route<Int>.path(["users"], parameter: .integer("id"))
-    let literal = Route<Void>.path("docs", "getting-started")
+    let root = RouteDefinition<Void>.path()
+    let typed = RouteDefinition<Int>.path(["users"], parameter: .integer("id"))
+    let literal = RouteDefinition<Void>.path("docs", "getting-started")
 
     #expect(root.match("///") != nil)
     #expect(typed.match("/users/42/") == 42)

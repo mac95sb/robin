@@ -3,7 +3,7 @@
 /// The mode is derived from which halves of an application are present: views
 /// without controllers render statically, controllers without views serve an
 /// API, and both together render server-side on each request.
-public enum ApplicationMode: Sendable {
+public enum ApplicationMode: Equatable, Sendable {
   /// Views with no controllers: pre-rendered static output.
   case `static`
 

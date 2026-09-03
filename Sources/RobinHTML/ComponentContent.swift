@@ -21,6 +21,20 @@ public struct ComponentContent: Component, Sendable {
 
 @_spi(Rendering)
 extension ComponentContent {
+  static func element(
+    _ kind: RenderElement.Kind,
+    id: String?,
+    children: [RenderNode]
+  ) -> Self {
+    .node(
+      .element(
+        .init(
+          kind: kind,
+          attributes: id.map { [.identifier($0)] } ?? [],
+          children: children
+        )))
+  }
+
   /// Creates component content containing a single render node.
   ///
   /// - Parameter node: The node to wrap.

@@ -1,0 +1,13 @@
+@Tutorials(name: "RobinHTML") {
+  @Intro(title: "Build typed web pages") {
+    Compose a static page from Robin's application, page, and component APIs.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "robin-html-tutorial.svg", alt: "A page connected to typed Swift components")
+
+    Start with a complete page that uses semantic components and no client runtime.
+
+    @TutorialReference(tutorial: "doc:Build-a-Static-Page")
+  }
+}

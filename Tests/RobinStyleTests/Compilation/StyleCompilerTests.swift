@@ -28,13 +28,13 @@ private let theme = Theme(
   breakpoints: [.lg: 960]
 )
 
-private enum PropertyKey {
+private struct PropertyKey {
   static let color = "color"
   static let fontFamily = "font-family"
   static let padding = "padding"
 }
 
-private enum ConditionKey {
+private struct ConditionKey {
   static let dark = "dark"
 
   static func minimumWidth(_ token: BreakpointToken) -> String {
@@ -123,7 +123,7 @@ struct StyleCompilerTests {
     let result = try StyleCompiler.compile(root, theme: theme, mode: .development)
 
     #expect(result.css.contains("\n"))
-    let base = try #require(result.css.range(of: ".r-"))
+    let base = try #require(result.css.range(of: ".r1-"))
     let responsive = try #require(result.css.range(of: "@media (min-width:960px)"))
     let mode = try #require(result.css.range(of: "@media (prefers-color-scheme:dark)"))
     #expect(base.lowerBound < responsive.lowerBound)
@@ -167,10 +167,8 @@ struct StyleCompilerTests {
   }
 
   @Test func typographyModifierUsesTypedWeightAndTextAlignment() throws {
-    let root = RobinHTML.ComponentResolver.resolve(
-      TextFixture()
-        .font(.body, align: .center)
-    )
+    let component = TextFixture().font(.body, align: .center)
+    let root = RobinHTML.RenderNode.fragment(component.body.nodes)
 
     let result = try StyleCompiler.compile(root, theme: theme, mode: .production)
 

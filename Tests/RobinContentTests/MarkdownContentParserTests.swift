@@ -1,5 +1,4 @@
 import Foundation
-import RobinRendering
 import Testing
 
 @testable import RobinContent
@@ -20,10 +19,8 @@ struct MarkdownContentParserTests {
     #expect(
       parsed.nodes.contains(
         .embed(
-          EmbedNode(
-            source: "https://www.youtube-nocookie.com/embed/example",
-            title: "Validation video"
-          )
+          source: "https://www.youtube-nocookie.com/embed/example",
+          title: "Validation video"
         )
       )
     )

@@ -3,7 +3,7 @@ import RobinCore
 /// An element in Robin's structural render representation.
 ///
 /// Render elements contain only typed structural data. Style declarations are carried as opaque
-/// ``StyleDeclaration`` values: their shape is defined by `RobinCore`, while their interpretation
+/// `StyleDeclaration` values: their shape is defined by `RobinCore`, while their interpretation
 /// and compilation into CSS belong entirely to `RobinStyle`. Renderer implementations translate
 /// this representation into their output format.
 public struct RenderElement: Equatable, Sendable {
@@ -53,6 +53,8 @@ public struct RenderElement: Equatable, Sendable {
     case header
     /// An image.
     case img
+    /// A sandboxed third-party embedded document.
+    case iframe
     /// A form input control.
     case input
     /// A caption for a form control.
@@ -119,6 +121,10 @@ public struct RenderElement: Equatable, Sendable {
     case href(String)
     /// A media element's source, serialized as `src`.
     case source(String)
+    /// Responsive image candidates, serialized as `srcset`.
+    case sourceSet([SourceCandidate])
+    /// The responsive image slot-size expression, serialized as `sizes`.
+    case sizes(String)
     /// An image's alternative text, serialized as `alt`.
     case alternateText(String)
     /// A form's submission endpoint, serialized as `action`.
@@ -129,6 +135,34 @@ public struct RenderElement: Equatable, Sendable {
     case labelFor(String)
     /// A disclosure or dialog's expanded/visible state, serialized as the bare `open` attribute.
     case open
+    /// An embedded document's human-readable title.
+    case title(String)
+    /// The fixed sandbox capability set for an embedded document.
+    case sandbox(String)
+    /// The source language associated with a syntax-highlighted code block.
+    case syntaxLanguage(String)
+    /// The curated syntax theme selected for a code block.
+    case syntaxTheme(SyntaxHighlightTheme)
+    /// The semantic role of a highlighted source-code region.
+    case syntaxHighlight(CaseHighlight.Kind)
+
+    /// One image source and its intrinsic pixel width.
+    public struct SourceCandidate: Equatable, Sendable {
+      /// The image source reference.
+      public let source: String
+      /// The source width in pixels.
+      public let width: Int
+
+      /// Creates a responsive image candidate.
+      ///
+      /// - Parameters:
+      ///   - source: The image source reference.
+      ///   - width: The positive intrinsic width in pixels.
+      public init(source: String, width: Int) {
+        self.source = source
+        self.width = width
+      }
+    }
 
     /// A typed HTML form submission method.
     public enum FormMethod: String, Equatable, Sendable {

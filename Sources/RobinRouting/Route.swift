@@ -1,21 +1,26 @@
 import Foundation
+import RobinCore
 
 /// A typed route definition used for matching and reverse URL generation.
 ///
 /// A route applies the same literal segments and parameter codec in both directions, keeping
 /// accepted paths and generated URLs aligned.
-public struct Route<Value: Sendable>: Sendable {
+public struct RouteDefinition<Value: Sendable>: Sendable {
   /// Descriptive route metadata available to build and API tooling.
   public let metadata: RouteMetadata
+  /// The structural pattern used for matching and route inspection.
+  public let pattern: RoutePattern
   private let matchPath: @Sendable ([String]) -> Value?
   private let generatePath: @Sendable (Value) -> [String]
 
-  private init(
+  init(
     metadata: RouteMetadata,
+    pattern: RoutePattern,
     match: @escaping @Sendable ([String]) -> Value?,
     generate: @escaping @Sendable (Value) -> [String]
   ) {
     self.metadata = metadata
+    self.pattern = pattern
     self.matchPath = match
     self.generatePath = generate
   }
@@ -49,18 +54,22 @@ public struct Route<Value: Sendable>: Sendable {
 
   /// Generates an absolute canonical URL for a route value.
   ///
-  /// Trailing slashes are removed from `origin` before the root-relative route URL is appended.
-  /// This method does not consult ``RouteMetadata/isCanonical`` or validate the origin.
+  /// The origin must be an absolute HTTP or HTTPS URL without a path, query, or fragment.
+  /// This method does not consult ``RouteMetadata/isCanonical``.
   ///
   /// - Parameters:
-  ///   - origin: The caller-validated absolute origin, such as `https://example.com`.
+  ///   - origin: The absolute origin, such as `https://example.com`.
   ///   - value: The typed value to encode into the route's parameter segment.
-  /// - Returns: The origin and generated root-relative URL joined with one slash.
-  ///
-  /// > Important: Validate `origin` before calling this method. It should contain only a URL
-  /// > origin, without a path, query, or fragment.
-  public func canonicalURL(origin: String, for value: Value) -> String {
-    origin.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + url(for: value)
+  /// - Returns: The absolute route URL, or `nil` when `origin` is not a valid HTTP origin.
+  public func canonicalURL(origin: URL, for value: Value) -> URL? {
+    guard
+      origin.scheme == "http" || origin.scheme == "https",
+      origin.host != nil,
+      origin.path.isEmpty || origin.path == "/",
+      origin.query == nil,
+      origin.fragment == nil
+    else { return nil }
+    return URL(string: url(for: value), relativeTo: origin)?.absoluteURL
   }
 
   /// Creates a route containing one typed path parameter.
@@ -87,6 +96,11 @@ public struct Route<Value: Sendable>: Sendable {
 
     return .init(
       metadata: metadata,
+      pattern: RoutePattern(
+        canonicalPrefix.map(RoutePattern.Segment.literal)
+          + [.parameter(parameter.name)]
+          + canonicalSuffix.map(RoutePattern.Segment.literal)
+      ),
       match: { components in
         guard components.count == canonicalPrefix.count + 1 + canonicalSuffix.count else {
           return nil
@@ -125,7 +139,7 @@ public struct Route<Value: Sendable>: Sendable {
   }
 }
 
-extension Route where Value == Void {
+extension RouteDefinition where Value == Void {
   /// Creates a route containing only literal path segments.
   ///
   /// Empty leading and trailing literals are ignored so generated URLs match the same paths they
@@ -145,6 +159,7 @@ extension Route where Value == Void {
 
     return .init(
       metadata: metadata,
+      pattern: RoutePattern(canonicalSegments.map(RoutePattern.Segment.literal)),
       match: { $0 == canonicalSegments ? () : nil },
       generate: { canonicalSegments }
     )
@@ -159,3 +174,5 @@ extension CharacterSet {
     CharacterSet(charactersIn: "-._~")
   )
 }
+
+extension RouteDefinition: Route {}

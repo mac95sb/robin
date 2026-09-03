@@ -1,3 +1,5 @@
+import RobinCore
+
 /// The design-token values used to resolve component styles at compilation time.
 ///
 /// A theme is an immutable collection of independently keyed scales. Style
@@ -9,6 +11,12 @@ public struct Theme: Equatable, Sendable {
 
   /// Colors used by declarations under ``Condition/dark``.
   public let darkColors: [ColorToken: Color]
+  /// Optional colors used by the light high-contrast palette.
+  public let highContrastLightColors: [ColorToken: Color]?
+  /// Optional colors used by the dark high-contrast palette.
+  public let highContrastDarkColors: [ColorToken: Color]?
+  /// A stable identifier for caches and generated output.
+  public let identity: String
 
   /// Font family, size, and weight values keyed by typography token.
   public let typography: [TypographyToken: Typography]
@@ -29,9 +37,24 @@ public struct Theme: Equatable, Sendable {
   public let breakpoints: [BreakpointToken: Int]
 
   /// Creates a theme from its design-token scales.
+  ///
+  /// - Parameters:
+  ///   - lightColors: The default light color palette.
+  ///   - darkColors: The dark-mode color palette.
+  ///   - highContrastLightColors: An optional light high-contrast palette.
+  ///   - highContrastDarkColors: An optional dark high-contrast palette.
+  ///   - identity: A stable cache and output identifier.
+  ///   - typography: Font values keyed by typography token.
+  ///   - spacing: Pixel values keyed by spacing token.
+  ///   - radii: Pixel values keyed by radius token.
+  ///   - shadows: Shadow values keyed by shadow token.
+  ///   - breakpoints: Minimum pixel widths keyed by breakpoint token.
   public init(
     lightColors: [ColorToken: Color],
     darkColors: [ColorToken: Color],
+    highContrastLightColors: [ColorToken: Color]? = nil,
+    highContrastDarkColors: [ColorToken: Color]? = nil,
+    identity: String = "default",
     typography: [TypographyToken: Typography],
     spacing: [SpacingToken: Int],
     radii: [RadiusToken: Int],
@@ -40,6 +63,9 @@ public struct Theme: Equatable, Sendable {
   ) {
     self.lightColors = lightColors
     self.darkColors = darkColors
+    self.highContrastLightColors = highContrastLightColors
+    self.highContrastDarkColors = highContrastDarkColors
+    self.identity = identity
     self.typography = typography
     self.spacing = spacing
     self.radii = radii
@@ -47,6 +73,31 @@ public struct Theme: Equatable, Sendable {
     self.breakpoints = breakpoints
   }
 }
+
+extension Theme {
+  /// Reports palettes whose foreground and background miss a contrast threshold.
+  ///
+  /// - Parameter minimumRatio: The minimum accepted WCAG contrast ratio.
+  /// - Returns: One diagnostic for each failing configured palette.
+  public func contrastDiagnostics(minimumRatio: Double = 4.5) -> [Diagnostic] {
+    let palettes: [(String, [ColorToken: Color]?)] = [
+      ("light", lightColors), ("dark", darkColors),
+      ("high-contrast-light", highContrastLightColors),
+      ("high-contrast-dark", highContrastDarkColors),
+    ]
+    return palettes.compactMap { name, palette in
+      guard let palette,
+        let foreground = palette[.foreground],
+        let background = palette[.background],
+        foreground.contrastRatio(with: background) < minimumRatio
+      else { return nil }
+      return Diagnostic(
+        .error, "Theme palette does not meet minimum contrast", context: name)
+    }
+  }
+}
+
+extension Theme: ApplicationTheme {}
 
 extension Theme {
   /// Robin's default theme, implementing the full named token scale.

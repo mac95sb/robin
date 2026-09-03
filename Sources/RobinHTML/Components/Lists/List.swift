@@ -1,6 +1,6 @@
 /// An ordered or unordered list of items.
 ///
-/// `List` lowers to `<ol>` or `<ul>` depending on ``ordered``. Its content is typically built from
+/// `List` lowers to `<ol>` or `<ul>` depending on `ordered`. Its content is typically built from
 /// ``ListItem`` values, one per entry.
 public struct List: Component {
   private let ordered: Bool

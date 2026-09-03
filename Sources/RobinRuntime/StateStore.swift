@@ -25,7 +25,7 @@ public actor StateStore {
   ///
   /// - Parameters:
   ///   - key: The key to look up.
-  ///   - type: The type to decode the stored value as.
+  ///   - as: The type to decode the stored value as.
   /// - Returns: The decoded value, or `nil` when the key has no stored value.
   /// - Throws: A decoding error if the stored bytes are not valid for `Value`.
   public func value<Value: Codable & Sendable>(forKey key: String, as: Value.Type) throws -> Value?

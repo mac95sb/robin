@@ -5,7 +5,7 @@ import Foundation
 ///
 /// The renderer escapes text and attribute values, orders attributes consistently, and can map
 /// compiled style declarations to generated class names.
-public enum HTMLRenderer {
+public struct HTMLRenderer {
   /// Validates and renders a resolved component tree without style declarations.
   ///
   /// Validation completes before serialization. If the tree has multiple diagnostics, this
@@ -25,7 +25,7 @@ public enum HTMLRenderer {
   /// - Returns: The escaped HTML representation of `component`.
   /// - Throws: A ``RenderDiagnostic`` when validation fails or styles are unresolved.
   public static func render<C: Component>(_ component: C) throws -> String {
-    try render(ComponentResolver.resolve(component))
+    try render(.fragment(component.body.nodes))
   }
 
   /// Validates and renders a resolved component tree using generated style-class assignments.
@@ -38,7 +38,7 @@ public enum HTMLRenderer {
   @_spi(Rendering)
   public static func render(
     _ root: RenderNode,
-    styles: any StyleClassResolving
+    styles: @escaping @Sendable ([StyleDeclaration]) -> String?
   ) throws -> String {
     try render(root, styleResolver: styles)
   }
@@ -53,9 +53,9 @@ public enum HTMLRenderer {
   @_spi(Rendering)
   public static func render<C: Component>(
     _ component: C,
-    styles: any StyleClassResolving
+    styles: @escaping @Sendable ([StyleDeclaration]) -> String?
   ) throws -> String {
-    try render(ComponentResolver.resolve(component), styles: styles)
+    try render(.fragment(component.body.nodes), styles: styles)
   }
 
   /// Escapes a string for an HTML text or double-quoted attribute context.
@@ -85,7 +85,7 @@ public enum HTMLRenderer {
 
   private static func render(
     _ root: RenderNode,
-    styleResolver: (any StyleClassResolving)?
+    styleResolver: (@Sendable ([StyleDeclaration]) -> String?)?
   ) throws -> String {
     let diagnostics = validate(root)
     if let first = diagnostics.first { throw first }
@@ -94,27 +94,25 @@ public enum HTMLRenderer {
 
   private static func serialize(
     _ node: RenderNode,
-    styles: (any StyleClassResolving)?
+    styles: (@Sendable ([StyleDeclaration]) -> String?)?
   ) throws -> String {
     switch node.renderingStorage {
     case .text(let text): escape(text)
     case .fragment(let children):
       try children.map { try serialize($0, styles: styles) }.joined()
-    case .enhancement(let enhancement):
-      try enhancement.content.map { try serialize($0, styles: styles) }.joined()
     case .element(let element): try serialize(element, styles: styles)
     }
   }
 
   private static func serialize(
     _ element: RenderElement,
-    styles: (any StyleClassResolving)?
+    styles: (@Sendable ([StyleDeclaration]) -> String?)?
   ) throws -> String {
     var attributes: [(name: String, value: String?)] = element.attributes.map {
       ($0.name, $0.value)
     }
     if !element.styles.isEmpty {
-      guard let className = styles?.className(for: element.styles) else {
+      guard let className = styles?(element.styles) else {
         throw RenderDiagnostic.unresolvedStyleDeclarations(element: element.kind)
       }
       attributes.append(("class", className))
@@ -141,11 +139,18 @@ extension RenderElement.Attribute {
     case .accessibilityLabel: "aria-label"
     case .href: "href"
     case .source: "src"
+    case .sourceSet: "srcset"
+    case .sizes: "sizes"
     case .alternateText: "alt"
     case .action: "action"
     case .formMethod: "method"
     case .labelFor: "for"
     case .open: "open"
+    case .title: "title"
+    case .sandbox: "sandbox"
+    case .syntaxLanguage: "data-robin-language"
+    case .syntaxTheme: "data-robin-highlight-theme"
+    case .syntaxHighlight: "data-robin-highlight"
     }
   }
 
@@ -154,8 +159,16 @@ extension RenderElement.Attribute {
     switch self {
     case .identifier(let value), .name(let value), .value(let value),
       .accessibilityLabel(let value), .href(let value), .source(let value),
-      .alternateText(let value), .action(let value), .labelFor(let value):
+      .sizes(let value),
+      .alternateText(let value), .action(let value), .labelFor(let value),
+      .title(let value), .sandbox(let value):
       value
+    case .sourceSet(let candidates):
+      candidates.sorted { ($0.width, $0.source) < ($1.width, $1.source) }
+        .map { "\($0.source) \($0.width)w" }.joined(separator: ", ")
+    case .syntaxLanguage(let value): value
+    case .syntaxTheme(let value): value.rawValue
+    case .syntaxHighlight(let value): value.rawValue
     case .buttonType(let value): value.rawValue
     case .inputType(let value): value.rawValue
     case .formMethod(let value): value.rawValue
