@@ -37,31 +37,31 @@ struct BuildPipelineTests {
     #expect(stylesheets.allSatisfy { !$0.path.contains("home") && !$0.path.contains("about") })
   }
 
-  @Test func validatesModeSpecificExecutableArtifacts() throws {
+  @Test func validatesModeSpecificRuntimeArtifacts() throws {
     let executable = try BuildArtifact(kind: .functionBundle, path: "server", bytes: [1])
     let root = temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: root) }
 
-    #expect(throws: BuildError.staticApplicationHasExecutableArtifacts) {
+    #expect(throws: BuildError.staticApplicationHasRuntimeArtifacts) {
       try BuildPipeline.build(
         StaticApplication(),
-        configuration: .init(executableArtifacts: [executable]),
+        configuration: .init(runtimeArtifacts: [executable]),
         in: OutputLayout(projectRoot: root)
       )
     }
-    #expect(throws: BuildError.missingExecutableArtifact(.api)) {
+    #expect(throws: BuildError.missingRuntimeArtifact(.api)) {
       try BuildPipeline.build(APIApplication(), in: OutputLayout(projectRoot: root))
     }
     #expect(throws: BuildError.duplicateArtifactPath("server")) {
       try BuildPipeline.build(
         APIApplication(),
-        configuration: .init(executableArtifacts: [executable, executable]),
+        configuration: .init(runtimeArtifacts: [executable, executable]),
         in: OutputLayout(projectRoot: root)
       )
     }
     let result = try BuildPipeline.build(
       APIApplication(),
-      configuration: .init(executableArtifacts: [executable]),
+      configuration: .init(runtimeArtifacts: [executable]),
       in: OutputLayout(projectRoot: root)
     )
     #expect(result.mode == .api)
@@ -182,7 +182,7 @@ struct BuildPipelineTests {
 
     let result = try BuildPipeline.build(
       SSRApplication(),
-      configuration: .init(executableArtifacts: [executable]),
+      configuration: .init(runtimeArtifacts: [executable]),
       in: OutputLayout(projectRoot: root)
     )
 
@@ -198,7 +198,7 @@ struct BuildPipelineTests {
     let prerendered = try BuildPipeline.build(
       SSRApplication(),
       configuration: .init(
-        executableArtifacts: [executable], prerenderedPagePaths: ["/"]),
+        runtimeArtifacts: [executable], prerenderedPagePaths: ["/"]),
       in: OutputLayout(projectRoot: root)
     )
     #expect(prerendered.manifest.artifacts.map(\.path).contains("index.html"))
@@ -214,7 +214,7 @@ struct BuildPipelineTests {
     let result = try BuildPipeline.build(
       APIApplication(),
       configuration: .init(
-        executableArtifacts: [executable],
+        runtimeArtifacts: [executable],
         deploymentRoutes: [route],
         routingManifestEncoder: try JSONRoutingManifestEncoder(),
         artifactLayout: .init(
@@ -374,6 +374,170 @@ struct BuildPipelineTests {
     }
   }
 
+  @Test func packagesNativeAndWASIOutputsWithDeterministicRuntimeMetadata() throws {
+    let root = temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let library = try BuildArtifact(
+      kind: .runtimeLibrary,
+      path: "libswiftCore.so",
+      bytes: [2]
+    )
+    let native = try BuildArtifact(
+      kind: .functionBundle,
+      path: "bootstrap",
+      bytes: [1],
+      dependencies: ["libswiftCore.so"]
+    )
+    let wasi = try BuildArtifact(
+      kind: .webAssembly,
+      path: "application.wasm",
+      bytes: [0, 97, 115, 109, 1, 0, 0, 0]
+    )
+    let adapter = try BuildArtifact(
+      kind: .hostAdapter,
+      path: "adapter.js",
+      bytes: Array("export {}".utf8),
+      mediaType: "text/javascript",
+      scriptOrigin: .hostAdapter(runtime: "wasi-http", selectedBy: "DeploymentRuntime")
+    )
+    let route = try DeploymentRoute(
+      pattern: "/api/*",
+      destination: .webAssembly("application.wasm")
+    )
+    let configuration = BuildConfiguration(
+      runtimeArtifacts: [native, wasi, adapter, library],
+      deploymentRoutes: [route],
+      routingManifestEncoder: try JSONRoutingManifestEncoder(),
+      artifactLayout: .init(
+        functionBundles: "functions",
+        webAssembly: "components",
+        hostAdapters: "adapters",
+        runtimeLibraries: "lib",
+        deploymentMetadata: "config"
+      ),
+      runtimes: [
+        try DeploymentRuntime(
+          .lambda,
+          artifact: "bootstrap",
+          architecture: .arm64,
+          entryPoint: "bootstrap",
+          environment: ["DATABASE_URL"],
+          toolchain: "Swift 6.3.3 Linux",
+          containerImage: "swift:6.3.3-amazonlinux2",
+          maximumDurationMilliseconds: 30_000,
+          maximumMemoryMebibytes: 512,
+          maximumArtifactBytes: 52_428_800
+        ),
+        try DeploymentRuntime(
+          .wasiHTTP,
+          artifact: "application.wasm",
+          architecture: .wasm32,
+          entryPoint: "wasi:http/incoming-handler",
+          hostAdapter: "adapter.js"
+        ),
+      ]
+    )
+
+    let first = try BuildPipeline.build(
+      APIApplication(), configuration: configuration, in: OutputLayout(projectRoot: root))
+    let firstManifest = try first.manifest.encoded()
+    let second = try BuildPipeline.build(
+      APIApplication(), configuration: configuration, in: OutputLayout(projectRoot: root))
+
+    #expect(try second.manifest.encoded() == firstManifest)
+    #expect(first.manifest.artifacts.map(\.path).contains("functions/bootstrap"))
+    #expect(first.manifest.artifacts.map(\.path).contains("components/application.wasm"))
+    #expect(first.manifest.artifacts.map(\.path).contains("adapters/adapter.js"))
+    #expect(first.manifest.artifacts.map(\.path).contains("lib/libswiftCore.so"))
+    #expect(
+      first.manifest.artifacts.first { $0.path == "functions/bootstrap" }?.dependencies
+        == ["lib/libswiftCore.so"])
+    #expect(
+      first.manifest.artifacts.first { $0.path == "config/deployment.json" }?.dependencies
+        == ["adapters/adapter.js", "components/application.wasm", "functions/bootstrap"])
+    let routes = try JSONDecoder().decode(
+      [DeploymentRoute].self,
+      from: Data(contentsOf: root.appendingPathComponent(".robin/build/routes.json"))
+    )
+    #expect(routes.first?.destination == .webAssembly("components/application.wasm"))
+    let deploymentData = try Data(
+      contentsOf: root.appendingPathComponent(".robin/build/config/deployment.json"))
+    let deployment = try JSONDecoder().decode(TestDeployment.self, from: deploymentData)
+    #expect(deployment.runtimes.map(\.interface) == ["lambda", "wasiHTTP"])
+    #expect(
+      deployment.runtimes.map(\.artifact) == [
+        "functions/bootstrap", "components/application.wasm",
+      ])
+    #expect(!String(decoding: deploymentData, as: UTF8.self).contains("DATABASE_URL="))
+  }
+
+  @Test func rejectsMissingAndIncompatibleRuntimeArtifacts() throws {
+    let root = temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let native = try BuildArtifact(kind: .functionBundle, path: "bootstrap", bytes: [1, 2])
+    let missing = try DeploymentRuntime(
+      .lambda, artifact: "missing", architecture: .arm64)
+    let incompatible = try DeploymentRuntime(
+      .wasiHTTP, artifact: "bootstrap", architecture: .wasm32)
+
+    #expect(throws: BuildError.invalidRuntimeArtifact("missing")) {
+      try BuildPipeline.build(
+        APIApplication(),
+        configuration: .init(runtimeArtifacts: [native], runtimes: [missing]),
+        in: OutputLayout(projectRoot: root)
+      )
+    }
+    #expect(throws: BuildError.invalidRuntimeArtifact("bootstrap")) {
+      try BuildPipeline.build(
+        APIApplication(),
+        configuration: .init(runtimeArtifacts: [native], runtimes: [incompatible]),
+        in: OutputLayout(projectRoot: root)
+      )
+    }
+    let sizeLimited = try DeploymentRuntime(
+      .lambda,
+      artifact: "bootstrap",
+      architecture: .arm64,
+      maximumArtifactBytes: 1
+    )
+    #expect(
+      throws: BuildError.runtimeArtifactTooLarge(
+        artifact: "bootstrap", maximumBytes: 1, actualBytes: 2)
+    ) {
+      try BuildPipeline.build(
+        APIApplication(),
+        configuration: .init(runtimeArtifacts: [native], runtimes: [sizeLimited]),
+        in: OutputLayout(projectRoot: root)
+      )
+    }
+    #expect(throws: BuildError.invalidRuntimeConfiguration("wasiHTTP:arm64")) {
+      try DeploymentRuntime(.wasiHTTP, artifact: "app.wasm", architecture: .arm64)
+    }
+    #expect(throws: BuildError.invalidRuntimeConfiguration("environment")) {
+      try DeploymentRuntime(
+        .lambda,
+        artifact: "bootstrap",
+        architecture: .arm64,
+        environment: ["DATABASE-URL"]
+      )
+    }
+    #expect(throws: BuildError.invalidRuntimeConfiguration("hostAdapter")) {
+      try DeploymentRuntime(
+        .webAssembly,
+        artifact: "app.wasm",
+        architecture: .wasm32
+      )
+    }
+    #expect(throws: BuildError.invalidRuntimeConfiguration("maximumDurationMilliseconds")) {
+      try DeploymentRuntime(
+        .lambda,
+        artifact: "bootstrap",
+        architecture: .arm64,
+        maximumDurationMilliseconds: 0
+      )
+    }
+  }
+
   private func temporaryDirectory() -> URL {
     FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
   }
@@ -482,6 +646,15 @@ private struct DuplicateStructuredDataApplication: App {
 
 private struct TestRoute: ApplicationRoute {
   let applicationRouteIdentifier = "test"
+}
+
+private struct TestDeployment: Decodable {
+  struct Runtime: Decodable {
+    let interface: String
+    let artifact: String
+  }
+
+  let runtimes: [Runtime]
 }
 
 private struct HomePage: Page {

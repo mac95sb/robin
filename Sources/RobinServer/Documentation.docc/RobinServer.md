@@ -11,6 +11,7 @@ RobinServer provides typed controllers, middleware, security policies, response 
 ### Start here
 
 - <doc:Serve-an-Application>
+- <doc:Function-Deployments>
 
 ### Application HTTP
 
@@ -34,3 +35,14 @@ RobinServer provides typed controllers, middleware, security policies, response 
 - ``ServerAddress``
 - ``ServerTLSConfiguration``
 - ``TransportCapabilities``
+- ``InvocationRuntime``
+- ``InvocationEvent``
+- ``DecodedInvocation``
+- ``InvocationChannel``
+- ``InvocationEventCodec``
+- ``InvocationCodecError``
+- ``AWSLambdaHTTPEventCodec``
+- ``AWSLambdaRuntimeAPIChannel``
+- ``AWSLambdaRuntimeAPIError``
+- ``WASIRuntime``
+- ``WASIHostAdapter``

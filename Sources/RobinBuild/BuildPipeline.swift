@@ -8,11 +8,12 @@ public struct BuildPipeline {
   /// Builds and materializes an application beneath `.robin`.
   ///
   /// The application's registered pages and controllers determine its mode. Configuration can
-  /// provide executable bytes for API and SSR output, but cannot override that inference.
+  /// provide native or WebAssembly runtime artifacts for API and SSR output, but cannot override
+  /// that inference.
   ///
   /// - Parameters:
   ///   - application: The application to build.
-  ///   - configuration: Output settings and compiled executable artifacts.
+  ///   - configuration: Output settings and compiled runtime artifacts.
   ///   - layout: The project's validated output layout.
   /// - Returns: The inferred mode and deterministic manifest.
   /// - Throws: ``BuildError`` or an error from rendering, style compilation, or file access.
@@ -67,20 +68,22 @@ public struct BuildPipeline {
       throw BuildError.invalidCDNBaseURL(cdnBaseURL.absoluteString)
     }
     let mode = try application.mode
-    let executableArtifacts = configuration.executableArtifacts
+    let runtimeArtifacts = configuration.runtimeArtifacts
     switch mode {
-    case .static where !executableArtifacts.isEmpty:
-      throw BuildError.staticApplicationHasExecutableArtifacts
+    case .static where !runtimeArtifacts.isEmpty:
+      throw BuildError.staticApplicationHasRuntimeArtifacts
     case .api, .ssr:
       guard
-        executableArtifacts.contains(where: {
+        runtimeArtifacts.contains(where: {
           $0.kind == .executable || $0.kind == .functionBundle
+            || $0.kind == .webAssembly
         })
       else {
-        throw BuildError.missingExecutableArtifact(mode)
+        throw BuildError.missingRuntimeArtifact(mode)
       }
     default: break
     }
+    try validate(configuration.runtimes, artifacts: runtimeArtifacts, mode: mode)
 
     let assets = try AssetProcessor.process(
       configuration.assets,
@@ -93,7 +96,7 @@ public struct BuildPipeline {
       pagePaths: Set(application.pages.pages.map(\.path)),
       assets: assets
     )
-    var artifacts = executableArtifacts + assets.artifacts
+    var artifacts = runtimeArtifacts + assets.artifacts
     if let artifact = speculation.artifact { artifacts.append(artifact) }
     if mode != .api {
       artifacts += try pageArtifacts(
@@ -112,6 +115,9 @@ public struct BuildPipeline {
             .staticFile(configuration.artifactLayout.path(for: path, kind: .staticFile))
           case .functionBundle(let path):
             .functionBundle(configuration.artifactLayout.path(for: path, kind: .functionBundle))
+          case .webAssembly(let path):
+            .webAssembly(
+              configuration.artifactLayout.path(for: path, kind: .webAssembly))
           }
         return try DeploymentRoute(
           pattern: route.pattern, destination: destination, precedence: route.precedence)
@@ -120,7 +126,23 @@ public struct BuildPipeline {
       }
       artifacts.append(try routingManifestEncoder.encode(routes))
     }
-    artifacts.append(try deploymentMetadata(mode: mode))
+    var runtimes: [DeploymentRuntime] = []
+    for runtime in configuration.runtimes {
+      guard let artifact = runtimeArtifacts.first(where: { $0.path == runtime.artifact }) else {
+        throw BuildError.invalidRuntimeArtifact(runtime.artifact)
+      }
+      let adapter = runtime.hostAdapter.flatMap { path in
+        runtimeArtifacts.first { $0.path == path }
+      }
+      runtimes.append(
+        try runtime.replacingArtifacts(
+          artifact: configuration.artifactLayout.path(for: runtime.artifact, kind: artifact.kind),
+          hostAdapter: adapter.map {
+            configuration.artifactLayout.path(for: $0.path, kind: $0.kind)
+          }
+        ))
+    }
+    artifacts.append(try deploymentMetadata(mode: mode, runtimes: runtimes))
     let manifest = try ArtifactGraph(configuration.artifactLayout.apply(to: artifacts))
       .materialize(in: layout)
     return BuildResult(mode: mode, manifest: manifest)
@@ -374,21 +396,68 @@ public struct BuildPipeline {
     }
   }
 
-  private static func deploymentMetadata(mode: ApplicationMode) throws -> BuildArtifact {
-    struct Deployment: Encodable { let mode: String }
+  private static func deploymentMetadata(
+    mode: ApplicationMode,
+    runtimes: [DeploymentRuntime]
+  ) throws -> BuildArtifact {
+    struct Deployment: Encodable {
+      let mode: String
+      let runtimes: [DeploymentRuntime]?
+    }
     let modeName =
       switch mode {
       case .static: "static"
       case .api: "api"
       case .ssr: "ssr"
       }
+    let runtimes = runtimes.sorted {
+      ($0.interface.rawValue, $0.artifact) < ($1.interface.rawValue, $1.artifact)
+    }
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys]
     return try BuildArtifact(
       kind: .deploymentMetadata,
       path: "deployment.json",
-      bytes: Array(try encoder.encode(Deployment(mode: modeName)))
+      bytes: Array(
+        try encoder.encode(Deployment(mode: modeName, runtimes: runtimes.isEmpty ? nil : runtimes))),
+      dependencies: runtimes.flatMap { [$0.artifact] + [$0.hostAdapter].compactMap { $0 } }
     )
+  }
+
+  private static func validate(
+    _ runtimes: [DeploymentRuntime],
+    artifacts: [BuildArtifact],
+    mode: ApplicationMode
+  ) throws {
+    guard mode != .static || runtimes.isEmpty else {
+      throw BuildError.staticApplicationHasRuntimeArtifacts
+    }
+    for runtime in runtimes {
+      guard let artifact = artifacts.first(where: { $0.path == runtime.artifact }) else {
+        throw BuildError.invalidRuntimeArtifact(runtime.artifact)
+      }
+      if let maximumBytes = runtime.maximumArtifactBytes,
+        artifact.bytes.count > maximumBytes
+      {
+        throw BuildError.runtimeArtifactTooLarge(
+          artifact: artifact.path,
+          maximumBytes: maximumBytes,
+          actualBytes: artifact.bytes.count
+        )
+      }
+      if let adapter = runtime.hostAdapter,
+        artifacts.first(where: { $0.path == adapter && $0.kind == .hostAdapter }) == nil
+      {
+        throw BuildError.invalidRuntimeArtifact(adapter)
+      }
+      let valid =
+        switch runtime.interface {
+        case .persistentHTTP: artifact.kind == .executable
+        case .lambda: artifact.kind == .functionBundle || artifact.kind == .executable
+        case .wasiHTTP, .webAssembly: artifact.kind == .webAssembly
+        }
+      guard valid else { throw BuildError.invalidRuntimeArtifact(runtime.artifact) }
+    }
   }
 
   private static func replacingAssetReferences(

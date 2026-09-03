@@ -19,9 +19,18 @@ extension RobinApplication {
       )
       _ = try await BuildPipeline.build(
         application,
-        configuration: .init(executableArtifacts: [artifact]),
+        configuration: .init(runtimeArtifacts: [artifact]),
         in: OutputLayout(projectRoot: root)
       )
+      return
+    }
+    if ProcessInfo.processInfo.environment["AWS_LAMBDA_RUNTIME_API"] != nil {
+      let runtime = try InvocationRuntime(
+        application,
+        codec: AWSLambdaHTTPEventCodec(),
+        transportCapabilities: .lambda
+      )
+      try await runtime.run(using: AWSLambdaRuntimeAPIChannel())
       return
     }
     let runtime = try await ServerRuntime.start(application)

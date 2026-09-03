@@ -23,6 +23,12 @@ package struct BuildInspector {
           lowering: "direct capability: \(capability.rawValue)",
           selectedBy: selectedBy
         )
+      case .hostAdapter(let runtime, let selectedBy):
+        BuildInspectorEntry(
+          path: artifact.path,
+          lowering: "host adapter: \(runtime)",
+          selectedBy: selectedBy
+        )
       case .application(let exception):
         BuildInspectorEntry(
           path: artifact.path,
