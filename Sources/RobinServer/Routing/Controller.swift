@@ -112,9 +112,3 @@ extension Controller where RouteRepresentation == String, Value == Void {
     try await respond(to: request, context: context, api: api, route: routeDefinition)
   }
 }
-
-/// The request body type for controllers that accept no JSON fields.
-public struct EmptyRequest: Codable, Sendable {
-  /// Creates an empty request value.
-  public init() {}
-}

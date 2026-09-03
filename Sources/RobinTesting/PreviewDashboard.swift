@@ -3,56 +3,6 @@ import RobinCore
 import RobinHTML
 import RobinStyle
 
-/// A named theme available in a preview dashboard.
-public struct PreviewTheme: Sendable {
-  /// The theme's display name.
-  public let name: String
-  /// The Robin theme to render.
-  public let theme: Theme
-
-  /// Creates a named preview theme.
-  ///
-  /// - Parameters:
-  ///   - name: A nonempty display name.
-  ///   - theme: The theme to render.
-  public init(_ name: String, theme: Theme) {
-    precondition(name.contains { !$0.isWhitespace })
-    self.name = name
-    self.theme = theme
-  }
-}
-
-/// A viewport offered by a preview dashboard.
-public struct PreviewViewport: Equatable, Sendable {
-  /// The viewport's display name.
-  public let name: String
-  /// The width in CSS pixels.
-  public let width: Int
-  /// The height in CSS pixels.
-  public let height: Int
-
-  /// Creates a preview viewport.
-  ///
-  /// - Parameters:
-  ///   - name: A nonempty display name.
-  ///   - width: A positive width in CSS pixels.
-  ///   - height: A positive height in CSS pixels.
-  public init(_ name: String, width: Int, height: Int) {
-    precondition(name.contains { !$0.isWhitespace } && width > 0 && height > 0)
-    self.name = name
-    self.width = width
-    self.height = height
-  }
-}
-
-/// A color scheme offered by the preview dashboard.
-public enum PreviewColorScheme: String, CaseIterable, Sendable {
-  /// Prefer the theme's light palette.
-  case light
-  /// Prefer the theme's dark palette.
-  case dark
-}
-
 /// Generates a local-only dashboard beneath `.robin/preview`.
 public struct PreviewDashboard {
   /// Generates all requested preview, theme, viewport, and locale combinations.
