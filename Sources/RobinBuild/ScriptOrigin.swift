@@ -4,6 +4,8 @@ public enum ScriptOrigin: Codable, Equatable, Sendable {
   case robinCustomCommand(command: String, selectedBy: String)
   /// A direct Robin browser capability selected by a semantic API.
   case robinDirectCapability(DirectCapability, selectedBy: String)
+  /// Generated glue for a provider-neutral runtime contract.
+  case hostAdapter(runtime: String, selectedBy: String)
   /// An explicitly declared application script with its documented exception.
   case application(exception: String)
 
@@ -28,6 +30,8 @@ public enum ScriptOrigin: Codable, Equatable, Sendable {
     case .robinCustomCommand(let command, let selectedBy):
       Self.hasContent(command) && Self.hasContent(selectedBy)
     case .robinDirectCapability(_, let selectedBy): Self.hasContent(selectedBy)
+    case .hostAdapter(let runtime, let selectedBy):
+      Self.hasContent(runtime) && Self.hasContent(selectedBy)
     case .application(let exception): Self.hasContent(exception)
     }
   }

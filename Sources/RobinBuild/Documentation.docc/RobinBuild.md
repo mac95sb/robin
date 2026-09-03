@@ -65,6 +65,7 @@ Build output is available in `.robin/build`; reusable content remains in `.robin
 - ``DeploymentRoute``
 - ``RoutingManifestEncoder``
 - ``JSONRoutingManifestEncoder``
+- ``DeploymentRuntime``
 
 ### Diagnostics
 

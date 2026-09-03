@@ -8,6 +8,10 @@ public struct BuildArtifact: Equatable, Sendable {
     case executable
     /// An executable or archive containing one deployable function.
     case functionBundle
+    /// A WebAssembly component or core module containing one deployable function.
+    case webAssembly
+    /// Generated glue that connects a function artifact to its deployment host.
+    case hostAdapter
     /// A library required by an executable artifact.
     case runtimeLibrary
     /// Typed routing metadata encoded for a deployment target.

@@ -10,8 +10,8 @@ public struct BuildConfiguration: Sendable {
   public var cssOutputMode: CSSOutputMode
   /// Whether generated styles enable native cross-document view transitions.
   public var viewTransitions: ViewTransitionNavigation
-  /// Executable and runtime-library artifacts supplied by the compiler or deployment frontend.
-  public var executableArtifacts: [BuildArtifact]
+  /// Executables, WebAssembly components, adapters, and libraries supplied by the build frontend.
+  public var runtimeArtifacts: [BuildArtifact]
   /// Typed local assets to transform and fingerprint.
   public var assets: [BuildAsset]
   /// Typed remote assets fetched only by the asynchronous build entry point.
@@ -28,6 +28,8 @@ public struct BuildConfiguration: Sendable {
   public var routingManifestEncoder: (any RoutingManifestEncoder)?
   /// Provider filesystem roots applied after neutral artifact generation.
   public var artifactLayout: ArtifactLayout
+  /// Runtime contracts attached to executable or WebAssembly artifacts.
+  public var runtimes: [DeploymentRuntime]
   /// SSR page paths explicitly eligible for deterministic prerendering.
   public var prerenderedPagePaths: Set<String>
 
@@ -37,7 +39,7 @@ public struct BuildConfiguration: Sendable {
   ///   - environment: The validation policy for local and production builds.
   ///   - cssOutputMode: The stylesheet formatting used for generated CSS.
   ///   - viewTransitions: Whether to emit native cross-document transition CSS.
-  ///   - executableArtifacts: Compiled executable and runtime-library output for API or SSR apps.
+  ///   - runtimeArtifacts: Compiled executables, WebAssembly components, adapters, and libraries.
   ///   - assets: Typed local assets to process.
   ///   - remoteAssets: Typed remote assets fetched during an asynchronous build.
   ///   - assetToolchain: Checksum-pinned external asset tools.
@@ -46,12 +48,13 @@ public struct BuildConfiguration: Sendable {
   ///   - deploymentRoutes: Provider-neutral routes to encode.
   ///   - routingManifestEncoder: The optional provider routing-manifest encoder.
   ///   - artifactLayout: Provider filesystem roots for final artifacts.
+  ///   - runtimes: Runtime contracts attached to executable or WebAssembly artifacts.
   ///   - prerenderedPagePaths: SSR page paths safe to render without request context.
   public init(
     environment: BuildEnvironment = .production,
     cssOutputMode: CSSOutputMode = .production,
     viewTransitions: ViewTransitionNavigation = .enabled,
-    executableArtifacts: [BuildArtifact] = [],
+    runtimeArtifacts: [BuildArtifact] = [],
     assets: [BuildAsset] = [],
     remoteAssets: [RemoteAsset] = [],
     assetToolchain: AssetToolchain = .init(),
@@ -60,12 +63,13 @@ public struct BuildConfiguration: Sendable {
     deploymentRoutes: [DeploymentRoute] = [],
     routingManifestEncoder: (any RoutingManifestEncoder)? = nil,
     artifactLayout: ArtifactLayout = .init(),
+    runtimes: [DeploymentRuntime] = [],
     prerenderedPagePaths: Set<String> = []
   ) {
     self.environment = environment
     self.cssOutputMode = cssOutputMode
     self.viewTransitions = viewTransitions
-    self.executableArtifacts = executableArtifacts
+    self.runtimeArtifacts = runtimeArtifacts
     self.assets = assets
     self.remoteAssets = remoteAssets
     self.assetToolchain = assetToolchain
@@ -74,6 +78,7 @@ public struct BuildConfiguration: Sendable {
     self.deploymentRoutes = deploymentRoutes
     self.routingManifestEncoder = routingManifestEncoder
     self.artifactLayout = artifactLayout
+    self.runtimes = runtimes
     self.prerenderedPagePaths = prerenderedPagePaths
   }
 }
