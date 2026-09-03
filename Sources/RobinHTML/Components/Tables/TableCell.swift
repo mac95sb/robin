@@ -22,14 +22,6 @@ public struct TableCell: Component {
 
   /// The resolved table cell and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .td,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: Text.phrasingContent(content).nodes
-        )
-      )
-    )
+    .element(.td, id: identifier, children: Text.phrasingContent(content).nodes)
   }
 }

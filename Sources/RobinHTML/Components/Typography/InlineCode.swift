@@ -23,14 +23,6 @@ public struct InlineCode: Component {
 
   /// The resolved inline code element and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .code,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: Text.phrasingContent(content.body).nodes
-        )
-      )
-    )
+    .element(.code, id: identifier, children: Text.phrasingContent(content.body).nodes)
   }
 }

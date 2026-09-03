@@ -22,14 +22,6 @@ public struct Emphasis: Component {
 
   /// The resolved emphasis element and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .em,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: Text.phrasingContent(content.body).nodes
-        )
-      )
-    )
+    .element(.em, id: identifier, children: Text.phrasingContent(content.body).nodes)
   }
 }

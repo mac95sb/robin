@@ -20,14 +20,6 @@ public struct Table: Component {
 
   /// The resolved table and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .table,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: content.nodes
-        )
-      )
-    )
+    .element(.table, id: identifier, children: content.nodes)
   }
 }

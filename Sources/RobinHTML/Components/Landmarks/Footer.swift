@@ -20,14 +20,6 @@ public struct Footer: Component {
 
   /// The resolved footer landmark and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .footer,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: content.nodes
-        )
-      )
-    )
+    .element(.footer, id: identifier, children: content.nodes)
   }
 }

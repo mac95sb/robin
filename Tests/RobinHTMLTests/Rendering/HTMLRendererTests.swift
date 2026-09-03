@@ -6,7 +6,7 @@ import Testing
 @Suite("Typed component rendering")
 struct HTMLRendererTests {
   @Test func lowersControlFlowEscapesValuesAndEmitsVoidElements() throws {
-    let root = ComponentResolver.resolve(ExamplePage(includeInput: true))
+    let root = RenderNode.fragment(ExamplePage(includeInput: true).body.nodes)
 
     let first = try HTMLRenderer.render(root)
     let second = try HTMLRenderer.render(root)
@@ -27,17 +27,13 @@ struct HTMLRendererTests {
   }
 
   @Test func styledElementWithoutMatchingClassThrows() {
-    let resolver = TestStyleResolver(matchingDeclarations: nil)
-
     #expect(throws: RenderDiagnostic.unresolvedStyleDeclarations(element: .div)) {
-      try HTMLRenderer.render(styledRoot, styles: resolver)
+      try HTMLRenderer.render(styledRoot, styles: { _ in nil })
     }
   }
 
   @Test func styledElementWithMatchingClassEmitsClassName() throws {
-    let resolver = TestStyleResolver(matchingDeclarations: [testStyle])
-
-    let html = try HTMLRenderer.render(styledRoot, styles: resolver)
+    let html = try HTMLRenderer.render(styledRoot, styles: { $0 == [testStyle] ? "r-test" : nil })
 
     #expect(html == #"<div class="r-test"></div>"#)
   }
@@ -60,14 +56,6 @@ private struct ExamplePage: Component {
         Input(.search, name: "query", value: "a\"b", accessibilityLabel: "Search")
       }
     }
-  }
-}
-
-private struct TestStyleResolver: StyleClassResolving {
-  let matchingDeclarations: [StyleDeclaration]?
-
-  func className(for declarations: [StyleDeclaration]) -> String? {
-    declarations == matchingDeclarations ? "r-test" : nil
   }
 }
 

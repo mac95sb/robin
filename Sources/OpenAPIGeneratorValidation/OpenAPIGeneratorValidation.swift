@@ -1,3 +1,3 @@
 import OpenAPIRuntime
 
-enum OpenAPIGeneratorValidation {}
+struct OpenAPIGeneratorValidation {}

@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinContent") {
+  @Intro(title: "Work with content") {
+    Parse Markdown into typed Robin content.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Parse Markdown content")
+
+    @TutorialReference(tutorial: "doc:Parse-Markdown-Content")
+  }
+}

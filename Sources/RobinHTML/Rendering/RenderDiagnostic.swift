@@ -14,6 +14,9 @@ public enum RenderDiagnostic: Error, Equatable, Sendable {
   /// A button contains a nested button or input control.
   case interactiveElementNestedInButton
 
+  /// A responsive image source has a nonpositive intrinsic width.
+  case invalidResponsiveImageWidth(Int)
+
   /// An element has style declarations that cannot be mapped to a generated class name.
   ///
   /// - Parameter element: The kind of element whose declarations could not be resolved.

@@ -20,14 +20,6 @@ public struct Navigation: Component {
 
   /// The resolved navigation landmark and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .nav,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: content.nodes
-        )
-      )
-    )
+    .element(.nav, id: identifier, children: content.nodes)
   }
 }

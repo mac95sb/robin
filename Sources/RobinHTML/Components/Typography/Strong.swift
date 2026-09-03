@@ -22,14 +22,6 @@ public struct Strong: Component {
 
   /// The resolved strong element and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .strong,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: Text.phrasingContent(content.body).nodes
-        )
-      )
-    )
+    .element(.strong, id: identifier, children: Text.phrasingContent(content.body).nodes)
   }
 }

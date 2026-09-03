@@ -22,14 +22,6 @@ public struct Section: Component {
 
   /// The resolved section and its child content.
   public var body: ComponentContent {
-    .node(
-      .element(
-        RenderElement(
-          kind: .section,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
-          children: content.nodes
-        )
-      )
-    )
+    .element(.section, id: identifier, children: content.nodes)
   }
 }

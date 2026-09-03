@@ -20,7 +20,16 @@ struct OutputLayoutTests {
       try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
       try Data(artifact.rawValue.utf8).write(to: path.appendingPathComponent("probe"))
     }
+    let outside = temporary.appendingPathComponent("outside", isDirectory: true)
+    try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+    let link = layout.robinRoot.appendingPathComponent("escape")
+    try FileManager.default.createSymbolicLink(at: link, withDestinationURL: outside)
     #expect(layout.contains(temporary.appendingPathComponent("outside")) == false)
     #expect(layout.contains(layout.robinRoot.appendingPathComponent("../outside")) == false)
+    #expect(layout.contains(link.appendingPathComponent("probe")) == false)
+
+    try FileManager.default.removeItem(at: layout.robinRoot)
+    try FileManager.default.createSymbolicLink(at: layout.robinRoot, withDestinationURL: outside)
+    #expect(layout.contains(layout.path(for: .build)) == false)
   }
 }

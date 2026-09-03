@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinTooling") {
+  @Intro(title: "Configure Robin tooling") {
+    Keep application composition separate from build and diagnostic policy.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Configure Robin tooling")
+
+    @TutorialReference(tutorial: "doc:Configure-Robin-Tooling")
+  }
+}

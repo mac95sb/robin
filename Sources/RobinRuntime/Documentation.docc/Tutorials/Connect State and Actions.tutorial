@@ -1,0 +1,17 @@
+@Tutorial(time: 5) {
+  @Intro(title: "Connect State and Actions") {
+    Model the small enhancement boundary that cannot remain ordinary HTML and CSS.
+  }
+
+  @Section(title: "Keep state typed") {
+    @Steps {
+      @Step {
+        Store server-owned values in ``StateStore`` and expose selected values through ``Binding``.
+      }
+
+      @Step {
+        Represent asynchronous operations with ``Action`` rather than handwritten JavaScript.
+      }
+    }
+  }
+}
