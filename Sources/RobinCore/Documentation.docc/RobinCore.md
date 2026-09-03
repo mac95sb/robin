@@ -8,12 +8,19 @@ RobinCore contains transport- and renderer-neutral values used throughout the fr
 
 ## Topics
 
+### Start here
+
+- <doc:Configure-an-Application>
+- <doc:Metadata-and-Structured-Data>
+
 ### Application composition
 
 - ``ApplicationMode``
+- ``RobinApplication``
 - ``ApplicationRoute``
 - ``ApplicationTheme``
 - ``Metadata``
+- ``StructuredData``
 
 ### Configuration and diagnostics
 

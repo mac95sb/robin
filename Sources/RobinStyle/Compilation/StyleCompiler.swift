@@ -8,7 +8,7 @@ import Foundation
 /// The compiler operates only on style signatures reachable from the supplied
 /// render tree. Theme tokens are resolved during compilation, so the generated
 /// stylesheet contains concrete CSS values rather than token names.
-public enum StyleCompiler {
+public struct StyleCompiler {
   /// Compiles every nonempty element style signature reachable from a render tree.
   ///
   /// Compilation proceeds through these stages:
@@ -48,6 +48,24 @@ public enum StyleCompiler {
     viewTransitions: ViewTransitionNavigation = .disabled
   ) throws -> CompiledStyles {
     let signatures = try collect(from: root, hasContainmentAncestor: false)
+    return try compile(
+      signatures: signatures,
+      theme: theme,
+      mode: mode,
+      animations: animations,
+      viewTransitions: viewTransitions
+    )
+  }
+
+  /// Compiles style signatures already validated while traversing Render IR.
+  @_spi(Rendering)
+  public static func compile(
+    signatures: [[StyleDeclaration]],
+    theme: Theme,
+    mode: CSSOutputMode,
+    animations: [KeyframeAnimation] = [],
+    viewTransitions: ViewTransitionNavigation = .disabled
+  ) throws -> CompiledStyles {
     var resolvedBySignature: [[StyleDeclaration]: ResolvedSignature] = [:]
 
     for signature in signatures {
@@ -297,7 +315,7 @@ public enum StyleCompiler {
 
 }
 
-enum CSSSerialization {
+struct CSSSerialization {
   static func decimal(_ value: Double) -> String {
     String(format: "%.4f", locale: Locale(identifier: "en_US_POSIX"), value)
       .replacingOccurrences(of: #"0+$"#, with: "", options: .regularExpression)

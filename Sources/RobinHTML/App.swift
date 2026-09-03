@@ -28,6 +28,8 @@ public protocol App: Sendable {
 }
 
 extension App {
+  /// Empty site metadata for applications that do not render pages.
+  public var metadata: Metadata { Metadata() }
   /// The default client navigation strategy: no runtime chunk ships.
   public var clientNavigation: ClientNavigation { .automatic }
   /// The default unconfigured application theme.

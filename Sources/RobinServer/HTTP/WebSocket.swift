@@ -20,11 +20,16 @@ public struct WebSocketConnection: Sendable {
   }
 
   /// Sends one complete message with transport backpressure.
+  ///
+  /// - Parameter message: The text or binary message to send.
+  /// - Throws: A transport error when the message cannot be sent.
   public func send(_ message: WebSocketMessage) async throws {
     try await sendOperation(message)
   }
 
   /// Sends a normal close frame.
+  ///
+  /// - Throws: A transport error when the connection cannot be closed.
   public func close() async throws {
     try await closeOperation()
   }

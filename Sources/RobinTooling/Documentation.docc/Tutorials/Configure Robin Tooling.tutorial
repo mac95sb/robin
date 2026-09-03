@@ -1,0 +1,17 @@
+@Tutorial(time: 5) {
+  @Intro(title: "Configure Robin Tooling") {
+    Keep build and diagnostic policy separate from application behavior.
+  }
+
+  @Section(title: "Set project policy") {
+    @Steps {
+      @Step {
+        Put application composition in `App.swift` and tool-only policy in `robin.pkl`.
+      }
+
+      @Step {
+        Run `robin lint` for deterministic checks and `robin doctor` for environment readiness.
+      }
+    }
+  }
+}

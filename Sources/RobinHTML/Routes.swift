@@ -26,7 +26,7 @@ public struct RouteList: Routes {
 
 /// Builds route registrations with native Swift conditionals and loops.
 @resultBuilder
-public enum RoutesBuilder {
+public struct RoutesBuilder {
   /// Resolves a single application route into a registration.
   ///
   /// - Parameter expression: The route to register.

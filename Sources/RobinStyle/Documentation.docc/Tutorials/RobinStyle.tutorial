@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinStyle") {
+  @Intro(title: "Style Robin components") {
+    Apply typed design tokens and compile deterministic CSS.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Style a Robin component")
+
+    @TutorialReference(tutorial: "doc:Style-a-Component")
+  }
+}

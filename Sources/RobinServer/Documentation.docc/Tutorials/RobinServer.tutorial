@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinServer") {
+  @Intro(title: "Serve Robin applications") {
+    Run pages and controllers through Robin's server runtime.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Serve a Robin application")
+
+    @TutorialReference(tutorial: "doc:Serve-an-Application")
+  }
+}

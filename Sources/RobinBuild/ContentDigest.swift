@@ -1,7 +1,7 @@
 import Crypto
 import Foundation
 
-enum ContentDigest {
+struct ContentDigest {
   static func sha256(_ bytes: [UInt8]) -> String { hexadecimal(SHA256.hash(data: bytes)) }
 
   static func sha384Integrity(_ bytes: [UInt8]) -> String {

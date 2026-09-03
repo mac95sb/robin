@@ -2,7 +2,7 @@ import Foundation
 import Markdown
 
 /// Converts Markdown into Robin's typed content representation.
-public enum MarkdownContentParser {
+public struct MarkdownContentParser {
   /// Parses Markdown while rejecting raw HTML and embeds from hosts outside the allowlist.
   ///
   /// - Parameters:

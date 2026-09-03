@@ -1,0 +1,17 @@
+@Tutorial(time: 5) {
+  @Intro(title: "Parse Markdown Content") {
+    Convert Markdown into typed content while reporting unsupported input.
+  }
+
+  @Section(title: "Parse and inspect") {
+    @Steps {
+      @Step {
+        Parse source text with ``MarkdownContentParser``.
+      }
+
+      @Step {
+        Render the resulting ``ParsedContent`` nodes and surface every ``ContentDiagnostic``.
+      }
+    }
+  }
+}

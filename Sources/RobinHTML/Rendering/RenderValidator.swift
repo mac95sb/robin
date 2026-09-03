@@ -1,7 +1,7 @@
 @_spi(Rendering) import RobinCore
 
 /// Validates resolved component trees before rendering.
-enum RenderValidator {
+struct RenderValidator {
   /// Finds every structural validation failure in a resolved component tree.
   ///
   /// - Parameter root: The root render node to inspect.

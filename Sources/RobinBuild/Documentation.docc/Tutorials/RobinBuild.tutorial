@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinBuild") {
+  @Intro(title: "Build Robin applications") {
+    Produce deterministic application artifacts with Robin's build pipeline.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Build application artifacts")
+
+    @TutorialReference(tutorial: "doc:Build-Application-Artifacts")
+  }
+}

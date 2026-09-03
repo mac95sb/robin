@@ -303,6 +303,8 @@ public actor ServerRuntime {
 
 extension ServerRuntime: Service {
   /// Waits for the listener to close and participates in a `ServiceGroup` cancellation lifecycle.
+  ///
+  /// - Throws: An error raised while closing the listener or shutting down its resources.
   public func run() async throws {
     try await withTaskCancellationHandler {
       try await channel.closeFuture.get()

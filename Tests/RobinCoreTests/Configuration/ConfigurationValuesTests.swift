@@ -2,7 +2,7 @@ import Testing
 
 @testable import RobinCore
 
-private enum PortKey: ConfigurationKey { static let defaultValue = 8080 }
+private struct PortKey: ConfigurationKey { static let defaultValue = 8080 }
 
 @Suite("Typed scoped configuration")
 struct ConfigurationValuesTests {

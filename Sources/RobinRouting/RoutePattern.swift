@@ -72,7 +72,7 @@ public struct RouteConflict: Error, Equatable, Sendable {
 }
 
 /// Detects structural route conflicts with a trie instead of pairwise comparisons.
-public enum RouteConflictDetector {
+public struct RouteConflictDetector {
   private final class Node {
     var literals: [String: Node] = [:]
     var parameter: Node?

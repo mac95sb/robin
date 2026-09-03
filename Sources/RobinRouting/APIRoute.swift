@@ -17,11 +17,6 @@ extension Route {
 
 /// A JSON controller route that reuses ordinary matching and reverse-routing machinery.
 public protocol APIRoute: Route {
-  /// The decoded request-body contract.
-  associatedtype Request: Decodable & Sendable
-  /// The encoded response-body contract.
-  associatedtype Response: Encodable & Sendable
-
   /// The HTTP method accepted by this route.
   var method: OpenAPIDocument.Method { get }
   /// The optional external API version.

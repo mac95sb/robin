@@ -6,7 +6,7 @@ struct CompiledSpeculationRules {
   let headElement: String?
 }
 
-enum SpeculationRulesCompiler {
+struct SpeculationRulesCompiler {
   static func compile(
     _ rules: [SpeculationRule],
     pagePaths: Set<String>,

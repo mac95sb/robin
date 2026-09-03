@@ -8,6 +8,10 @@ RobinStyle keeps styling in Swift's type system, resolves theme tokens during co
 
 ## Topics
 
+### Start here
+
+- <doc:Style-a-Component>
+
 ### Themes and colors
 
 - ``Theme``
