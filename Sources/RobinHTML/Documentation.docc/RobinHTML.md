@@ -8,11 +8,18 @@ RobinHTML provides the application, page, component, result-builder, and render-
 
 ## Topics
 
+### Start here
+
+- <doc:Build-a-Static-Page>
+- <doc:Native-First-Interactivity>
+
 ### Applications and pages
 
 - ``App``
 - ``Page``
+- ``PageGroup``
 - ``PagesBuilder``
+- ``RouteGroup``
 - ``RoutesBuilder``
 
 ### Components

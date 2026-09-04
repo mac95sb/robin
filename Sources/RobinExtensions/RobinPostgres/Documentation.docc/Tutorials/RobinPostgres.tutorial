@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinPostgres") {
+  @Intro(title: "Use PostgreSQL in production") {
+    Move the same repositories from local SQLite to a pooled PostgreSQL service.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Connect Robin repositories to PostgreSQL")
+
+    @TutorialReference(tutorial: "doc:Configure-PostgreSQL")
+  }
+}

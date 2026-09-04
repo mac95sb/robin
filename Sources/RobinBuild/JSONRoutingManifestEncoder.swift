@@ -27,7 +27,7 @@ public struct JSONRoutingManifestEncoder: RoutingManifestEncoder {
     encoder.outputFormatting = [.sortedKeys]
     let dependencies = ordered.map { route in
       switch route.destination {
-      case .staticFile(let path), .functionBundle(let path): path
+      case .staticFile(let path), .functionBundle(let path), .webAssembly(let path): path
       }
     }
     return try BuildArtifact(

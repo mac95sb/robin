@@ -6,6 +6,8 @@ public enum RobinArtifact: String, CaseIterable, Sendable {
   case cache
   /// Test and documentation coverage reports.
   case coverage
+  /// Exported deployment output.
+  case export
   /// Generated source and metadata.
   case generated
   /// Inspector application state.

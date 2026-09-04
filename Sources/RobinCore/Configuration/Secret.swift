@@ -19,6 +19,9 @@ public struct Secret<Value: Sendable>: Sendable {
 }
 
 extension Secret: CustomStringConvertible, CustomDebugStringConvertible {
+  /// A redacted description that never reveals the wrapped value.
   public var description: String { "<redacted>" }
+
+  /// A redacted debug description that never reveals the wrapped value.
   public var debugDescription: String { description }
 }

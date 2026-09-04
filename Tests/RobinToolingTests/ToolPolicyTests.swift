@@ -9,26 +9,23 @@ struct ToolPolicyTests {
     let input = try #require(
       Bundle.module.url(forResource: "robin", withExtension: "pkl", subdirectory: "Fixtures")
     )
-    let process = Process()
-    let output = Pipe()
-    let errors = Pipe()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-    process.arguments = ["pkl", "eval", "-f", "json", input.path]
-    process.standardOutput = output
-    process.standardError = errors
-    try process.run()
-    process.waitUntilExit()
-
-    let errorOutput = String(
-      decoding: errors.fileHandleForReading.readDataToEndOfFile(),
-      as: UTF8.self
-    )
-    try #require(process.terminationStatus == 0, "pkl failed: \(errorOutput)")
-    let policy = try JSONDecoder().decode(
-      ToolPolicy.self,
-      from: output.fileHandleForReading.readDataToEndOfFile()
-    )
-    try policy.validate()
+    let root = input.deletingLastPathComponent()
+    let policy = try #require(try ToolPolicyLoader.load(at: root))
     #expect(policy.schemaVersion == 1)
+    #expect(policy.lintSeverity == .error)
+  }
+
+  @Test func buildBudgetIsEnforcedAtItsBoundary() {
+    #expect(throws: Never.self) {
+      try RobinCommandRunner.validateBuildDuration(milliseconds: 1_000, budget: 1_000)
+    }
+    #expect(
+      throws: RobinCommandRunnerError.buildBudgetExceeded(
+        actualMilliseconds: 1_001,
+        budgetMilliseconds: 1_000
+      )
+    ) {
+      try RobinCommandRunner.validateBuildDuration(milliseconds: 1_001, budget: 1_000)
+    }
   }
 }

@@ -1,7 +1,7 @@
 import NIOCore
 
 /// Validation-only operations that borrow a byte buffer's readable storage without copying it.
-public enum ByteBufferSpan {
+public struct ByteBufferSpan {
   /// Computes a deterministic checksum while borrowing readable bytes in place.
   ///
   /// - Parameter buffer: The byte buffer whose readable region is inspected.

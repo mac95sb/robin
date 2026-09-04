@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinRuntime") {
+  @Intro(title: "Add native-first interactions") {
+    Connect typed state and actions only where native web behavior is insufficient.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Connect state and actions")
+
+    @TutorialReference(tutorial: "doc:Connect-State-and-Actions")
+  }
+}

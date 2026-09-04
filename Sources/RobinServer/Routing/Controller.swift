@@ -1,62 +1,48 @@
 import Foundation
 import RobinRouting
 
-/// A typed JSON controller route executed by ``ApplicationResponder``.
-public struct Controller<Value, Input, Output>: APIRoute, Sendable
-where
-  Value: Sendable,
-  Input: Decodable & Sendable,
-  Output: Encodable & Sendable
-{
-  /// The decoded JSON request type.
-  public typealias Request = Input
-  /// The encoded JSON response type.
-  public typealias Response = Output
+/// A typed JSON route that handles requests through ``ApplicationResponder``.
+public protocol Controller: APIRoute, ServerRoute {
+  /// The value decoded from the matched path.
+  associatedtype Value: Sendable
+  /// The route representation declared by the controller.
+  associatedtype RouteRepresentation: Sendable
+  /// The decoded request-body contract.
+  associatedtype Request: Decodable & Sendable
+  /// The encoded response-body contract.
+  associatedtype Response: Encodable & Sendable
 
-  /// The typed path matched by this controller.
-  public let route: RouteDefinition<Value>
-  /// The HTTP method accepted by this controller.
-  public let method: OpenAPIDocument.Method
-  /// The optional API version prefix.
-  public let version: Version?
-  private let handler: @Sendable (Value, Input, RequestContext) async throws -> Output
+  /// The path matched by this controller.
+  var route: RouteRepresentation { get }
 
-  /// Creates a typed JSON controller.
+  /// Handles a matched and decoded request.
   ///
   /// - Parameters:
-  ///   - route: The typed, API-root-relative route.
-  ///   - method: The accepted HTTP method.
-  ///   - version: An optional externally maintained API version.
-  ///   - handler: The operation invoked with matched path values, decoded JSON, and request context.
-  public init(
-    _ route: RouteDefinition<Value>,
-    method: OpenAPIDocument.Method,
-    version: Version? = nil,
-    handler: @escaping @Sendable (Value, Input, RequestContext) async throws -> Output
-  ) {
-    self.route = route
-    self.method = method
-    self.version = version
-    self.handler = handler
-  }
-
-  /// Metadata used for conflicts, inspection, and OpenAPI output.
-  public var metadata: RouteMetadata { route.metadata }
-  /// The controller's API-root-relative route pattern.
-  public var pattern: RoutePattern { route.pattern }
+  ///   - value: The value decoded from the matched path.
+  ///   - request: The decoded request body.
+  ///   - context: Metadata and services associated with the request.
+  /// - Returns: The response body to encode.
+  /// - Throws: An error when the request cannot be handled.
+  func handle(
+    _ value: Value,
+    request: Request,
+    context: RequestContext
+  ) async throws -> Response
 }
 
-extension Controller: ServerRoute {
+extension Controller {
+  /// The HTTP method accepted by this controller.
+  public var method: OpenAPIDocument.Method { .get }
+  /// The optional API version prefix.
+  public var version: Version? { nil }
+  /// Transport features required by this controller.
   public var requiredCapabilities: TransportCapabilities { [] }
 
-  /// Decodes and executes a matching JSON request.
-  ///
-  /// - Returns: The encoded response, or `nil` when the method or route does not match.
-  /// - Throws: ``ServerError`` for negotiation and decoding failures, or a handler error.
-  public func respond(
+  private func respond(
     to request: RobinServer.Request,
     context: RequestContext,
-    api: APIConfiguration
+    api: APIConfiguration,
+    route: RouteDefinition<Value>
   ) async throws -> RobinServer.Response? {
     guard method.matches(request.method.rawValue) else { return nil }
     guard let path = relativePath(request.path, api: api, version: version) else { return nil }
@@ -72,41 +58,57 @@ extension Controller: ServerRoute {
       throw ServerError(.notAcceptable, "The requested response representation is unavailable.")
     }
 
-    let input: Input
+    let input: Request
     do {
       input = try JSONDecoder().decode(
-        Input.self,
+        Request.self,
         from: request.body.isEmpty ? Data("{}".utf8) : Data(request.body)
       )
     } catch {
       throw ServerError(.badRequest, "The request body is not valid JSON.")
     }
-    return try RobinServer.Response.json(try await handler(value, input, context))
+    return try RobinServer.Response.json(
+      try await handle(value, request: input, context: context)
+    )
   }
 }
 
-/// The request body type for controllers that accept no JSON fields.
-public struct EmptyRequest: Codable, Sendable {
-  /// Creates an empty request value.
-  public init() {}
+extension Controller where RouteRepresentation == RouteDefinition<Value> {
+  /// Metadata used for conflicts, inspection, and OpenAPI output.
+  public var metadata: RouteMetadata { route.metadata }
+  /// The controller's API-root-relative route pattern.
+  public var pattern: RoutePattern { route.pattern }
+
+  /// Decodes and executes a matching JSON request.
+  ///
+  /// - Returns: The encoded response, or `nil` when the method or route does not match.
+  /// - Throws: ``ServerError`` for negotiation and decoding failures, or a handler error.
+  public func respond(
+    to request: RobinServer.Request,
+    context: RequestContext,
+    api: APIConfiguration
+  ) async throws -> RobinServer.Response? {
+    try await respond(to: request, context: context, api: api, route: route)
+  }
 }
 
-extension Controller where Input == EmptyRequest {
-  /// Creates a controller that accepts no JSON fields.
+extension Controller where RouteRepresentation == String, Value == Void {
+  private var routeDefinition: RouteDefinition<Void> { .path(route) }
+
+  /// Metadata used for conflicts, inspection, and OpenAPI output.
+  public var metadata: RouteMetadata { routeDefinition.metadata }
+  /// The controller's API-root-relative route pattern.
+  public var pattern: RoutePattern { routeDefinition.pattern }
+
+  /// Decodes and executes a matching JSON request.
   ///
-  /// - Parameters:
-  ///   - route: The typed, API-root-relative route.
-  ///   - method: The accepted HTTP method.
-  ///   - version: An optional externally maintained API version.
-  ///   - handler: The operation invoked with matched path values and request context.
-  public init(
-    _ route: RouteDefinition<Value>,
-    method: OpenAPIDocument.Method,
-    version: Version? = nil,
-    handler: @escaping @Sendable (Value, RequestContext) async throws -> Output
-  ) {
-    self.init(route, method: method, version: version) { value, _, context in
-      try await handler(value, context)
-    }
+  /// - Returns: The encoded response, or `nil` when the method or route does not match.
+  /// - Throws: ``ServerError`` for negotiation and decoding failures, or a handler error.
+  public func respond(
+    to request: RobinServer.Request,
+    context: RequestContext,
+    api: APIConfiguration
+  ) async throws -> RobinServer.Response? {
+    try await respond(to: request, context: context, api: api, route: routeDefinition)
   }
 }

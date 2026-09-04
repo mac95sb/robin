@@ -1,0 +1,27 @@
+@Tutorial(time: 10) {
+  @Intro(title: "Build a Static Page") {
+    Create a routable page, register it with an application, and rely on native document navigation.
+  }
+
+  @Section(title: "Create the page") {
+    @Steps {
+      @Step {
+        Import RobinHTML and define a page with a root-relative path.
+
+        @Code(name: "StaticPage.swift", file: StaticPage.swift)
+      }
+
+      @Step {
+        Register the page in an application. Robin infers Static Site mode because the application
+        has pages and no controller routes.
+
+        @Code(name: "StaticPage.swift", file: StaticPage.swift)
+      }
+
+      @Step {
+        Keep the default ``ClientNavigation/automatic`` strategy. Links perform full document
+        navigation and the generated site ships no Robin JavaScript.
+      }
+    }
+  }
+}

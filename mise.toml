@@ -4,6 +4,7 @@ min_version = "2026.7.0"
 swift = "6.3.3"
 pkl = "0.32.1"
 hk = "1.54.1"
+jq = "1.8.2"
 
 [env]
 HK_MISE = "1"
@@ -18,11 +19,39 @@ run = "swift test"
 
 [tasks.format]
 description = "Format Swift sources in place"
-run = "swift format format --in-place --recursive --parallel Sources Tests Package.swift"
+run = "swift format format --in-place --recursive --parallel Sources Tests Templates Package.swift"
 
 [tasks.lint]
 description = "Check Swift source formatting"
-run = "swift format lint --strict --recursive --parallel Sources Tests Package.swift"
+run = "swift format lint --strict --recursive --parallel Sources Tests Templates Package.swift"
+
+[tasks.docs]
+description = "Build the publishable DocC sites and validate public documentation"
+run = '''
+set -eu
+rm -rf .robin/site
+mkdir -p .robin/site/reference
+for target in RobinCore RobinHTML RobinStyle RobinContent RobinForms RobinRouting RobinRuntime RobinData RobinServer RobinBuild RobinTesting RobinTooling RobinPostgres; do
+  swift package --allow-writing-to-directory .robin/site generate-documentation --target "$target" --output-path ".robin/site/reference/$target" --transform-for-static-hosting --hosting-base-path "robin/reference/$target" --disable-indexing --warnings-as-errors --experimental-skip-synthesized-symbols --experimental-documentation-coverage --coverage-summary-level brief
+done
+
+# DocC still reports compiler-synthesized conformance members in coverage output.
+missing=$(
+  for report in .robin/site/reference/*/documentation-coverage.json; do
+    jq -r '
+      .[]
+      | select(.kind.isSymbol == true and .hasAbstract == false)
+      | select((.kind.name | startswith("Extended ")) | not)
+      | select(.title != "init(rawValue:)" and .title != "init(from:)" and .title != "<(_:_:)")
+      | .referencePath
+    ' "$report"
+  done
+)
+if [ -n "$missing" ]; then
+  printf 'Undocumented public symbols:\n%s\n' "$missing" >&2
+  exit 1
+fi
+'''
 
 [tasks.check]
 description = "Run the same checks used by CI"

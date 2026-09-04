@@ -16,7 +16,7 @@ public enum MultipartError: Error, Equatable, Sendable {
 }
 
 /// A bounded multipart/form-data parser that preserves uploaded bytes exactly.
-public enum MultipartFormData {
+public struct MultipartFormData {
   /// Parses validated multipart form data from a complete request body.
   ///
   /// - Parameters:

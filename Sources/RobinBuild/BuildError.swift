@@ -16,12 +16,20 @@ public enum BuildError: Error, Equatable, Sendable {
   case invalidPagePath(String)
   /// Two registered pages resolve to the same static output path.
   case duplicatePagePath(String)
+  /// A page declares the same structured-data schema more than once.
+  case duplicateStructuredData(String)
   /// The application selected a theme RobinBuild cannot compile.
   case unsupportedTheme
-  /// A static application was configured with executable output.
-  case staticApplicationHasExecutableArtifacts
-  /// An API or SSR application has no executable artifact.
-  case missingExecutableArtifact(ApplicationMode)
+  /// A static application was configured with runtime output.
+  case staticApplicationHasRuntimeArtifacts
+  /// An API or SSR application has no executable or WebAssembly runtime artifact.
+  case missingRuntimeArtifact(ApplicationMode)
+  /// A runtime refers to an absent or incompatible artifact.
+  case invalidRuntimeArtifact(String)
+  /// A runtime configuration contains an invalid value.
+  case invalidRuntimeConfiguration(String)
+  /// A runtime artifact is larger than its configured maximum.
+  case runtimeArtifactTooLarge(artifact: String, maximumBytes: Int, actualBytes: Int)
   /// A JavaScript artifact has no typed provenance.
   case unexplainedScript(String)
   /// Script provenance was attached to a non-JavaScript artifact.

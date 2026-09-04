@@ -1,5 +1,6 @@
 import Foundation
 import HTTPTypes
+import RobinCore
 import RobinHTML
 import RobinRouting
 import ServiceContextModule
@@ -62,11 +63,19 @@ public struct ApplicationResponder: Sendable {
     transportCapabilities: TransportCapabilities
   ) throws {
     let pages: [any ServerRoute] = application.pages.pages.map { RegisteredPageRoute($0) }
-    let routes: [any ServerRoute] = try application.routes.routes.map { route in
-      guard let route = route as? any ServerRoute else {
-        throw RouteRegistryError.unsupportedRoute(route.applicationRouteIdentifier)
+    let routes: [any ServerRoute] = try flattenedApplicationRoutes(application.routes.routes).map {
+      registration in
+      guard let route = registration.route as? any ServerRoute else {
+        throw RouteRegistryError.unsupportedRoute(registration.route.applicationRouteIdentifier)
       }
-      return route
+      guard !registration.prefixes.isEmpty else { return route }
+      let prefixes = try registration.prefixes.flatMap { prefix in
+        guard let segments = routeGroupPathSegments(in: prefix) else {
+          throw RouteRegistryError.invalidGroup(prefix)
+        }
+        return segments
+      }
+      return try GroupedServerRoute(route, prefixes: prefixes)
     }
     try self.init(
       routes: pages + routes,
@@ -164,6 +173,48 @@ public struct ApplicationResponder: Sendable {
     }
     for field in headers { response.head.headerFields[field.name] = field.value }
     return response
+  }
+}
+
+private struct GroupedServerRoute: APIRoute, ServerRoute {
+  let route: any ServerRoute
+  let prefixes: [String]
+  let method: OpenAPIDocument.Method
+  let version: Version?
+
+  init(_ route: any ServerRoute, prefixes: [String]) throws {
+    guard let apiRoute = route as? any APIRoute else {
+      throw RouteRegistryError.unsupportedRoute(route.applicationRouteIdentifier)
+    }
+    self.route = route
+    self.prefixes = prefixes
+    self.method = apiRoute.method
+    self.version = apiRoute.version
+  }
+
+  var metadata: RouteMetadata { route.metadata }
+  var pattern: RoutePattern {
+    RoutePattern(prefixes.map(RoutePattern.Segment.literal) + route.pattern.segments)
+  }
+  var requiredCapabilities: TransportCapabilities { route.requiredCapabilities }
+
+  func respond(
+    to request: Request,
+    context: RequestContext,
+    api: APIConfiguration
+  ) async throws -> Response? {
+    let apiPrefix = api.root.value + (version.map { "/v\($0.number)" } ?? "")
+    let groupPrefix = "/" + prefixes.joined(separator: "/")
+    let prefix = apiPrefix + groupPrefix
+    guard request.path == prefix || request.path.hasPrefix(prefix + "/") else { return nil }
+
+    var head = request.head
+    head.path = apiPrefix + request.target.dropFirst(prefix.count)
+    return try await route.respond(
+      to: Request(head, body: request.body),
+      context: context,
+      api: api
+    )
   }
 }
 

@@ -6,6 +6,8 @@ public struct DeploymentRoute: Codable, Equatable, Sendable {
     case staticFile(String)
     /// An executable function artifact.
     case functionBundle(String)
+    /// A WebAssembly function artifact.
+    case webAssembly(String)
   }
 
   /// The absolute route pattern.
@@ -28,7 +30,7 @@ public struct DeploymentRoute: Codable, Equatable, Sendable {
     }
     let destinationPath =
       switch destination {
-      case .staticFile(let path), .functionBundle(let path): path
+      case .staticFile(let path), .functionBundle(let path), .webAssembly(let path): path
       }
     guard BuildArtifact.isValid(destinationPath) else {
       throw BuildError.invalidDeploymentRoute(destinationPath)
@@ -37,14 +39,4 @@ public struct DeploymentRoute: Codable, Equatable, Sendable {
     self.destination = destination
     self.precedence = precedence
   }
-}
-
-/// Encodes neutral routes into a provider-consumable manifest artifact.
-public protocol RoutingManifestEncoder: Sendable {
-  /// Encodes routes ordered by precedence and pattern.
-  ///
-  /// - Parameter routes: Provider-neutral deployment routes.
-  /// - Returns: A route-manifest artifact.
-  /// - Throws: An encoder-specific error when routes cannot be represented.
-  func encode(_ routes: [DeploymentRoute]) throws -> BuildArtifact
 }

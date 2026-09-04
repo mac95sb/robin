@@ -8,6 +8,10 @@ RobinRouting uses the same route definitions for matching, reverse routing, appl
 
 ## Topics
 
+### Start here
+
+- <doc:Define-a-Typed-Route>
+
 ### Route definitions
 
 - ``RouteDefinition``

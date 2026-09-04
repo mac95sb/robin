@@ -28,13 +28,13 @@ private let theme = Theme(
   breakpoints: [.lg: 960]
 )
 
-private enum PropertyKey {
+private struct PropertyKey {
   static let color = "color"
   static let fontFamily = "font-family"
   static let padding = "padding"
 }
 
-private enum ConditionKey {
+private struct ConditionKey {
   static let dark = "dark"
 
   static func minimumWidth(_ token: BreakpointToken) -> String {

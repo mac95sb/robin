@@ -1,0 +1,27 @@
+@Tutorial(time: 5) {
+  @Intro(title: "Configure PostgreSQL") {
+    Start a verified connection pool without exposing PostgresNIO to application repositories.
+  }
+
+  @Section(title: "Create the adapter") {
+    @Steps {
+      @Step {
+        Construct ``PostgresConfiguration`` from the application's typed environment and secret values.
+
+        @Code(name: "Persistence.swift", file: "ConfigurePostgreSQL-01.swift")
+      }
+
+      @Step {
+        Require TLS outside local development and choose a bounded maximum connection count.
+
+        @Code(name: "Persistence.swift", file: "ConfigurePostgreSQL-02.swift")
+      }
+
+      @Step {
+        Create ``PostgresDatabase`` and pass it to the same `RepositoryContext` used with SQLite.
+
+        @Code(name: "Persistence.swift", file: "ConfigurePostgreSQL-03.swift")
+      }
+    }
+  }
+}

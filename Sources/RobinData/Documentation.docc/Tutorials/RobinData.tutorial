@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinData") {
+  @Intro(title: "Persist application data") {
+    Use the same repository and migration code with SQLite and PostgreSQL.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Persist data through shared database contracts")
+
+    @TutorialReference(tutorial: "doc:Persist-Application-Data")
+  }
+}

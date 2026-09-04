@@ -10,6 +10,8 @@ public struct ArtifactLayout: Sendable {
   ///   - staticFiles: The root for files served directly.
   ///   - executables: The root for persistent executables.
   ///   - functionBundles: The root for deployable functions.
+  ///   - webAssembly: The root for deployable WebAssembly artifacts.
+  ///   - hostAdapters: The root for generated host adapters.
   ///   - runtimeLibraries: The root for runtime libraries.
   ///   - routeManifests: The root for routing manifests.
   ///   - deploymentMetadata: The root for other deployment metadata.
@@ -17,6 +19,8 @@ public struct ArtifactLayout: Sendable {
     staticFiles: String = "",
     executables: String = "",
     functionBundles: String = "",
+    webAssembly: String = "",
+    hostAdapters: String = "",
     runtimeLibraries: String = "",
     routeManifests: String = "",
     deploymentMetadata: String = ""
@@ -25,6 +29,8 @@ public struct ArtifactLayout: Sendable {
       .staticFile: staticFiles,
       .executable: executables,
       .functionBundle: functionBundles,
+      .webAssembly: webAssembly,
+      .hostAdapter: hostAdapters,
       .runtimeLibrary: runtimeLibraries,
       .routeManifest: routeManifests,
       .deploymentMetadata: deploymentMetadata,

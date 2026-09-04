@@ -1,0 +1,17 @@
+@Tutorial(time: 5) {
+  @Intro(title: "Configure an Application") {
+    Define shared metadata and environment-backed configuration without coupling it to a renderer.
+  }
+
+  @Section(title: "Declare shared values") {
+    @Steps {
+      @Step {
+        Create ``Metadata`` for document defaults and use ``Environment`` for typed configuration.
+      }
+
+      @Step {
+        Wrap sensitive values in ``Secret`` so diagnostics cannot print their contents.
+      }
+    }
+  }
+}

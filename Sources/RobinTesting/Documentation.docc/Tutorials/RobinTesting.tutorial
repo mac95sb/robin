@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinTesting") {
+  @Intro(title: "Test Robin applications") {
+    Check routes, accessibility, snapshots, and browser behavior.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Test a Robin application")
+
+    @TutorialReference(tutorial: "doc:Test-an-Application")
+  }
+}

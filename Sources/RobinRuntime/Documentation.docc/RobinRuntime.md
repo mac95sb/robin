@@ -8,6 +8,10 @@ RobinRuntime provides the typed primitives used to connect server-side state and
 
 ## Topics
 
+### Start here
+
+- <doc:Connect-State-and-Actions>
+
 ### State and bindings
 
 - ``StateStore``
