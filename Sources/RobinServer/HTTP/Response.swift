@@ -51,6 +51,14 @@ public struct Response: Sendable {
     )
   }
 
+  /// Creates a `303 See Other` response for a completed form submission.
+  ///
+  /// - Parameter location: The absolute or root-relative destination.
+  public static func redirect(to location: String) -> Self {
+    precondition(!location.isEmpty && !location.contains("\r") && !location.contains("\n"))
+    return Self(status: .seeOther, headers: [.location: location])
+  }
+
   /// Creates a JSON response.
   ///
   /// - Parameters:

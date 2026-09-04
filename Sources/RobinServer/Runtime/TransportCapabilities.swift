@@ -3,10 +3,10 @@ import RobinCore
 /// Runtime features that a request transport can preserve without degradation.
 public struct TransportCapabilities: OptionSet, Sendable {
   /// The underlying capability bit set.
-  public let rawValue: UInt8
+  public let rawValue: UInt16
 
   /// Creates a capability set from its raw representation.
-  public init(rawValue: UInt8) { self.rawValue = rawValue }
+  public init(rawValue: UInt16) { self.rawValue = rawValue }
 
   /// Supports asynchronous response streaming with backpressure.
   public static let streaming = Self(rawValue: 1 << 0)
@@ -18,10 +18,32 @@ public struct TransportCapabilities: OptionSet, Sendable {
   public static let processLocalState = Self(rawValue: 1 << 3)
   /// Provides a filesystem that survives requests and process restarts.
   public static let persistentFileSystem = Self(rawValue: 1 << 4)
+  /// Allows the application to bind a listening socket.
+  public static let listeningSockets = Self(rawValue: 1 << 5)
+  /// Allows outbound network connections.
+  public static let outboundNetworking = Self(rawValue: 1 << 6)
+  /// Allows native operating-system threads.
+  public static let threads = Self(rawValue: 1 << 7)
+  /// Allows child processes.
+  public static let subprocesses = Self(rawValue: 1 << 8)
+  /// Provides writable storage that may be discarded after an invocation.
+  public static let writableFileSystem = Self(rawValue: 1 << 9)
+  /// Provides wall and monotonic clocks.
+  public static let clocks = Self(rawValue: 1 << 10)
+  /// Provides cryptographically secure random bytes.
+  public static let secureRandomness = Self(rawValue: 1 << 11)
   /// Capabilities currently provided by the persistent HTTP adapter.
   public static let persistent: Self = [
     .streaming, .serverSentEvents, .webSockets, .processLocalState, .persistentFileSystem,
+    .listeningSockets, .outboundNetworking, .threads, .subprocesses, .writableFileSystem, .clocks,
+    .secureRandomness,
   ]
+  /// Capabilities provided by the first-party AWS Lambda adapter.
+  public static let lambda: Self = [
+    .outboundNetworking, .threads, .subprocesses, .writableFileSystem, .clocks, .secureRandomness,
+  ]
+  /// Capabilities guaranteed by an unspecified invocation provider.
+  public static let invocation: Self = []
 }
 
 /// Diagnostics for features unavailable on a selected transport.
@@ -38,6 +60,13 @@ public struct TransportCapabilityError: Error, Equatable, Sendable {
       (.streaming, "streaming responses"),
       (.processLocalState, "process-local state"),
       (.persistentFileSystem, "a persistent filesystem"),
+      (.listeningSockets, "listening sockets"),
+      (.outboundNetworking, "outbound networking"),
+      (.threads, "native threads"),
+      (.subprocesses, "subprocesses"),
+      (.writableFileSystem, "a writable filesystem"),
+      (.clocks, "clocks"),
+      (.secureRandomness, "secure randomness"),
     ].compactMap { capability, name in
       missing.contains(capability)
         ? Diagnostic(.error, "The selected transport does not support \(name).") : nil

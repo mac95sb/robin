@@ -26,7 +26,7 @@ public struct RouteList: Routes {
 
 /// Builds route registrations with native Swift conditionals and loops.
 @resultBuilder
-public enum RoutesBuilder {
+public struct RoutesBuilder {
   /// Resolves a single application route into a registration.
   ///
   /// - Parameter expression: The route to register.
@@ -35,6 +35,16 @@ public enum RoutesBuilder {
     -> RouteList
   {
     RouteList(routes: [expression])
+  }
+
+  /// Resolves a route collection into its registrations.
+  ///
+  /// - Parameter expression: The route collection to register.
+  /// - Returns: A registration containing the collection's routes.
+  public static func buildExpression<RouteCollection: Routes>(_ expression: RouteCollection)
+    -> RouteList
+  {
+    RouteList(routes: expression.routes)
   }
 
   /// Combines route registrations in source order.

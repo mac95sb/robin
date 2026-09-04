@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinForms") {
+  @Intro(title: "Build typed forms") {
+    Share typed form fields between rendering and request decoding.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Model a typed form")
+
+    @TutorialReference(tutorial: "doc:Model-a-Form")
+  }
+}

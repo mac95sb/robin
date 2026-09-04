@@ -15,12 +15,47 @@ struct ApplicationResponderTests {
     let name: String
   }
 
-  @Test func typedControllerMatchesDecodesAndEncodesWithoutNIO() async throws {
-    let route = RouteDefinition<Int>.path(["users"], parameter: .integer("id"))
-    let controller = Controller(route, method: .post, version: try Version(1)) {
-      (id: Int, input: Input, _: RequestContext) in
-      Output(id: id, name: input.name)
+  private struct UserEndpoint: Endpoint {
+    let route = RouteDefinition.path(["users"], parameter: .integer("id"))
+    let method: HTTPMethod = .post
+
+    func handle(_ id: Int, request: Input, context _: RequestContext) -> Output {
+      Output(id: id, name: request.name)
     }
+  }
+
+  private struct InvalidJSONEndpoint: Endpoint {
+    let route = "users"
+    let method: HTTPMethod = .post
+    let version: Version? = nil
+
+    func handle(_: Void, request: Input, context _: RequestContext) -> Input { request }
+  }
+
+  private struct HealthEndpoint: Endpoint {
+    let route = "health"
+    let version: Version? = nil
+
+    func handle(_: Void, request _: EmptyRequest, context _: RequestContext) -> EmptyRequest {
+      EmptyRequest()
+    }
+  }
+
+  private struct StatusController: Controller {
+    @RoutesBuilder var body: RouteList { HealthEndpoint() }
+  }
+
+  @Test func endpointInfersContractsAndDefaultsToGET() {
+    #expect(HealthEndpoint().method == .get)
+    #expect(HealthEndpoint().pattern == RoutePattern([.literal("health")]))
+  }
+
+  @Test func controllerCollectsRelatedEndpoints() {
+    #expect(StatusController().routes.count == 1)
+  }
+
+  @Test func typedControllerMatchesDecodesAndEncodesWithoutNIO() async throws {
+    let controller = UserEndpoint()
     let responder = try ApplicationResponder(
       routes: [controller],
       transportCapabilities: .persistent
@@ -48,10 +83,7 @@ struct ApplicationResponderTests {
   }
 
   @Test func invalidJSONIsAClientErrorAndUnknownRoutesAreNotFound() async throws {
-    let route = RouteDefinition<Void>.path("users")
-    let controller = Controller(route, method: .post) {
-      (_: Void, input: Input, _: RequestContext) in input
-    }
+    let controller = InvalidJSONEndpoint()
     let responder = try ApplicationResponder(
       routes: [controller],
       transportCapabilities: .persistent
@@ -116,5 +148,43 @@ struct ApplicationResponderTests {
     #expect(
       String(decoding: try #require(response.body.bufferedBytes), as: UTF8.self) == "<p>Home</p>"
     )
+  }
+
+  @Test func nestedPageAndRouteGroupsComposeTheirPaths() async throws {
+    struct Guide: Page {
+      let path = "/"
+      var body: ComponentContent { Text { "Guide" } }
+    }
+    struct TestApplication: App {
+      var metadata: Metadata { Metadata() }
+
+      @PagesBuilder var pages: PageList {
+        PageGroup("docs") {
+          PageGroup("guides") { Guide() }
+        }
+      }
+
+      @RoutesBuilder var routes: RouteList {
+        RouteGroup("system") {
+          RouteGroup("status") { StatusController() }
+        }
+      }
+    }
+    let responder = try ApplicationResponder(
+      TestApplication(),
+      transportCapabilities: .persistent
+    )
+
+    let page = await responder.respond(
+      to: Request(HTTPRequest(method: .get, scheme: nil, authority: nil, path: "/docs/guides"))
+    )
+    let route = await responder.respond(
+      to: Request(
+        HTTPRequest(method: .get, scheme: nil, authority: nil, path: "/api/system/status/health")
+      )
+    )
+
+    #expect(page.head.status == .ok)
+    #expect(route.head.status == .ok)
   }
 }

@@ -25,15 +25,25 @@ let package = Package(
     .library(name: "RobinForms", targets: ["RobinForms"]),
     .library(name: "RobinRouting", targets: ["RobinRouting"]),
     .library(name: "RobinRuntime", targets: ["RobinRuntime"]),
+    .library(name: "RobinData", targets: ["RobinData"]),
+    .library(name: "RobinCache", targets: ["RobinCache"]),
+    .library(name: "RobinJobs", targets: ["RobinJobs"]),
+    .library(name: "RobinStorage", targets: ["RobinStorage"]),
+    .library(name: "RobinEmail", targets: ["RobinEmail"]),
+    .library(name: "RobinAuth", targets: ["RobinAuth"]),
     .library(name: "RobinServer", targets: ["RobinServer"]),
     .library(name: "RobinBuild", targets: ["RobinBuild"]),
+    .library(name: "RobinTesting", targets: ["RobinTesting"]),
     .library(name: "RobinTooling", targets: ["RobinTooling"]),
+    .library(name: "RobinPostgres", targets: ["RobinPostgres"]),
+    .executable(name: "robin", targets: ["RobinCLI"]),
   ],
   dependencies: [
     .package(url: "https://github.com/vapor/sqlite-nio.git", from: "1.10.0"),
     .package(url: "https://github.com/vapor/postgres-nio.git", from: "1.33.0"),
     .package(url: "https://github.com/brokenhandsio/swift-webauthn.git", from: "1.0.0-alpha.2"),
     .package(url: "https://github.com/tuist/Noora.git", from: "0.17.0"),
+    .package(url: "https://github.com/apple/swift-argument-parser", from: "1.8.2"),
     .package(url: "https://github.com/apple/swift-nio.git", from: "2.101.0"),
     .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.37.0"),
     .package(url: "https://github.com/apple/swift-nio-http2.git", from: "1.44.0"),
@@ -51,8 +61,7 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-system.git", from: "1.8.0"),
     .package(url: "https://github.com/swiftlang/swift-markdown.git", from: "0.8.0"),
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "603.0.0"),
-    .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.0.0"),
-    .package(url: "https://github.com/apple/swift-openapi-runtime.git", from: "1.0.0"),
+    .package(url: "https://github.com/swiftlang/swift-docc-plugin.git", from: "1.5.0"),
   ],
   targets: [
     .target(
@@ -91,19 +100,10 @@ let package = Package(
       swiftSettings: lowLevelFeatures
     ),
     .target(
-      name: "OpenAPIGeneratorValidation",
-      dependencies: [
-        .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")
-      ],
-      swiftSettings: upcomingFeatures,
-      plugins: [
-        .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")
-      ]
-    ),
-    .target(
       name: "RobinContent",
       dependencies: [
-        .product(name: "Markdown", package: "swift-markdown")
+        "RobinHTML",
+        .product(name: "Markdown", package: "swift-markdown"),
       ],
       swiftSettings: lowLevelFeatures
     ),
@@ -122,8 +122,54 @@ let package = Package(
       swiftSettings: lowLevelFeatures
     ),
     .target(
+      name: "RobinData",
+      dependencies: [
+        "RobinCore",
+        .product(name: "NIOCore", package: "swift-nio"),
+        .product(name: "SQLiteNIO", package: "sqlite-nio"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinCache",
+      dependencies: [
+        "RobinCore",
+        .product(name: "Crypto", package: "swift-crypto"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinJobs",
+      dependencies: [
+        "RobinCore",
+        "RobinData",
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinStorage",
+      dependencies: [
+        "RobinCore",
+        .product(name: "Crypto", package: "swift-crypto"),
+        .product(name: "NIOCore", package: "swift-nio"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinEmail",
+      dependencies: [
+        .product(name: "Logging", package: "swift-log"),
+        .product(name: "NIOCore", package: "swift-nio"),
+        .product(name: "NIOPosix", package: "swift-nio"),
+        .product(name: "NIOSSL", package: "swift-nio-ssl"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
       name: "RobinServer",
       dependencies: [
+        "RobinBuild",
+        "RobinCache",
         "RobinCore",
         "RobinHTML",
         "RobinRouting",
@@ -151,6 +197,20 @@ let package = Package(
       swiftSettings: lowLevelFeatures
     ),
     .target(
+      name: "RobinAuth",
+      dependencies: [
+        "RobinBuild",
+        "RobinCore",
+        "RobinData",
+        "RobinEmail",
+        "RobinServer",
+        .product(name: "Crypto", package: "swift-crypto"),
+        .product(name: "HTTPTypes", package: "swift-http-types"),
+        .product(name: "WebAuthn", package: "swift-webauthn"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
       name: "RobinBuild",
       dependencies: [
         "RobinContent",
@@ -163,7 +223,40 @@ let package = Package(
     ),
     .target(
       name: "RobinTooling",
-      dependencies: ["RobinCore"],
+      dependencies: ["RobinBuild", "RobinCore"],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinPostgres",
+      dependencies: [
+        "RobinData",
+        .product(name: "Logging", package: "swift-log"),
+        .product(name: "NIOCore", package: "swift-nio"),
+        .product(name: "NIOSSL", package: "swift-nio-ssl"),
+        .product(name: "PostgresNIO", package: "postgres-nio"),
+      ],
+      path: "Sources/RobinExtensions/RobinPostgres",
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinTesting",
+      dependencies: [
+        "RobinCore",
+        "RobinHTML",
+        "RobinMacros",
+        "RobinServer",
+        "RobinStyle",
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .executableTarget(
+      name: "RobinCLI",
+      dependencies: [
+        "RobinCore",
+        "RobinTooling",
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        .product(name: "Noora", package: "Noora"),
+      ],
       swiftSettings: lowLevelFeatures
     ),
     .testTarget(
@@ -201,8 +294,8 @@ let package = Package(
     ),
     .testTarget(
       name: "RobinContentTests",
-      dependencies: ["RobinContent"],
-      resources: [.copy("Fixtures")],
+      dependencies: ["RobinContent", "RobinHTML"],
+      resources: [.copy("Fixtures"), .process("Resources")],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
@@ -221,8 +314,38 @@ let package = Package(
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
+      name: "RobinDataTests",
+      dependencies: ["RobinData", "RobinPostgres"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinCacheTests",
+      dependencies: ["RobinCache"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinJobsTests",
+      dependencies: ["RobinCore", "RobinData", "RobinJobs"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinStorageTests",
+      dependencies: ["RobinCore", "RobinStorage"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinEmailTests",
+      dependencies: [
+        "RobinEmail",
+        .product(name: "NIOCore", package: "swift-nio"),
+        .product(name: "NIOPosix", package: "swift-nio"),
+      ],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
       name: "RobinServerTests",
       dependencies: [
+        "RobinCache",
         "RobinCore",
         "RobinHTML",
         "RobinRouting",
@@ -236,17 +359,38 @@ let package = Package(
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
+      name: "RobinAuthTests",
+      dependencies: [
+        "RobinAuth", "RobinBuild", "RobinCore", "RobinData", "RobinEmail", "RobinHTML",
+        "RobinServer",
+        .product(name: "HTTPTypes", package: "swift-http-types"),
+        .product(name: "WebAuthn", package: "swift-webauthn"),
+      ],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
       name: "RobinBuildTests",
       dependencies: [
-        "RobinBuild", "RobinCore", "RobinHTML", "RobinStyle",
+        "RobinAuth", "RobinBuild", "RobinCore", "RobinHTML", "RobinStyle",
         .product(name: "Crypto", package: "swift-crypto"),
       ],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
       name: "RobinToolingTests",
-      dependencies: ["RobinCore", "RobinTooling"],
+      dependencies: [
+        "RobinBuild", "RobinCLI", "RobinCore", "RobinTooling",
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+      ],
       resources: [.copy("Fixtures")],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinTestingTests",
+      dependencies: [
+        "RobinBuild", "RobinCore", "RobinHTML", "RobinServer", "RobinTesting", "RobinStyle",
+        .product(name: "HTTPTypes", package: "swift-http-types"),
+      ],
       swiftSettings: upcomingFeatures
     ),
   ],

@@ -16,6 +16,10 @@ local swiftTest = new Step {
   check = new Command { argv = List("swift", "test") }
 }
 
+local swiftDocs = new Step {
+  check = new Command { argv = List("mise", "run", "docs") }
+}
+
 hooks {
   ["pre-commit"] {
     steps {
@@ -34,6 +38,7 @@ hooks {
       ["swift-format"] = swiftFormat
       ["swift-build"] = swiftBuild
       ["swift-test"] = swiftTest
+      ["swift-docs"] = swiftDocs
     }
   }
 }

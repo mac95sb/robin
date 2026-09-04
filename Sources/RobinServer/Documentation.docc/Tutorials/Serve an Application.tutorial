@@ -1,0 +1,28 @@
+@Tutorial(time: 5) {
+  @Intro(title: "Serve an Application") {
+    Run pages and controllers through one transport-neutral responder.
+  }
+
+  @Section(title: "Handle requests") {
+    @Steps {
+      @Step {
+        Group related ``Endpoint`` values in one ``Controller``.
+
+        @Code(name: "ServeApplication.swift", file: "ServeApplication.swift")
+      }
+
+      @Step {
+        Register the controller in the application's route builder.
+
+        @Code(name: "ServeApplication.swift", file: "ServeApplication.swift")
+      }
+
+      @Step {
+        Start ``ServerRuntime`` or exercise the same behavior directly through
+        ``ApplicationResponder`` in tests.
+
+        @Code(name: "ServeApplication.swift", file: "ServeApplication.swift")
+      }
+    }
+  }
+}

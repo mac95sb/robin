@@ -81,6 +81,8 @@ public struct RenderElement: Equatable, Sendable {
     case summary
     /// Strongly emphasized inline text.
     case strong
+    /// Superscript phrasing content.
+    case sup
     /// A table.
     case table
     /// A table data cell.

@@ -1,11 +1,11 @@
 import RobinCore
 import ServiceContextModule
 
-private enum RequestIDContextKey: ServiceContextKey { typealias Value = String }
-private enum TenantContextKey: ServiceContextKey { typealias Value = TenantContext<String> }
-private enum SessionIDContextKey: ServiceContextKey { typealias Value = String }
-private enum PrincipalContextKey: ServiceContextKey { typealias Value = RequestContext.Principal }
-private enum JobContextKey: ServiceContextKey { typealias Value = RequestContext.Job }
+private struct RequestIDContextKey: ServiceContextKey { typealias Value = String }
+private struct TenantContextKey: ServiceContextKey { typealias Value = TenantContext<String> }
+private struct SessionIDContextKey: ServiceContextKey { typealias Value = String }
+private struct PrincipalContextKey: ServiceContextKey { typealias Value = RequestContext.Principal }
+private struct JobContextKey: ServiceContextKey { typealias Value = RequestContext.Job }
 
 /// Read-only values scoped to one request.
 public struct RequestContext: Sendable {

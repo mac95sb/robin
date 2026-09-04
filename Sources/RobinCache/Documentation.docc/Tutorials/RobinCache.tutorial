@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinCache") {
+  @Intro(title: "Cache tenant-safe values") {
+    Cache typed values and HTTP responses without crossing representation boundaries.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "A bounded cache with tenant-safe keys")
+
+    @TutorialReference(tutorial: "doc:Cache-a-Response")
+  }
+}

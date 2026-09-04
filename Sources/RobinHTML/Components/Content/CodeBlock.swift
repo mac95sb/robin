@@ -27,6 +27,35 @@ public struct CodeBlock: Component {
     self.content = content()
   }
 
+  /// Creates a code block highlighted by Robin's shared native highlighter.
+  public init(
+    _ source: String,
+    id: String? = nil,
+    language: String? = nil,
+    theme: SyntaxHighlightTheme? = nil
+  ) {
+    self.init(
+      SyntaxHighlighter.highlight(source, language: language), id: id, language: language,
+      theme: theme)
+  }
+
+  /// Creates a code block from semantic runs produced earlier in a render pipeline.
+  public init(
+    _ highlights: [SyntaxHighlighter.Run],
+    id: String? = nil,
+    language: String? = nil,
+    theme: SyntaxHighlightTheme? = nil
+  ) {
+    self.identifier = id
+    self.language = language
+    self.theme = theme
+    self.content = .init(
+      nodes: highlights.flatMap { run in
+        if let kind = run.kind { return CaseHighlight(kind) { run.text }.body.nodes }
+        return [.text(run.text)]
+      })
+  }
+
   /// The resolved code block wrapping its content in a nested code element.
   public var body: ComponentContent {
     .node(

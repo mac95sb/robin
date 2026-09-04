@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinStorage") {
+  @Intro(title: "Store validated objects") {
+    Stream uploads through tenant-scoped local or S3-compatible storage.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Tenant-scoped objects in storage")
+
+    @TutorialReference(tutorial: "doc:Store-an-Object")
+  }
+}

@@ -1,0 +1,17 @@
+@Tutorial(time: 5) {
+  @Intro(title: "Style a Component") {
+    Apply typed design tokens and compile only the CSS each page reaches.
+  }
+
+  @Section(title: "Use typed styles") {
+    @Steps {
+      @Step {
+        Select values from ``Theme`` and apply grouped component modifiers.
+      }
+
+      @Step {
+        Use ``Condition`` for responsive and stateful CSS without adding client state.
+      }
+    }
+  }
+}

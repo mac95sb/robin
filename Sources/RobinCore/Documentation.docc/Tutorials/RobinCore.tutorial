@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinCore") {
+  @Intro(title: "Configure Robin applications") {
+    Define application metadata and environment-backed configuration.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Configure a Robin application")
+
+    @TutorialReference(tutorial: "doc:Configure-an-Application")
+  }
+}

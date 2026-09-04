@@ -1,64 +1,6 @@
 @_spi(Rendering) import RobinCore
 import RobinHTML
 
-/// The main-axis direction of a flex container.
-public enum FlexDirection: String, Sendable {
-  /// Places items horizontally in source order.
-  case row
-  /// Places items horizontally in reverse source order.
-  case rowReverse = "row-reverse"
-  /// Places items vertically in source order.
-  case column
-  /// Places items vertically in reverse source order.
-  case columnReverse = "column-reverse"
-}
-/// The line-wrapping behavior of a flex container.
-public enum FlexWrap: String, Sendable {
-  /// Keeps all items on one line.
-  case noWrap = "nowrap"
-  /// Wraps items onto additional lines.
-  case wrap
-  /// Wraps items with the cross-axis order reversed.
-  case reverse = "wrap-reverse"
-}
-/// Distribution of flex items along the main axis.
-public enum Justification: String, Sendable {
-  /// Packs items at the start.
-  case start = "flex-start"
-  /// Centers items.
-  case center
-  /// Packs items at the end.
-  case end = "flex-end"
-  /// Distributes equal space between items.
-  case spaceBetween = "space-between"
-  /// Distributes equal space around items.
-  case spaceAround = "space-around"
-  /// Distributes equal space between items and container edges.
-  case spaceEvenly = "space-evenly"
-}
-/// Alignment of flex items along the cross axis.
-public enum Alignment: String, Sendable {
-  /// Stretches items across the available cross axis.
-  case stretch
-  /// Aligns items at the start.
-  case start = "flex-start"
-  /// Centers items.
-  case center
-  /// Aligns items at the end.
-  case end = "flex-end"
-  /// Aligns item text baselines.
-  case baseline
-}
-/// The automatic placement direction of a grid container.
-public enum GridFlow: String, Sendable {
-  /// Places items by row.
-  case row
-  /// Places items by column.
-  case column
-  /// Fills earlier gaps while placing items by row.
-  case dense = "row dense"
-}
-
 extension Component {
   /// Lays out child content with CSS flexbox.
   ///

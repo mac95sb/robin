@@ -86,7 +86,7 @@ enum StyleValue: Equatable {
         self = .fontSize(name)
       case .fontWeight:
         self = .fontWeightToken(name)
-      case .gap, .padding:
+      case .gap, .margin, .padding:
         self = .spacing(name)
       default:
         preconditionFailure("Unsupported token-backed style property: \(property.rawValue)")

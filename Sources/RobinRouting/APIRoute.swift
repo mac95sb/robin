@@ -11,19 +11,14 @@ public protocol Route: ApplicationRoute {
 extension Route {
   /// The operation identifier or structural path used for application registration.
   public var applicationRouteIdentifier: String {
-    metadata.operationID ?? pattern.openAPIPath
+    metadata.operationID ?? pattern.pathTemplate
   }
 }
 
 /// A JSON controller route that reuses ordinary matching and reverse-routing machinery.
 public protocol APIRoute: Route {
-  /// The decoded request-body contract.
-  associatedtype Request: Decodable & Sendable
-  /// The encoded response-body contract.
-  associatedtype Response: Encodable & Sendable
-
   /// The HTTP method accepted by this route.
-  var method: OpenAPIDocument.Method { get }
+  var method: HTTPMethod { get }
   /// The optional external API version.
   var version: Version? { get }
 }
@@ -34,7 +29,7 @@ where Value: Sendable, Request: Decodable & Sendable, Response: Encodable & Send
   /// The typed path definition.
   public let route: RouteDefinition<Value>
   /// The HTTP method accepted by the endpoint.
-  public let method: OpenAPIDocument.Method
+  public let method: HTTPMethod
   /// The optional external API version.
   public let version: Version?
 
@@ -46,8 +41,8 @@ where Value: Sendable, Request: Decodable & Sendable, Response: Encodable & Send
   ///   - version: An optional external API version.
   public init(
     _ route: RouteDefinition<Value>,
-    method: OpenAPIDocument.Method,
-    version: Version? = nil
+    method: HTTPMethod,
+    version: Version? = .default
   ) {
     self.route = route
     self.method = method

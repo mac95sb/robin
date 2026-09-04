@@ -1,0 +1,27 @@
+@Tutorial(time: 10) {
+  @Intro(title: "Store an Object") {
+    Validate, stream, and retrieve a tenant-owned object.
+  }
+
+  @Section(title: "Store safely") {
+    @Steps {
+      @Step {
+        Normalize an ``ObjectKey`` and combine it with an explicit tenant using ``ScopedObjectKey``.
+
+        @Code(name: "ObjectUpload.swift", file: "StoreAnObject-01.swift")
+      }
+
+      @Step {
+        Provide a repeatable ``StorageBody`` and validation limits in ``StorageWrite``.
+
+        @Code(name: "ObjectUpload.swift", file: "StoreAnObject-02.swift")
+      }
+
+      @Step {
+        Use ``LocalStorage`` in development or ``S3CompatibleStorage`` in production.
+
+        @Code(name: "ObjectUpload.swift", file: "StoreAnObject-03.swift")
+      }
+    }
+  }
+}

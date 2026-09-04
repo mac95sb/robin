@@ -1,0 +1,22 @@
+@Tutorial(time: 5) {
+  @Intro(title: "Define a Typed Route") {
+    Use one route definition for request matching and reverse URL generation.
+  }
+
+  @Section(title: "Describe the path") {
+    @Steps {
+      @Step {
+        Create a ``RouteDefinition`` from literal segments and any typed ``PathParameter`` values.
+        Swift infers the route value type from the parameter.
+
+        @Code(name: "TypedRoute.swift", file: "TypedRoute.swift")
+      }
+
+      @Step {
+        Register the route so ``RouteRegistry`` can scope it and detect conflicts.
+
+        @Code(name: "TypedRoute.swift", file: "TypedRoute.swift")
+      }
+    }
+  }
+}

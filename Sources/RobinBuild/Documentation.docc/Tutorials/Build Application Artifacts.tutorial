@@ -1,0 +1,18 @@
+@Tutorial(time: 5) {
+  @Intro(title: "Build Application Artifacts") {
+    Produce deterministic output beneath the project's `.robin` directory.
+  }
+
+  @Section(title: "Run the pipeline") {
+    @Steps {
+      @Step {
+        Create an `OutputLayout` rooted at the project directory.
+      }
+
+      @Step {
+        Pass the application and layout to ``BuildPipeline``. Robin infers the application mode from
+        its pages and controller routes.
+      }
+    }
+  }
+}
