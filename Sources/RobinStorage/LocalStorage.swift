@@ -23,7 +23,7 @@ public actor LocalStorage: Storage {
     try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: false)
     do {
       let bodyURL = staging.appendingPathComponent("body")
-      FileManager.default.createFile(atPath: bodyURL.path, contents: nil)
+      _ = FileManager.default.createFile(atPath: bodyURL.path, contents: nil)
       let handle = try FileHandle(forWritingTo: bodyURL)
       var hasher = SHA256()
       var size: Int64 = 0
