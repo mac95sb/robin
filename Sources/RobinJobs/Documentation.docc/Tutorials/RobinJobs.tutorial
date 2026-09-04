@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinJobs") {
+  @Intro(title: "Run durable jobs") {
+    Enqueue typed work and process it with retry-safe handlers.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "Durable jobs moving through a worker")
+
+    @TutorialReference(tutorial: "doc:Run-a-Durable-Job")
+  }
+}

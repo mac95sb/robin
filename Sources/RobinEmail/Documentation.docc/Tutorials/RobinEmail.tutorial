@@ -1,0 +1,11 @@
+@Tutorials(name: "RobinEmail") {
+  @Intro(title: "Send transactional email") {
+    Render safe alternatives and deliver them through local or production transports.
+  }
+
+  @Chapter(name: "Essentials") {
+    @Image(source: "tutorial.svg", alt: "A transactional email ready for delivery")
+
+    @TutorialReference(tutorial: "doc:Send-a-Magic-Link")
+  }
+}

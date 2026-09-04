@@ -26,6 +26,10 @@ let package = Package(
     .library(name: "RobinRouting", targets: ["RobinRouting"]),
     .library(name: "RobinRuntime", targets: ["RobinRuntime"]),
     .library(name: "RobinData", targets: ["RobinData"]),
+    .library(name: "RobinCache", targets: ["RobinCache"]),
+    .library(name: "RobinJobs", targets: ["RobinJobs"]),
+    .library(name: "RobinStorage", targets: ["RobinStorage"]),
+    .library(name: "RobinEmail", targets: ["RobinEmail"]),
     .library(name: "RobinServer", targets: ["RobinServer"]),
     .library(name: "RobinBuild", targets: ["RobinBuild"]),
     .library(name: "RobinTesting", targets: ["RobinTesting"]),
@@ -137,9 +141,45 @@ let package = Package(
       swiftSettings: lowLevelFeatures
     ),
     .target(
+      name: "RobinCache",
+      dependencies: [
+        "RobinCore",
+        .product(name: "Crypto", package: "swift-crypto"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinJobs",
+      dependencies: [
+        "RobinCore",
+        "RobinData",
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinStorage",
+      dependencies: [
+        "RobinCore",
+        .product(name: "Crypto", package: "swift-crypto"),
+        .product(name: "NIOCore", package: "swift-nio"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinEmail",
+      dependencies: [
+        .product(name: "Logging", package: "swift-log"),
+        .product(name: "NIOCore", package: "swift-nio"),
+        .product(name: "NIOPosix", package: "swift-nio"),
+        .product(name: "NIOSSL", package: "swift-nio-ssl"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
       name: "RobinServer",
       dependencies: [
         "RobinBuild",
+        "RobinCache",
         "RobinCore",
         "RobinHTML",
         "RobinRouting",
@@ -275,8 +315,33 @@ let package = Package(
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
+      name: "RobinCacheTests",
+      dependencies: ["RobinCache"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinJobsTests",
+      dependencies: ["RobinCore", "RobinData", "RobinJobs"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinStorageTests",
+      dependencies: ["RobinCore", "RobinStorage"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinEmailTests",
+      dependencies: [
+        "RobinEmail",
+        .product(name: "NIOCore", package: "swift-nio"),
+        .product(name: "NIOPosix", package: "swift-nio"),
+      ],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
       name: "RobinServerTests",
       dependencies: [
+        "RobinCache",
         "RobinCore",
         "RobinHTML",
         "RobinRouting",

@@ -1,0 +1,21 @@
+@Tutorial(time: 5) {
+  @Intro(title: "Cache a Response") {
+    Define every value that changes a response before storing it.
+  }
+
+  @Section(title: "Build a safe cache key") {
+    @Steps {
+      @Step {
+        Create a ``CacheContext`` containing route parameters, selected query values, locale, visibility, and tenant.
+      }
+
+      @Step {
+        Create a typed ``CacheKey`` and store the value with a ``CachePolicy``.
+      }
+
+      @Step {
+        Invalidate related entries with tenant-scoped ``CacheTag`` values.
+      }
+    }
+  }
+}
