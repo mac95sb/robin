@@ -30,6 +30,7 @@ let package = Package(
     .library(name: "RobinJobs", targets: ["RobinJobs"]),
     .library(name: "RobinStorage", targets: ["RobinStorage"]),
     .library(name: "RobinEmail", targets: ["RobinEmail"]),
+    .library(name: "RobinAuth", targets: ["RobinAuth"]),
     .library(name: "RobinServer", targets: ["RobinServer"]),
     .library(name: "RobinBuild", targets: ["RobinBuild"]),
     .library(name: "RobinTesting", targets: ["RobinTesting"]),
@@ -208,6 +209,20 @@ let package = Package(
       swiftSettings: lowLevelFeatures
     ),
     .target(
+      name: "RobinAuth",
+      dependencies: [
+        "RobinBuild",
+        "RobinCore",
+        "RobinData",
+        "RobinEmail",
+        "RobinServer",
+        .product(name: "Crypto", package: "swift-crypto"),
+        .product(name: "HTTPTypes", package: "swift-http-types"),
+        .product(name: "WebAuthn", package: "swift-webauthn"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
       name: "RobinBuild",
       dependencies: [
         "RobinContent",
@@ -356,9 +371,19 @@ let package = Package(
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
+      name: "RobinAuthTests",
+      dependencies: [
+        "RobinAuth", "RobinBuild", "RobinCore", "RobinData", "RobinEmail", "RobinHTML",
+        "RobinServer",
+        .product(name: "HTTPTypes", package: "swift-http-types"),
+        .product(name: "WebAuthn", package: "swift-webauthn"),
+      ],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
       name: "RobinBuildTests",
       dependencies: [
-        "RobinBuild", "RobinCore", "RobinHTML", "RobinStyle",
+        "RobinAuth", "RobinBuild", "RobinCore", "RobinHTML", "RobinStyle",
         .product(name: "Crypto", package: "swift-crypto"),
       ],
       swiftSettings: upcomingFeatures
