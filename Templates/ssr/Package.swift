@@ -13,17 +13,20 @@ let package = Package(
   name: "__PROJECT__",
   platforms: [.macOS(.v14)],
   dependencies: [
-    .package(url: "https://github.com/mac95sb/robin.git", branch: "main")
+    .package(path: "../..")
   ],
   targets: [
     .executableTarget(
       name: "__PROJECT__",
       dependencies: [
+        .product(name: "RobinContent", package: "robin"),
         .product(name: "RobinCore", package: "robin"),
         .product(name: "RobinHTML", package: "robin"),
         .product(name: "RobinRouting", package: "robin"),
         .product(name: "RobinServer", package: "robin"),
+        .product(name: "RobinStyle", package: "robin"),
       ],
+      resources: [.process("Resources")],
       swiftSettings: swiftSettings
     ),
     .testTarget(

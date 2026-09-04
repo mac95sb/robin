@@ -23,6 +23,13 @@ struct ProjectScaffolderTests {
       contentsOf: destination.appendingPathComponent("Package.swift"), encoding: .utf8)
     #expect(package.contains("name: \"Example\""))
     #expect(!package.contains("__PROJECT__"))
+    #expect(package.contains("https://github.com/mac95sb/robin.git"))
+    #expect(!package.contains(#".package(path: "../..")"#))
+    #expect(
+      !FileManager.default.fileExists(atPath: destination.appendingPathComponent(".build").path))
+    #expect(
+      !FileManager.default.fileExists(
+        atPath: destination.appendingPathComponent("Package.resolved").path))
     let app = try String(
       contentsOf: destination.appendingPathComponent("Sources/Example/App.swift"), encoding: .utf8)
     #expect(!app.contains("applicationMode"))
@@ -33,16 +40,47 @@ struct ProjectScaffolderTests {
       !FileManager.default.fileExists(
         atPath: destination.appendingPathComponent("Sources/Example/RobinMain.swift").path
       ))
-    if template == .api { #expect(!app.contains("metadata")) }
-    if template != .api { #expect(app.contains("PageGroup(")) }
-    if template != .static {
+    if template == .api {
+      #expect(!app.contains("metadata"))
+      let controller = try String(
+        contentsOf: destination.appendingPathComponent(
+          "Sources/Example/Controllers/ProjectController.swift"), encoding: .utf8)
+      #expect(controller.contains("RouteDefinition.path"))
+      #expect(!controller.contains("RouteDefinition<Int>"))
+      #expect(controller.contains("struct ProjectController: Controller"))
+      #expect(controller.contains("let route = \"projects\""))
+      #expect(!controller.contains("RouteDefinition<Void>"))
+    } else {
+      #expect(app.contains("LocalizedPages("))
+      #expect(app.contains("bundle: .module"))
+      #expect(app.contains("separator: \" — \""))
+      #expect(!app.contains("openGraph:"))
+      #expect(app.contains("structuredData"))
+      let localization = try String(
+        contentsOf: destination.appendingPathComponent(
+          "Sources/Example/Resources/Localizable.xcstrings"),
+        encoding: .utf8)
+      #expect(localization.contains("\"sourceLanguage\" : \"en\""))
+      #expect(
+        !FileManager.default.fileExists(
+          atPath: destination.appendingPathComponent(
+            "Sources/Example/SiteLocalization.swift"
+          ).path))
+    }
+    if template == .api {
       #expect(app.contains("RouteGroup("))
       let controller = try String(
         contentsOf: destination.appendingPathComponent(
           "Sources/Example/Controllers/HealthController.swift"), encoding: .utf8)
       #expect(controller.contains("let route = \"health\""))
       #expect(!controller.contains("typealias"))
-      #expect(!controller.contains("OpenAPI"))
+    } else if template == .ssr {
+      #expect(app.contains("AppController(notes: notes)"))
+      let controller = try String(
+        contentsOf: destination.appendingPathComponent(
+          "Sources/Example/Controllers/AppController.swift"), encoding: .utf8)
+      #expect(controller.contains("struct AppController: Controller"))
+      #expect(controller.contains("RouteDefinition.path(\"system\", \"health\")"))
     }
   }
 

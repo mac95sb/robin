@@ -34,6 +34,9 @@ RobinContent parses supported Markdown structures, returns typed nodes in source
 
 ### Localization
 
+- ``LocalizedPages``
+- ``t(_:)``
+- ``localizedPath(_:)``
 - ``LocalizedStringKey``
 - ``LocalizedMessage``
 - ``LocalizationCatalog``

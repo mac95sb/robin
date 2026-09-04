@@ -4,6 +4,11 @@ import Testing
 
 @Suite("Metadata merging")
 struct MetadataTests {
+  @Test func robotsCanOverrideOrOmitTheDefault() {
+    #expect(Metadata.Robots(follow: false).content == "index,nofollow")
+    #expect(Metadata.Robots.omitted.content == nil)
+  }
+
   @Test func pageValuesOverlayApplicationDefaultsFieldByField() {
     let application = Metadata(
       title: "Robin",

@@ -1,5 +1,8 @@
 /// A positive externally visible API version.
 public struct Version: Equatable, Sendable {
+  /// The default first public API version.
+  public static let `default` = try! Version(1)
+
   /// The lifecycle state advertised for an API version.
   public enum Status: Equatable, Sendable {
     /// The version is current and supported.

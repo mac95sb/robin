@@ -4,5 +4,5 @@ import Testing
 @testable import __PROJECT__
 
 @Test func homePageHasNoStructuralAccessibilityFindings() {
-  #expect(AccessibilityAudit.audit(ContentView()).isEmpty)
+  #expect(AccessibilityAudit.audit(HomePage()).isEmpty)
 }

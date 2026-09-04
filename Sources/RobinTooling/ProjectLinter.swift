@@ -90,10 +90,10 @@ package struct ProjectLinter {
             remediation: "Use a semantic component, grouped style modifier, or typed capability."
           ))
       }
-      let manualModeTokens = [
-        "application" + "Mode", "mode: ." + "static", "mode: ." + "api", "mode: ." + "ssr",
-      ]
-      if manualModeTokens.contains(where: contents.contains) {
+      let declaresApplicationMode =
+        contents.range(of: #"\bapplicationMode\b"#, options: .regularExpression) != nil
+      let manualModeTokens = ["mode: ." + "static", "mode: ." + "api", "mode: ." + "ssr"]
+      if declaresApplicationMode || manualModeTokens.contains(where: contents.contains) {
         diagnostics.append(
           .init(
             code: "manual-application-mode",

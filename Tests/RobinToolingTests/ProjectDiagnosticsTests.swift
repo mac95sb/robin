@@ -27,6 +27,16 @@ struct ProjectDiagnosticsTests {
     #expect(try JSONEncoder().encode(findings).isEmpty == false)
   }
 
+  @Test func applicationModelIsNotMistakenForAnApplicationModeSetting() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(
+      at: root.appendingPathComponent("Sources/App"), withIntermediateDirectories: true)
+    try Data("let applicationModel = \"shared\"".utf8).write(
+      to: root.appendingPathComponent("Sources/App/App.swift"))
+
+    #expect(!ProjectLinter.lint(at: root).contains { $0.code == "manual-application-mode" })
+  }
+
   @Test func exportCopiesOnlyRobinBuildOutput() throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     let layout = OutputLayout(projectRoot: root)

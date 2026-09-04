@@ -20,6 +20,7 @@ RobinServer provides typed controllers, middleware, security policies, response 
 - ``RequestContext``
 - ``ApplicationResponder``
 - ``Controller``
+- ``Endpoint``
 
 ### Middleware and security
 

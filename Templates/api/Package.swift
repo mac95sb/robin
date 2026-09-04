@@ -13,7 +13,7 @@ let package = Package(
   name: "__PROJECT__",
   platforms: [.macOS(.v14)],
   dependencies: [
-    .package(url: "https://github.com/mac95sb/robin.git", branch: "main")
+    .package(path: "../..")
   ],
   targets: [
     .executableTarget(

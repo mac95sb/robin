@@ -1,4 +1,4 @@
-/// The structural path shape shared by matching, reverse routing, conflict checks, and OpenAPI.
+/// The structural path shape shared by matching, reverse routing, conflict checks, and manifests.
 public struct RoutePattern: Equatable, Sendable {
   /// A literal or typed-parameter position in a route path.
   public enum Segment: Equatable, Sendable {
@@ -15,8 +15,8 @@ public struct RoutePattern: Equatable, Sendable {
   /// - Parameter segments: The route segments in path order.
   public init(_ segments: [Segment]) { self.segments = segments }
 
-  /// The root-relative OpenAPI path template.
-  public var openAPIPath: String {
+  /// The root-relative path template.
+  public var pathTemplate: String {
     "/"
       + segments.map {
         switch $0 {

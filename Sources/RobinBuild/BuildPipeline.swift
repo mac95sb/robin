@@ -349,7 +349,7 @@ public struct BuildPipeline {
       || metadata.xCard?.description != nil || metadata.description != nil
     {
       head +=
-        "<meta name=\"twitter:card\" content=\"\((metadata.xCardType ?? (xImage == nil ? .summary : .summaryLargeImage)).rawValue)\">"
+        "<meta name=\"twitter:card\" content=\"\((metadata.xCardType ?? .summaryLargeImage).rawValue)\">"
     }
     if let title = metadata.xCard?.title ?? metadata.composedTitle {
       head += "<meta name=\"twitter:title\" content=\"\(HTMLRenderer.escape(title))\">"
@@ -361,8 +361,8 @@ public struct BuildPipeline {
       head +=
         "<meta name=\"twitter:image\" content=\"\(HTMLRenderer.escape(image.url))\"><meta name=\"twitter:image:alt\" content=\"\(HTMLRenderer.escape(image.alternativeText))\">"
     }
-    if let robots = metadata.robots {
-      head += "<meta name=\"robots\" content=\"\(robots.content)\">"
+    if let robots = (metadata.robots ?? .init()).content {
+      head += "<meta name=\"robots\" content=\"\(robots)\">"
     }
     for alternate in metadata.alternateLanguages.sorted(by: { $0.language < $1.language }) {
       head +=

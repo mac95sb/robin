@@ -31,7 +31,7 @@ package func relativePath(
   return relative.isEmpty ? "/" : String(relative)
 }
 
-extension OpenAPIDocument.Method {
+extension HTTPMethod {
   package func matches(_ method: String) -> Bool {
     rawValue.caseInsensitiveCompare(method) == .orderedSame
   }

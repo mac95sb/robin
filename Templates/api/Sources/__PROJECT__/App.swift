@@ -8,6 +8,9 @@ struct Site: App {
     RouteGroup("system") {
       HealthController()
     }
+    RouteGroup("catalog") {
+      ProjectController()
+    }
   }
 
   static func main() async throws { try await RobinApplication.run(Self()) }

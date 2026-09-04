@@ -179,7 +179,7 @@ public struct ApplicationResponder: Sendable {
 private struct GroupedServerRoute: APIRoute, ServerRoute {
   let route: any ServerRoute
   let prefixes: [String]
-  let method: OpenAPIDocument.Method
+  let method: HTTPMethod
   let version: Version?
 
   init(_ route: any ServerRoute, prefixes: [String]) throws {

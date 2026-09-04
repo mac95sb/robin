@@ -1,6 +1,6 @@
 import RobinCore
 
-/// The single resolved registry used for conflicts, API scoping, inspection, and OpenAPI output.
+/// The single resolved registry used for conflicts, API scoping, and inspection.
 public struct RouteRegistry: Sendable {
   /// Routes in application registration order after API scoping.
   public let routes: [RegisteredRoute]
@@ -62,28 +62,6 @@ public struct RouteRegistry: Sendable {
       return Self.register(route, prefixes: prefixes, api: api)
     }
     try RouteConflictDetector.validate(routes)
-  }
-
-  /// Produces the deterministic OpenAPI model directly from registered API routes.
-  ///
-  /// - Parameters:
-  ///   - title: The API title.
-  ///   - version: The application API document version.
-  /// - Returns: An OpenAPI model containing registered API operations.
-  public func openAPIDocument(title: String, version: String) -> OpenAPIDocument {
-    OpenAPIDocument(
-      title: title,
-      version: version,
-      operations: routes.compactMap { route in
-        guard let method = route.method else { return nil }
-        return .init(
-          method: method,
-          pattern: route.pattern,
-          metadata: route.metadata,
-          version: route.version
-        )
-      }
-    )
   }
 }
 

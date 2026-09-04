@@ -97,6 +97,12 @@ package struct ProjectScaffolder {
     else { throw ProjectScaffolderError.templatesUnavailable }
     for case let entry as URL in enumerator {
       let relative = entry.path.replacingOccurrences(of: source.path + "/", with: "")
+      let root = String(relative.split(separator: "/").first ?? "")
+      if root == ".build" || root == ".swiftpm" {
+        if relative == root { enumerator.skipDescendants() }
+        continue
+      }
+      if relative == "Package.resolved" { continue }
       guard !relative.hasPrefix("../"), relative != ".." else {
         throw ProjectScaffolderError.invalidTemplateEntry(relative)
       }
@@ -113,7 +119,13 @@ package struct ProjectScaffolder {
       } else if values.isRegularFile == true {
         let data = try Data(contentsOf: entry)
         if let text = String(data: data, encoding: .utf8) {
-          try Data(text.replacingOccurrences(of: placeholder, with: projectName).utf8)
+          let text =
+            text
+            .replacingOccurrences(of: placeholder, with: projectName)
+            .replacingOccurrences(
+              of: #".package(path: "../..")"#,
+              with: #".package(url: "https://github.com/mac95sb/robin.git", branch: "main")"#)
+          try Data(text.utf8)
             .write(to: output, options: .atomic)
         } else {
           try data.write(to: output, options: .atomic)

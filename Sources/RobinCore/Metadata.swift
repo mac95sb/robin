@@ -100,19 +100,30 @@ public struct Metadata: Equatable, Sendable {
 
   /// Search crawler directives.
   public struct Robots: Equatable, Sendable {
+    /// Omits the robots metadata tag.
+    public static let omitted = Self(index: false, follow: false, isOmitted: true)
+
     /// Whether crawlers may index the page.
     public let index: Bool
     /// Whether crawlers may follow links.
     public let follow: Bool
+    private let isOmitted: Bool
 
     /// Creates crawler directives.
     public init(index: Bool = true, follow: Bool = true) {
       self.index = index
       self.follow = follow
+      self.isOmitted = false
     }
 
-    package var content: String {
-      "\(index ? "index" : "noindex"),\(follow ? "follow" : "nofollow")"
+    private init(index: Bool, follow: Bool, isOmitted: Bool) {
+      self.index = index
+      self.follow = follow
+      self.isOmitted = isOmitted
+    }
+
+    package var content: String? {
+      isOmitted ? nil : "\(index ? "index" : "noindex"),\(follow ? "follow" : "nofollow")"
     }
   }
 
@@ -177,9 +188,9 @@ public struct Metadata: Equatable, Sendable {
   public var openGraphType: OpenGraphType?
   /// X card overrides; omitted fields inherit shared metadata.
   public var xCard: Social?
-  /// X card presentation; inferred from available media when omitted.
+  /// X card presentation; defaults to ``XCardType/summaryLargeImage`` when omitted.
   public var xCardType: XCardType?
-  /// Search crawler directives.
+  /// Search crawler directives; defaults to indexing and following links.
   public var robots: Robots?
   /// Localized versions of this page.
   public var alternateLanguages: [AlternateLanguage]
@@ -210,8 +221,8 @@ public struct Metadata: Equatable, Sendable {
   ///   - openGraph: Partial Open Graph field overrides.
   ///   - openGraphType: Open Graph object type; inferred when omitted.
   ///   - xCard: Partial X card field overrides.
-  ///   - xCardType: X card presentation; inferred when omitted.
-  ///   - robots: Search crawler directives.
+  ///   - xCardType: X card presentation; defaults to ``XCardType/summaryLargeImage`` when omitted.
+  ///   - robots: Search crawler directives. Omit the tag with ``Robots/omitted``.
   ///   - alternateLanguages: Locale-specific versions of the page.
   ///   - icons: Site icon links.
   ///   - manifestURL: The web application manifest URL.

@@ -1,0 +1,90 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "about" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "About" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "À propos" } }
+      }
+    },
+    "aboutBody" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "One Swift application serves accessible pages and typed JSON routes." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Une application Swift sert des pages accessibles et des routes JSON typées." } }
+      }
+    },
+    "appModel" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "One application model" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Un seul modèle d’application" } }
+      }
+    },
+    "dashboard" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Dashboard" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tableau de bord" } }
+      }
+    },
+    "addNote" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add note" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouter la note" } }
+      }
+    },
+    "deleteNote" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Supprimer" } }
+      }
+    },
+    "intro" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Pages render on the server while native clients share the same API." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Les pages sont rendues sur le serveur et les clients natifs partagent la même API." } }
+      }
+    },
+    "notePlaceholder" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Note text" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Texte de la note" } }
+      }
+    },
+    "notes" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Notes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Notes" } }
+      }
+    },
+    "saveNote" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Enregistrer" } }
+      }
+    },
+    "serverRenderedPages" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Server-rendered semantic pages" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Pages sémantiques rendues sur le serveur" } }
+      }
+    },
+    "sharedMetadata" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Shared metadata and deterministic styles" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Métadonnées partagées et styles déterministes" } }
+      }
+    },
+    "title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your Robin workspace" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Votre espace Robin" } }
+      }
+    },
+    "typedRoutes" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Versioned, typed controller routes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Routes de contrôleur typées et versionnées" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

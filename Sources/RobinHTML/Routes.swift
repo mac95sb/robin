@@ -37,6 +37,16 @@ public struct RoutesBuilder {
     RouteList(routes: [expression])
   }
 
+  /// Resolves a route collection into its registrations.
+  ///
+  /// - Parameter expression: The route collection to register.
+  /// - Returns: A registration containing the collection's routes.
+  public static func buildExpression<RouteCollection: Routes>(_ expression: RouteCollection)
+    -> RouteList
+  {
+    RouteList(routes: expression.routes)
+  }
+
   /// Combines route registrations in source order.
   ///
   /// - Parameter components: The registrations in the block.

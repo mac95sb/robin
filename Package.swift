@@ -62,8 +62,6 @@ let package = Package(
     .package(url: "https://github.com/swiftlang/swift-markdown.git", from: "0.8.0"),
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "603.0.0"),
     .package(url: "https://github.com/swiftlang/swift-docc-plugin.git", from: "1.5.0"),
-    .package(url: "https://github.com/apple/swift-openapi-generator.git", from: "1.0.0"),
-    .package(url: "https://github.com/apple/swift-openapi-runtime.git", from: "1.0.0"),
   ],
   targets: [
     .target(
@@ -100,16 +98,6 @@ let package = Package(
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
       ],
       swiftSettings: lowLevelFeatures
-    ),
-    .target(
-      name: "OpenAPIGeneratorValidation",
-      dependencies: [
-        .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")
-      ],
-      swiftSettings: upcomingFeatures,
-      plugins: [
-        .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")
-      ]
     ),
     .target(
       name: "RobinContent",
@@ -307,7 +295,7 @@ let package = Package(
     .testTarget(
       name: "RobinContentTests",
       dependencies: ["RobinContent", "RobinHTML"],
-      resources: [.copy("Fixtures")],
+      resources: [.copy("Fixtures"), .process("Resources")],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(

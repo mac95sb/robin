@@ -1,3 +1,0 @@
-import OpenAPIRuntime
-
-struct OpenAPIGeneratorValidation {}

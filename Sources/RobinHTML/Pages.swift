@@ -38,6 +38,16 @@ public struct PagesBuilder {
     PageList(pages: expression.pages)
   }
 
+  /// Resolves a page collection into its registrations.
+  ///
+  /// - Parameter expression: The page collection to register.
+  /// - Returns: A registration containing the collection's pages.
+  public static func buildExpression<PageCollection: Pages>(_ expression: PageCollection)
+    -> PageList
+  {
+    PageList(pages: expression.pages)
+  }
+
   /// Combines page registrations in source order.
   ///
   /// - Parameter components: The registrations in the block.

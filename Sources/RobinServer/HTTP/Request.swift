@@ -55,4 +55,28 @@ public struct Request: Sendable {
       .first { $0.count == 2 && $0[0].trimmingCharacters(in: .whitespaces) == name }?
       .last
   }
+
+  /// Returns the first value of a URL-encoded form field.
+  ///
+  /// - Parameter name: The submitted field name.
+  /// - Returns: The decoded value, or `nil` when the request is not a valid URL-encoded form.
+  public func formValue(named name: String) -> String? {
+    guard
+      header(.contentType)?.lowercased().contains("application/x-www-form-urlencoded") == true,
+      let body = String(bytes: body, encoding: .utf8)
+    else { return nil }
+
+    for field in body.split(separator: "&", omittingEmptySubsequences: false) {
+      let pair = field.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+      guard
+        let key = String(pair[0]).replacingOccurrences(of: "+", with: " ")
+          .removingPercentEncoding,
+        key == name
+      else { continue }
+      return (pair.count == 2 ? String(pair[1]) : "")
+        .replacingOccurrences(of: "+", with: " ")
+        .removingPercentEncoding
+    }
+    return nil
+  }
 }

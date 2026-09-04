@@ -7,10 +7,15 @@
     @Steps {
       @Step {
         Create a ``RouteDefinition`` from literal segments and any typed ``PathParameter`` values.
+        Swift infers the route value type from the parameter.
+
+        @Code(name: "TypedRoute.swift", file: "TypedRoute.swift")
       }
 
       @Step {
         Register the route so ``RouteRegistry`` can scope it and detect conflicts.
+
+        @Code(name: "TypedRoute.swift", file: "TypedRoute.swift")
       }
     }
   }

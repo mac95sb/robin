@@ -1,6 +1,7 @@
 import Foundation
 import RobinContent
 import RobinCore
+@_spi(Rendering) import RobinHTML
 import Testing
 
 @Suite("Content localization")
@@ -46,6 +47,23 @@ struct LocalizationTests {
     #expect(metadata.alternateLanguages.map(\.language) == ["en", "fr"])
   }
 
+  @Test func localizedPagesSetLocaleForCatalogsRoutesAndMetadata() throws {
+    let pages = LocalizedPages(
+      bundle: .module,
+      baseURL: URL(string: "https://example.com")!
+    ) {
+      LocalizedTestPage()
+    }.pages
+
+    #expect(pages.map(\.path) == ["/en/guide", "/fr/guide"])
+    #expect(pages[1].metadata.title == "Bonjour")
+    #expect(pages[1].metadata.language == "fr")
+    #expect(pages[1].metadata.canonicalURL == "https://example.com/fr/guide")
+    #expect(
+      try HTMLRenderer.render(.fragment(pages[1].body.nodes))
+        == "<p>Bonjour /fr/about</p>")
+  }
+
   @Test func translationProvidersCanPullAndPushCatalogs() async throws {
     let provider = TestTranslationProvider()
     let catalog = try await LocalizationCatalog.pulling(locales: ["en"], from: provider)
@@ -54,6 +72,12 @@ struct LocalizationTests {
     try await catalog.push(sourceLocale: "en", to: provider)
     #expect(await provider.pushedKeys() == ["title"])
   }
+}
+
+private struct LocalizedTestPage: Page {
+  let path = "/guide"
+  var metadata: Metadata { Metadata(title: t("greeting")) }
+  var body: ComponentContent { Text { "\(t("greeting")) \(localizedPath("/about"))" } }
 }
 
 private actor TestTranslationProvider: TranslationProvider {

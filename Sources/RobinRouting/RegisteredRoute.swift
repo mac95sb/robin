@@ -7,7 +7,7 @@ public struct RegisteredRoute: Equatable, Sendable {
   /// Descriptive route metadata.
   public let metadata: RouteMetadata
   /// The HTTP method for API routes.
-  public let method: OpenAPIDocument.Method?
+  public let method: HTTPMethod?
   /// The external version for API routes.
   public let version: Version?
 
@@ -23,7 +23,7 @@ public struct RegisteredRoute: Equatable, Sendable {
     _ identifier: String,
     pattern: RoutePattern,
     metadata: RouteMetadata = .init(),
-    method: OpenAPIDocument.Method? = nil,
+    method: HTTPMethod? = nil,
     version: Version? = nil
   ) {
     self.identifier = identifier

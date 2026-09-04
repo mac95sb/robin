@@ -1,2 +1,4 @@
-/// Robin's shared application build and launch entry point.
-public struct RobinApplication {}
+/// A namespace for Robin's application build and launch entry points.
+public struct RobinApplication {
+  private init() {}
+}

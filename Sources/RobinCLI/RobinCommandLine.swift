@@ -21,7 +21,7 @@ struct RobinCommandLine: ParsableCommand {
     ]
   )
 
-  static func execute(_ command: RobinCommand) throws {
+  static func run(_ command: RobinCommand) throws {
     let noora = Noora()
     let diagnostics = try RobinCommandRunner.run(command)
     if emitsJSON(command) {
@@ -71,7 +71,7 @@ struct InitCommand: ParsableCommand {
   var templatesDirectory: String?
 
   mutating func run() throws {
-    try RobinCommandLine.execute(
+    try RobinCommandLine.run(
       .initialize(
         name: projectName,
         template: template,
@@ -82,42 +82,42 @@ struct InitCommand: ParsableCommand {
 
 struct DevCommand: ParsableCommand {
   static let configuration = CommandConfiguration(commandName: "dev")
-  mutating func run() throws { try RobinCommandLine.execute(.dev) }
+  mutating func run() throws { try RobinCommandLine.run(.dev) }
 }
 
 struct BuildCommand: ParsableCommand {
   static let configuration = CommandConfiguration(commandName: "build")
-  mutating func run() throws { try RobinCommandLine.execute(.build) }
+  mutating func run() throws { try RobinCommandLine.run(.build) }
 }
 
 struct ExportCommand: ParsableCommand {
   static let configuration = CommandConfiguration(commandName: "export")
-  mutating func run() throws { try RobinCommandLine.execute(.export) }
+  mutating func run() throws { try RobinCommandLine.run(.export) }
 }
 
 struct ServeCommand: ParsableCommand {
   static let configuration = CommandConfiguration(commandName: "serve")
-  mutating func run() throws { try RobinCommandLine.execute(.serve) }
+  mutating func run() throws { try RobinCommandLine.run(.serve) }
 }
 
 struct WorkerCommand: ParsableCommand {
   static let configuration = CommandConfiguration(commandName: "worker")
-  mutating func run() throws { try RobinCommandLine.execute(.worker) }
+  mutating func run() throws { try RobinCommandLine.run(.worker) }
 }
 
 struct TestCommand: ParsableCommand {
   static let configuration = CommandConfiguration(commandName: "test")
-  mutating func run() throws { try RobinCommandLine.execute(.test) }
+  mutating func run() throws { try RobinCommandLine.run(.test) }
 }
 
 struct LintCommand: ParsableCommand {
   static let configuration = CommandConfiguration(commandName: "lint")
   @Flag(help: "Emit JSON diagnostics.") var json = false
-  mutating func run() throws { try RobinCommandLine.execute(.lint(json: json)) }
+  mutating func run() throws { try RobinCommandLine.run(.lint(json: json)) }
 }
 
 struct DoctorCommand: ParsableCommand {
   static let configuration = CommandConfiguration(commandName: "doctor")
   @Flag(help: "Emit JSON diagnostics.") var json = false
-  mutating func run() throws { try RobinCommandLine.execute(.doctor(json: json)) }
+  mutating func run() throws { try RobinCommandLine.run(.doctor(json: json)) }
 }

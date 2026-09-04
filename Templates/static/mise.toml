@@ -6,13 +6,13 @@ pkl = "0.32.1"
 hk = "1.54.1"
 
 [tasks.dev]
-run = "swift run"
+run = "swift run --scratch-path .build/mise"
 
 [tasks.build]
-run = "swift run -c release"
+run = "swift run --scratch-path .build/mise -c release"
 
 [tasks.test]
-run = "swift test"
+run = "swift test --scratch-path .build/mise"
 
 [tasks.format]
 run = "swift format format --in-place --recursive Sources Tests Package.swift"
@@ -21,10 +21,10 @@ run = "swift format format --in-place --recursive Sources Tests Package.swift"
 run = "swift format lint --strict --recursive Sources Tests Package.swift"
 
 [tasks.lint]
-run = "robin lint"
+run = "swift run --scratch-path .build/mise robin lint"
 
 [tasks.doctor]
-run = "robin doctor"
+run = "swift run --scratch-path .build/mise robin doctor"
 
 [tasks.check]
-run = "hk check --all"
+depends = ["format-check", "lint", "doctor", "test"]

@@ -11,9 +11,10 @@ import Testing
 struct InvocationRuntimeTests {
   private struct Echo: Codable, Equatable, Sendable { let value: String }
 
-  private struct EchoController: Controller {
+  private struct EchoEndpoint: Endpoint {
     let route = "echo"
-    let method: OpenAPIDocument.Method = .post
+    let method: HTTPMethod = .post
+    let version: Version? = nil
 
     func handle(_: Void, request: Echo, context _: RequestContext) -> Echo { request }
   }
@@ -21,7 +22,7 @@ struct InvocationRuntimeTests {
   private struct TestApplication: App {
     var metadata: Metadata { Metadata() }
 
-    @RoutesBuilder var routes: RouteList { EchoController() }
+    @RoutesBuilder var routes: RouteList { EchoEndpoint() }
   }
 
   @Test func lambdaAndWASIProduceEquivalentHTTPResponses() async throws {
@@ -136,11 +137,12 @@ struct InvocationRuntimeTests {
 
   private struct SlowApplication: App {
     var metadata: Metadata { Metadata() }
-    @RoutesBuilder var routes: RouteList { SlowController() }
+    @RoutesBuilder var routes: RouteList { SlowEndpoint() }
   }
 
-  private struct SlowController: Controller {
+  private struct SlowEndpoint: Endpoint {
     let route = "slow"
+    let version: Version? = nil
 
     func handle(
       _: Void,

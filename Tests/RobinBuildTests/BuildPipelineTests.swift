@@ -53,8 +53,9 @@ struct BuildPipelineTests {
     #expect(html.contains("property=\"og:type\" content=\"website\""))
     #expect(html.contains("property=\"og:site_name\" content=\"Robin\""))
     #expect(html.contains("property=\"og:locale:alternate\" content=\"fr\""))
+    #expect(html.contains("name=\"twitter:card\" content=\"summary_large_image\""))
     #expect(html.contains("name=\"twitter:description\" content=\"Robin on X\""))
-    #expect(html.contains("name=\"robots\" content=\"index,nofollow\""))
+    #expect(html.contains("name=\"robots\" content=\"index,follow\""))
     #expect(html.contains("rel=\"alternate\" hreflang=\"fr\""))
     #expect(html.contains("rel=\"icon\" href=\"https://example.com/icon.svg\" sizes=\"any\""))
     #expect(html.contains("rel=\"manifest\" href=\"https://example.com/site.webmanifest\""))
@@ -651,7 +652,6 @@ private struct StaticApplication: App {
       author: .init("Robin Author", url: "https://example.com/author"),
       openGraph: .init(title: "Robin on Open Graph"),
       xCard: .init(description: "Robin on X"),
-      robots: .init(follow: false),
       alternateLanguages: [.init("fr", url: "https://example.com/fr")],
       icons: [
         .init(url: "https://example.com/icon.svg", sizes: "any", mediaType: "image/svg+xml")

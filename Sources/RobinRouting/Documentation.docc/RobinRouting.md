@@ -1,10 +1,10 @@
 # ``RobinRouting``
 
-Match typed routes, generate URLs, detect conflicts, and derive deterministic OpenAPI descriptions.
+Match typed routes, generate URLs, and detect conflicts.
 
 ## Overview
 
-RobinRouting uses the same route definitions for matching, reverse routing, application registration, conflict validation, and API documentation.
+RobinRouting uses the same route definitions for matching, reverse routing, application registration, and conflict validation.
 
 ## Topics
 
@@ -29,5 +29,5 @@ RobinRouting uses the same route definitions for matching, reverse routing, appl
 ### APIs
 
 - ``APIConfiguration``
+- ``HTTPMethod``
 - ``Version``
-- ``OpenAPIDocument``
