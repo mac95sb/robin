@@ -26,15 +26,19 @@ extension Response {
   ) {
     precondition(maximumAge >= 0)
     precondition(Self.isSafeCookieComponent(name) && Self.isSafeCookieComponent(token))
-    head.headerFields[.setCookie] =
-      "\(name)=\(token); Path=/; Max-Age=\(maximumAge); Secure; HttpOnly; SameSite=Lax"
+    head.headerFields.append(
+      HTTPField(
+        name: .setCookie,
+        value: "\(name)=\(token); Path=/; Max-Age=\(maximumAge); Secure; HttpOnly; SameSite=Lax"))
   }
 
   /// Expires the named session cookie immediately.
   public mutating func clearSessionCookie(name: String = "robin-session") {
     precondition(Self.isSafeCookieComponent(name))
-    head.headerFields[.setCookie] =
-      "\(name)=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+    head.headerFields.append(
+      HTTPField(
+        name: .setCookie,
+        value: "\(name)=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"))
   }
 
   private static func isSafeCookieComponent(_ value: String) -> Bool {

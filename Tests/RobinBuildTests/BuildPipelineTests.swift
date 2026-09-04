@@ -1,5 +1,6 @@
 import Crypto
 import Foundation
+import RobinAuth
 import RobinBuild
 import RobinCore
 import RobinHTML
@@ -8,6 +9,32 @@ import Testing
 
 @Suite("Application build pipeline")
 struct BuildPipelineTests {
+  @Test func injectsOnlyTheSelectedPasskeyCapabilityModule() throws {
+    let root = temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let module = try PasskeyClientModule(
+      authentication: .init(
+        buttonID: "passkey",
+        beginURL: "/auth/passkeys/begin",
+        finishURL: "/auth/passkeys/finish"))
+
+    let result = try BuildPipeline.build(
+      StaticApplication(),
+      configuration: .init(assets: [try module.asset()]),
+      in: OutputLayout(projectRoot: root))
+    let script = try #require(
+      result.manifest.artifacts.first {
+        $0.scriptOrigin == .robinDirectCapability(.webAuthn, selectedBy: "PasskeyClientModule")
+      })
+    let html = try String(
+      contentsOf: root.appendingPathComponent(".robin/build/index.html"), encoding: .utf8)
+    let source = try String(
+      contentsOf: root.appendingPathComponent(".robin/build/\(script.path)"), encoding: .utf8)
+
+    #expect(html.contains("<script type=\"module\" src=\"/\(script.path)\""))
+    #expect(source.contains("navigator.credentials.get"))
+  }
+
   @Test func buildsStaticPagesWithFingerprintingAndNoDefaultJavaScript() throws {
     let root = temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: root) }
