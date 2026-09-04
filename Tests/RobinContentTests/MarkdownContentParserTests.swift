@@ -1,10 +1,40 @@
 import Foundation
+import RobinHTML
 import Testing
 
 @testable import RobinContent
 
 @Suite("Markdown content parsing and embed/host validation")
 struct MarkdownContentParserTests {
+  @Test func parsesTypedFrontMatterCollectionsAndPagination() throws {
+    let parsed = MarkdownContentParser.parse(
+      """
+      ---
+      title: First
+      date: 2026-09-04T10:00:00Z
+      locale: en-GB
+      tags: [swift, web]
+      ---
+      # Hello
+      """, allowedEmbedHosts: [])
+    let first = ContentDocument(id: "first", frontMatter: parsed.frontMatter, content: parsed)
+    let draft = ContentDocument(
+      id: "draft", frontMatter: .init(title: "Draft", draft: true),
+      content: .init(nodes: [], diagnostics: []))
+    let collection = ContentCollection([draft, first])
+
+    #expect(parsed.frontMatter.title == "First")
+    #expect(parsed.frontMatter.metadata.description == nil)
+    #expect(parsed.frontMatter.metadata.language == "en-GB")
+    #expect(parsed.frontMatter.tags == ["swift", "web"])
+    #expect(collection.documents.map(\.id) == ["first"])
+    let page = try collection.page(1, size: 1)
+    #expect(page.documents.map(\.id) == ["first"])
+    #expect(page.route(basePath: "/articles") == "/articles")
+    #expect(page.previousNumber == nil && page.nextNumber == nil)
+    #expect(throws: ContentCollectionError.invalidPage) { try collection.page(2, size: 1) }
+  }
+
   @Test func realMarkdownBecomesTypedNodesAndRejectsRawHTML() throws {
     let url = try #require(
       Bundle.module.url(forResource: "long-form", withExtension: "md", subdirectory: "Fixtures")
@@ -25,6 +55,78 @@ struct MarkdownContentParserTests {
       )
     )
     #expect(parsed.diagnostics == [.rawHTMLRejected])
+  }
+
+  @Test func fencedCodeUsesTheSharedSyntaxHighlighter() {
+    let parsed = MarkdownContentParser.parse(
+      """
+      ```swift
+      let answer = 42
+      ```
+      """, allowedEmbedHosts: [])
+
+    guard case .code(_, let source, let highlights) = parsed.nodes.first else {
+      Issue.record("Expected a code node")
+      return
+    }
+    #expect(highlights == SyntaxHighlighter.highlight(source, language: "swift"))
+  }
+
+  @Test func parsedInlineMarkupRendersAsTypedHTML() throws {
+    let parsed = MarkdownContentParser.parse(
+      "Read **Robin** at [the guide](/guide) with `Swift` and ![logo](/logo.svg).",
+      allowedEmbedHosts: [])
+
+    #expect(
+      try HTMLRenderer.render(parsed)
+        == "<p>Read <strong>Robin</strong> at <a href=\"/guide\">the guide</a> with <code>Swift</code> and <img alt=\"logo\" src=\"/logo.svg\">.</p>"
+    )
+  }
+
+  @Test func headingsProduceUniqueAnchorsAndTableOfContents() throws {
+    let parsed = MarkdownContentParser.parse(
+      "# Hello, Robin!\n\n## Hello Robin", allowedEmbedHosts: [])
+
+    #expect(parsed.tableOfContents.map(\.id) == ["hello-robin", "hello-robin-2"])
+    #expect(
+      try HTMLRenderer.render(parsed)
+        == "<h1 id=\"hello-robin\">Hello, Robin!</h1><h2 id=\"hello-robin-2\">Hello Robin</h2>")
+  }
+
+  @Test func listsAndQuotesRemainNativeWithoutJavaScript() throws {
+    let parsed = MarkdownContentParser.parse(
+      "> Quoted **text**\n\n1. First\n2. Second", allowedEmbedHosts: [])
+
+    #expect(
+      try HTMLRenderer.render(parsed)
+        == "<blockquote><p>Quoted <strong>text</strong></p></blockquote><ol><li>First</li><li>Second</li></ol>"
+    )
+  }
+
+  @Test func extractsAndValidatesLocalReferences() {
+    let parsed = MarkdownContentParser.parse(
+      "See [guide](guide) and ![logo](/images/logo.svg).", allowedEmbedHosts: [])
+    let diagnostics = ContentReferenceValidator(
+      routes: ["/docs", "/docs/guide"], assets: ["/images/logo.svg"]
+    ).validate(parsed.references, from: "/docs/")
+
+    #expect(parsed.references == [.link("guide"), .asset("/images/logo.svg")])
+    #expect(diagnostics.isEmpty)
+  }
+
+  @Test func reportsBrokenUnsafeAndMissingReferences() {
+    let parsed = MarkdownContentParser.parse(
+      "[missing](/missing) [unsafe](../secret) ![missing](/missing.png)",
+      allowedEmbedHosts: [])
+    let diagnostics = ContentReferenceValidator(routes: [], assets: []).validate(
+      parsed.references, from: "/docs/")
+
+    #expect(
+      diagnostics == [
+        .brokenLink("/missing"),
+        .invalidReference("../secret"),
+        .missingAsset("/missing.png"),
+      ])
   }
 
   @Test func embedHostMustBeExplicitlyAllowed() {
@@ -104,7 +206,22 @@ struct MarkdownContentParserTests {
       allowedEmbedHosts: []
     )
 
-    #expect(parsed.nodes == [.footnote(id: "fn1", text: "Block directives are case-sensitive.")])
+    #expect(
+      parsed.nodes == [
+        .footnote(id: "fn1", text: "Block directives are case-sensitive.", referenceCount: 0)
+      ])
     #expect(parsed.diagnostics.isEmpty)
+  }
+
+  @Test func standardFootnotesRenderForwardAndBackNavigationWithoutJavaScript() throws {
+    let parsed = MarkdownContentParser.parse(
+      "A native footnote[^one] and another reference[^one].\n\n[^one]: Fully typed.",
+      allowedEmbedHosts: [])
+
+    #expect(parsed.diagnostics.isEmpty)
+    #expect(
+      try HTMLRenderer.render(parsed)
+        == "<p>A native footnote<sup><a href=\"#fn-one\" id=\"fnref-one-1\">[one]</a></sup> and another reference<sup><a href=\"#fn-one\" id=\"fnref-one-2\">[one]</a></sup>.</p><aside id=\"fn-one\"><p>Fully typed.<a href=\"#fnref-one-1\">↩</a><a href=\"#fnref-one-2\">↩</a></p></aside>"
+    )
   }
 }

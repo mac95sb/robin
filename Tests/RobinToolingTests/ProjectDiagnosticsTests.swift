@@ -10,7 +10,10 @@ struct ProjectDiagnosticsTests {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     try FileManager.default.createDirectory(
       at: root.appendingPathComponent("Sources/App"), withIntermediateDirectories: true)
-    try Data("let page = RawHTML()".utf8).write(
+    try Data(
+      "let page = RawHTML()\nlet old = FeatureFlag(\"old\", default: false, removalDate: .distantPast)\nlet fixed = FeatureFlag(\"fixed\", default: true, fixedValueSince: .distantPast)"
+        .utf8
+    ).write(
       to: root.appendingPathComponent("Sources/App/App.swift"))
     try Data(".build/\n".utf8).write(to: root.appendingPathComponent(".gitignore"))
 
@@ -18,6 +21,8 @@ struct ProjectDiagnosticsTests {
 
     #expect(findings.contains { $0.code == "raw-web-escape-hatch" && $0.location != nil })
     #expect(findings.contains { $0.code == "generated-output-not-ignored" })
+    #expect(findings.contains { $0.code == "stale-feature-flag" && $0.location?.line == 2 })
+    #expect(findings.contains { $0.code == "stale-feature-flag" && $0.location?.line == 3 })
     #expect(findings.allSatisfy { $0.remediation != nil })
     #expect(try JSONEncoder().encode(findings).isEmpty == false)
   }
@@ -45,5 +50,16 @@ struct ProjectDiagnosticsTests {
       diagnostics.contains {
         $0.code == "swift-version" && $0.severity == .note && $0.message.contains("6.3.3")
       })
+  }
+
+  @Test func doctorIncludesExpiredFeatureFlagDiagnostics() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(
+      at: root.appendingPathComponent("Sources/App"), withIntermediateDirectories: true)
+    try Data(
+      "let old = FeatureFlag(\"old\", default: false, removalDate: .distantPast)".utf8
+    ).write(to: root.appendingPathComponent("Sources/App/App.swift"))
+
+    #expect(ProjectDoctor.diagnose(at: root).contains { $0.code == "stale-feature-flag" })
   }
 }

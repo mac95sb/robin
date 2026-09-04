@@ -33,6 +33,7 @@ package struct ProjectDoctor {
           remediation: "Run `swift package resolve` before deployment."
         ))
     }
+    diagnostics += ProjectLinter.featureFlagDiagnostics(at: projectRoot)
     return diagnostics
   }
 

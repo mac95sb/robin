@@ -29,6 +29,15 @@ RobinCore contains transport- and renderer-neutral values used throughout the fr
 - ``Secret``
 - ``Diagnostic``
 
+### Feature flags
+
+- ``FeatureFlag``
+- ``FeatureFlagContext``
+- ``FeatureFlagProvider``
+- ``FeatureFlags``
+- ``LocalFeatureFlagRule``
+- ``LocalFeatureFlagProvider``
+
 ### Generated output
 
 - ``OutputLayout``

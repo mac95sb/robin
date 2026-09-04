@@ -20,10 +20,17 @@ struct BuildPipelineTests {
     #expect(!result.manifest.artifacts.map(\.path).contains { $0.hasSuffix(".js") })
     let html = try String(
       contentsOf: root.appendingPathComponent(".robin/build/index.html"), encoding: .utf8)
-    #expect(html.contains("<!doctype html><html lang=\"en-GB\">"))
+    #expect(html.contains("<!doctype html><html lang=\"en-GB\" dir=\"ltr\">"))
     #expect(html.contains("<title>Home | Robin</title>"))
-    #expect(html.contains("property=\"og:title\" content=\"Home | Robin\""))
-    #expect(html.contains("name=\"twitter:description\" content=\"Swift-native web apps.\""))
+    #expect(html.contains("property=\"og:title\" content=\"Robin on Open Graph\""))
+    #expect(html.contains("property=\"og:type\" content=\"website\""))
+    #expect(html.contains("property=\"og:site_name\" content=\"Robin\""))
+    #expect(html.contains("property=\"og:locale:alternate\" content=\"fr\""))
+    #expect(html.contains("name=\"twitter:description\" content=\"Robin on X\""))
+    #expect(html.contains("name=\"robots\" content=\"index,nofollow\""))
+    #expect(html.contains("rel=\"alternate\" hreflang=\"fr\""))
+    #expect(html.contains("rel=\"icon\" href=\"https://example.com/icon.svg\" sizes=\"any\""))
+    #expect(html.contains("rel=\"manifest\" href=\"https://example.com/site.webmanifest\""))
     #expect(html.contains("type=\"application/ld+json\""))
     #expect(html.contains("\"@type\":\"SoftwareApplication\""))
     #expect(html.contains("\"operatingSystem\":\"Linux and macOS\""))
@@ -79,6 +86,37 @@ struct BuildPipelineTests {
     }
   }
 
+  @Test func rejectsUnknownRenderedLinksAndAssets() {
+    let root = temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    #expect(throws: BuildError.unknownPageReference("/missing")) {
+      try BuildPipeline.build(BrokenLinkApplication(), in: OutputLayout(projectRoot: root))
+    }
+    #expect(throws: BuildError.unknownAssetReference("/missing.png")) {
+      try BuildPipeline.build(BrokenAssetApplication(), in: OutputLayout(projectRoot: root))
+    }
+    #expect(throws: BuildError.invalidMetadataURL("/relative")) {
+      try BuildPipeline.build(InvalidMetadataApplication(), in: OutputLayout(projectRoot: root))
+    }
+  }
+
+  @Test func emitsSelectedSyntaxThemeWithoutJavaScript() throws {
+    let root = temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let result = try BuildPipeline.build(
+      HighlightedApplication(), in: OutputLayout(projectRoot: root))
+    let stylesheet = try #require(result.manifest.artifacts.first { $0.mediaType == "text/css" })
+    let css = String(
+      decoding: try Data(
+        contentsOf: root.appendingPathComponent(".robin/build/\(stylesheet.path)")), as: UTF8.self)
+
+    #expect(css.contains("data-robin-highlight-theme=\"xcode-default-dark\""))
+    #expect(css.contains("data-robin-highlight=\"keyword\""))
+    #expect(!result.manifest.artifacts.contains { $0.mediaType == "text/javascript" })
+  }
+
   @Test func fingerprintsTypedAssetsAndRewritesOnlyReferencedPages() throws {
     let root = temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: root) }
@@ -120,6 +158,9 @@ struct BuildPipelineTests {
     #expect(html.contains("src=\"https://cdn.example.com/images/robin-"))
     #expect(html.contains("srcset=\"https://cdn.example.com/images/robin-small-"))
     #expect(html.contains("https://cdn.example.com/images/robin-large-"))
+    #expect(html.contains("property=\"og:image\" content=\"https://cdn.example.com/images/robin-"))
+    #expect(html.contains("property=\"og:image:width\" content=\"1\""))
+    #expect(html.contains("property=\"og:image:type\" content=\"image/png\""))
     #expect(html.contains("rel=\"preload\""))
     #expect(html.contains("crossorigin=\"anonymous\""))
     let page = try #require(result.manifest.artifacts.first { $0.path == "index.html" })
@@ -580,6 +621,15 @@ private struct StaticApplication: App {
       description: "Swift-native web apps.",
       canonicalURL: "https://example.com",
       language: "en-GB",
+      author: .init("Robin Author", url: "https://example.com/author"),
+      openGraph: .init(title: "Robin on Open Graph"),
+      xCard: .init(description: "Robin on X"),
+      robots: .init(follow: false),
+      alternateLanguages: [.init("fr", url: "https://example.com/fr")],
+      icons: [
+        .init(url: "https://example.com/icon.svg", sizes: "any", mediaType: "image/svg+xml")
+      ],
+      manifestURL: "https://example.com/site.webmanifest",
       structuredData: [
         .softwareApplication(
           .init(operatingSystem: "Linux and macOS", category: "DeveloperApplication"))
@@ -594,6 +644,35 @@ private struct StaticApplication: App {
   }
 }
 
+private struct BrokenLinkApplication: App {
+  @PagesBuilder var pages: PageList { BrokenLinkPage() }
+}
+
+private struct BrokenLinkPage: Page {
+  let path = "/"
+  var body: ComponentContent { Link("/missing") { "Missing" }.body }
+}
+
+private struct BrokenAssetApplication: App {
+  @PagesBuilder var pages: PageList { BrokenAssetPage() }
+}
+
+private struct BrokenAssetPage: Page {
+  let path = "/"
+  var body: ComponentContent { Image(source: "/missing.png", alternateText: "Missing").body }
+}
+
+private struct HighlightedApplication: App {
+  @PagesBuilder var pages: PageList { HighlightedPage() }
+}
+
+private struct HighlightedPage: Page {
+  let path = "/"
+  var body: ComponentContent {
+    CodeBlock("let answer = 42", language: "swift", theme: .xcodeDefaultDark).body
+  }
+}
+
 private struct APIApplication: App {
   var metadata: Metadata { Metadata(title: "API") }
 
@@ -603,11 +682,20 @@ private struct APIApplication: App {
 }
 
 private struct AssetApplication: App {
-  var metadata: Metadata { Metadata(title: "Assets") }
+  var metadata: Metadata {
+    Metadata(
+      title: "Assets",
+      image: .init(url: "/images/robin.png", alternativeText: "Robin"))
+  }
 
   @PagesBuilder var pages: PageList {
     AssetPage()
   }
+}
+
+private struct InvalidMetadataApplication: App {
+  var metadata: Metadata { Metadata(canonicalURL: "/relative") }
+  @PagesBuilder var pages: PageList { HomePage() }
 }
 
 private struct EnhancedApplication: App {
@@ -634,10 +722,7 @@ private struct SSRApplication: App {
 
 private struct DuplicateStructuredDataApplication: App {
   var metadata: Metadata {
-    let article = StructuredData.Article(
-      author: .init("Robin"),
-      datePublished: Date(timeIntervalSince1970: 0)
-    )
+    let article = StructuredData.Article()
     return Metadata(structuredData: [.article(article), .article(article)])
   }
 

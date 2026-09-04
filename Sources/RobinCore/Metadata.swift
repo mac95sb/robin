@@ -1,8 +1,41 @@
+import Foundation
+
 /// Document and sharing metadata associated with an application or page.
 ///
 /// Application metadata supplies defaults that a page can selectively replace using
 /// ``merging(page:)``.
 public struct Metadata: Equatable, Sendable {
+  /// The Open Graph object represented by a page.
+  public enum OpenGraphType: String, Equatable, Sendable {
+    /// A general website page.
+    case website
+    /// An article or post.
+    case article
+  }
+
+  /// The presentation selected for an X card.
+  public enum XCardType: String, Equatable, Sendable {
+    /// A compact card.
+    case summary
+    /// A card led by a large image.
+    case summaryLargeImage = "summary_large_image"
+  }
+
+  /// A person or organization projected into applicable metadata targets.
+  public struct Identity: Equatable, Sendable {
+    /// Display name.
+    public let name: String
+    /// Absolute profile or publisher URL.
+    public let url: String?
+
+    /// Creates a metadata identity.
+    public init(_ name: String, url: String? = nil) {
+      precondition(!name.isEmpty)
+      self.name = name
+      self.url = url
+    }
+  }
+
   /// A social sharing image description.
   public struct Image: Equatable, Sendable {
     /// The absolute image URL.
@@ -41,6 +74,81 @@ public struct Metadata: Equatable, Sendable {
     }
   }
 
+  /// Optional social-card fields that override shared metadata.
+  public struct Social: Equatable, Sendable {
+    /// Social title override.
+    public let title: String?
+    /// Social description override.
+    public let description: String?
+    /// Social image override.
+    public let image: Image?
+
+    /// Creates a partial social-card override.
+    public init(title: String? = nil, description: String? = nil, image: Image? = nil) {
+      self.title = title
+      self.description = description
+      self.image = image
+    }
+
+    fileprivate func merging(_ page: Self?) -> Self {
+      Self(
+        title: page?.title ?? title,
+        description: page?.description ?? description,
+        image: page?.image ?? image)
+    }
+  }
+
+  /// Search crawler directives.
+  public struct Robots: Equatable, Sendable {
+    /// Whether crawlers may index the page.
+    public let index: Bool
+    /// Whether crawlers may follow links.
+    public let follow: Bool
+
+    /// Creates crawler directives.
+    public init(index: Bool = true, follow: Bool = true) {
+      self.index = index
+      self.follow = follow
+    }
+
+    package var content: String {
+      "\(index ? "index" : "noindex"),\(follow ? "follow" : "nofollow")"
+    }
+  }
+
+  /// A localized equivalent of the current page.
+  public struct AlternateLanguage: Equatable, Sendable {
+    /// BCP 47 language tag.
+    public let language: String
+    /// Locale-specific canonical URL.
+    public let url: String
+
+    /// Creates an alternate-language link.
+    public init(_ language: String, url: String) {
+      precondition(!language.isEmpty && !url.isEmpty)
+      self.language = language
+      self.url = url
+    }
+  }
+
+  /// A site icon link.
+  public struct Icon: Equatable, Sendable {
+    /// Icon URL.
+    public let url: String
+    /// Optional sizes value, such as `32x32` or `any`.
+    public let sizes: String?
+    /// Optional media type.
+    public let mediaType: String?
+
+    /// Creates an icon link.
+    public init(url: String, sizes: String? = nil, mediaType: String? = nil) {
+      precondition(!url.isEmpty)
+      self.url = url
+      self.sizes = sizes
+      self.mediaType = mediaType
+    }
+  }
+
   /// The document title.
   public var title: String?
   /// The site name appended to a page title.
@@ -55,6 +163,30 @@ public struct Metadata: Equatable, Sendable {
   public var language: String?
   /// The social sharing image.
   public var image: Image?
+  /// Page author inherited by social and structured-data projections.
+  public var author: Identity?
+  /// Site publisher inherited by structured-data projections.
+  public var publisher: Identity?
+  /// Publication time.
+  public var publishedAt: Date?
+  /// Last modification time.
+  public var modifiedAt: Date?
+  /// Open Graph overrides; omitted fields inherit shared metadata.
+  public var openGraph: Social?
+  /// Open Graph object type; inferred from structured data when omitted.
+  public var openGraphType: OpenGraphType?
+  /// X card overrides; omitted fields inherit shared metadata.
+  public var xCard: Social?
+  /// X card presentation; inferred from available media when omitted.
+  public var xCardType: XCardType?
+  /// Search crawler directives.
+  public var robots: Robots?
+  /// Localized versions of this page.
+  public var alternateLanguages: [AlternateLanguage]
+  /// Site icon links.
+  public var icons: [Icon]
+  /// Web application manifest URL.
+  public var manifestURL: String?
   /// Typed schema-specific facts emitted as JSON-LD.
   public var structuredData: [StructuredData]
 
@@ -71,6 +203,18 @@ public struct Metadata: Equatable, Sendable {
   ///   - canonicalURL: The preferred absolute URL for the document.
   ///   - language: The document's language tag, such as `en` or `en-GB`.
   ///   - image: The image used when the document is shared.
+  ///   - author: The page author.
+  ///   - publisher: The site publisher.
+  ///   - publishedAt: The original publication time.
+  ///   - modifiedAt: The most recent modification time.
+  ///   - openGraph: Partial Open Graph field overrides.
+  ///   - openGraphType: Open Graph object type; inferred when omitted.
+  ///   - xCard: Partial X card field overrides.
+  ///   - xCardType: X card presentation; inferred when omitted.
+  ///   - robots: Search crawler directives.
+  ///   - alternateLanguages: Locale-specific versions of the page.
+  ///   - icons: Site icon links.
+  ///   - manifestURL: The web application manifest URL.
   ///   - structuredData: Schema-specific facts that supplement the shared metadata.
   public init(
     title: String? = nil,
@@ -80,6 +224,18 @@ public struct Metadata: Equatable, Sendable {
     canonicalURL: String? = nil,
     language: String? = nil,
     image: Image? = nil,
+    author: Identity? = nil,
+    publisher: Identity? = nil,
+    publishedAt: Date? = nil,
+    modifiedAt: Date? = nil,
+    openGraph: Social? = nil,
+    openGraphType: OpenGraphType? = nil,
+    xCard: Social? = nil,
+    xCardType: XCardType? = nil,
+    robots: Robots? = nil,
+    alternateLanguages: [AlternateLanguage] = [],
+    icons: [Icon] = [],
+    manifestURL: String? = nil,
     structuredData: [StructuredData] = []
   ) {
     precondition(separator.map { $0.contains(where: { !$0.isWhitespace }) } ?? true)
@@ -90,6 +246,18 @@ public struct Metadata: Equatable, Sendable {
     self.canonicalURL = canonicalURL
     self.language = language
     self.image = image
+    self.author = author
+    self.publisher = publisher
+    self.publishedAt = publishedAt
+    self.modifiedAt = modifiedAt
+    self.openGraph = openGraph
+    self.openGraphType = openGraphType
+    self.xCard = xCard
+    self.xCardType = xCardType
+    self.robots = robots
+    self.alternateLanguages = alternateLanguages
+    self.icons = icons
+    self.manifestURL = manifestURL
     self.structuredData = structuredData
   }
 
@@ -119,6 +287,19 @@ public struct Metadata: Equatable, Sendable {
       canonicalURL: page.canonicalURL ?? canonicalURL,
       language: page.language ?? language,
       image: page.image ?? image,
+      author: page.author ?? author,
+      publisher: page.publisher ?? publisher,
+      publishedAt: page.publishedAt ?? publishedAt,
+      modifiedAt: page.modifiedAt ?? modifiedAt,
+      openGraph: openGraph.map { $0.merging(page.openGraph) } ?? page.openGraph,
+      openGraphType: page.openGraphType ?? openGraphType,
+      xCard: xCard.map { $0.merging(page.xCard) } ?? page.xCard,
+      xCardType: page.xCardType ?? xCardType,
+      robots: page.robots ?? robots,
+      alternateLanguages: page.alternateLanguages.isEmpty
+        ? alternateLanguages : page.alternateLanguages,
+      icons: page.icons.isEmpty ? icons : page.icons,
+      manifestURL: page.manifestURL ?? manifestURL,
       structuredData: page.structuredData.isEmpty ? structuredData : page.structuredData
     )
   }

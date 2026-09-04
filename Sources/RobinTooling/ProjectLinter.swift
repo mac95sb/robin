@@ -103,8 +103,49 @@ package struct ProjectLinter {
             remediation: "Remove the mode setting and register only the required surfaces."
           ))
       }
+      diagnostics += staleFeatureFlagDiagnostics(
+        in: contents, path: relativePath(of: source, from: projectRoot))
     }
     return diagnostics
+  }
+
+  package static func featureFlagDiagnostics(at projectRoot: URL) -> [ToolDiagnostic] {
+    swiftSources(at: projectRoot).flatMap { source -> [ToolDiagnostic] in
+      guard let contents = try? String(contentsOf: source, encoding: .utf8) else { return [] }
+      return staleFeatureFlagDiagnostics(
+        in: contents, path: relativePath(of: source, from: projectRoot))
+    }
+  }
+
+  private static func staleFeatureFlagDiagnostics(in contents: String, path: String)
+    -> [ToolDiagnostic]
+  {
+    contents.split(separator: "\n", omittingEmptySubsequences: false).enumerated().compactMap {
+      index, line in
+      let line = String(line)
+      guard line.contains("FeatureFlag("),
+        dateIsPast("removalDate:", in: line) || dateIsPast("fixedValueSince:", in: line)
+      else { return nil }
+      return ToolDiagnostic(
+        code: "stale-feature-flag",
+        severity: .warning,
+        message: "A feature flag is past its declared removal date.",
+        location: .init(path: path, line: index + 1),
+        remediation: "Remove the flag and its fixed code path."
+      )
+    }
+  }
+
+  private static func dateIsPast(_ label: String, in line: String) -> Bool {
+    guard let labelRange = line.range(of: label) else { return false }
+    let value = line[labelRange.upperBound...]
+    if value.trimmingCharacters(in: .whitespaces).hasPrefix(".distantPast") { return true }
+    guard let marker = value.range(of: "timeIntervalSince1970:"),
+      let closing = value[marker.upperBound...].firstIndex(of: ")"),
+      let timestamp = Double(
+        value[marker.upperBound..<closing].trimmingCharacters(in: .whitespaces))
+    else { return false }
+    return timestamp <= Date().timeIntervalSince1970
   }
 
   private static func exists(_ path: String, at root: URL) -> Bool {

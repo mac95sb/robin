@@ -44,19 +44,17 @@ one.
 
 Use the matching typed value for each page:
 
-- ``StructuredData/Article`` adds its kind, author, and publication dates.
+- ``StructuredData/Article`` selects the applicable article kind; authorship and dates come from
+  ``Metadata``.
 - ``StructuredData/BreadcrumbList`` adds an ordered trail of ``StructuredData/Breadcrumb`` values.
 - ``StructuredData/Event`` adds its schedule, physical or online venue, and ticket offer.
 - ``StructuredData/Product`` adds its SKU, brand, offers, and ``StructuredData/AggregateRating``.
 - ``StructuredData/Recipe`` adds ingredients, instructions, durations, yield, and rating.
 - ``StructuredData/SoftwareApplication`` adds platform, category, offer, and rating details.
 
-For another Schema.org type, use ``StructuredData/Schema`` with ``StructuredData/Value`` properties.
-This keeps values encoded safely while allowing the full and evolving Schema.org vocabulary. The
-same reserved common fields still come from ``Metadata``.
-
 Do not copy a page's title, description, canonical URL, or image into these values. Robin always takes
-those shared facts from ``Metadata``.
+those shared facts from ``Metadata``. Robin intentionally has no raw Schema.org or JSON escape hatch;
+add a focused typed schema value when another content type is required.
 
 ## Topics
 
@@ -70,5 +68,3 @@ those shared facts from ``Metadata``.
 - ``StructuredData/SoftwareApplication``
 - ``StructuredData/Offer``
 - ``StructuredData/AggregateRating``
-- ``StructuredData/Schema``
-- ``StructuredData/Value``

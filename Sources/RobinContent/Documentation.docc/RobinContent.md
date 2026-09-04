@@ -17,9 +17,37 @@ RobinContent parses supported Markdown structures, returns typed nodes in source
 - ``MarkdownContentParser``
 - ``ParsedContent``
 - ``ContentDiagnostic``
+- ``ContentFrontMatter``
+- ``ContentDocument``
+- ``ContentCollection``
+- ``ContentPage``
+- ``Pagination``
+- ``ContentCollectionError``
 
 ### Typed content
 
 - ``ContentNode``
+- ``ContentInline``
+- ``TableOfContentsEntry``
 - ``AdmonitionNode``
 - ``AdmonitionKind``
+
+### Localization
+
+- ``LocalizedStringKey``
+- ``LocalizedMessage``
+- ``LocalizationCatalog``
+- ``LocalizationDiagnostic``
+- ``LocalePreference``
+- ``LocaleNegotiator``
+- ``LocalizationFormatter``
+- ``TextDirection``
+- ``LocalizedRouteSet``
+- ``TranslationProvider``
+
+### Publication
+
+- ``ContentFeed``
+- ``FeedItem``
+- ``Sitemap``
+- ``SitemapEntry``

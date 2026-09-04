@@ -113,7 +113,8 @@ let package = Package(
     .target(
       name: "RobinContent",
       dependencies: [
-        .product(name: "Markdown", package: "swift-markdown")
+        "RobinHTML",
+        .product(name: "Markdown", package: "swift-markdown"),
       ],
       swiftSettings: lowLevelFeatures
     ),
@@ -290,7 +291,7 @@ let package = Package(
     ),
     .testTarget(
       name: "RobinContentTests",
-      dependencies: ["RobinContent"],
+      dependencies: ["RobinContent", "RobinHTML"],
       resources: [.copy("Fixtures")],
       swiftSettings: upcomingFeatures
     ),

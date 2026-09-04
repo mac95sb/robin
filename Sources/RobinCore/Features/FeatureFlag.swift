@@ -8,6 +8,8 @@ public struct FeatureFlag<Value: Equatable & Sendable>: Sendable {
   public let defaultValue: Value
   /// The date after which the flag should be removed.
   public let removalDate: Date?
+  /// The date a flag became permanently fixed to its default value.
+  public let fixedValueSince: Date?
 
   /// Creates a typed feature flag.
   ///
@@ -15,9 +17,16 @@ public struct FeatureFlag<Value: Equatable & Sendable>: Sendable {
   ///   - key: The provider-facing identifier.
   ///   - defaultValue: The deterministic fallback value.
   ///   - removalDate: An optional deadline for removing the flag.
-  public init(_ key: String, default defaultValue: Value, removalDate: Date? = nil) {
+  ///   - fixedValueSince: When a temporary flag stopped varying and should be removed.
+  public init(
+    _ key: String,
+    default defaultValue: Value,
+    removalDate: Date? = nil,
+    fixedValueSince: Date? = nil
+  ) {
     self.key = key
     self.defaultValue = defaultValue
     self.removalDate = removalDate
+    self.fixedValueSince = fixedValueSince
   }
 }

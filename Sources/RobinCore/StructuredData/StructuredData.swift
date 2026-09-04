@@ -15,8 +15,6 @@ public enum StructuredData: Equatable, Sendable {
   case product(Product)
   /// Facts about a recipe.
   case recipe(Recipe)
-  /// Any Schema.org type expressed with typed JSON-compatible values.
-  case schema(Schema)
   /// Facts about a software application.
   case softwareApplication(SoftwareApplication)
 
@@ -27,7 +25,6 @@ public enum StructuredData: Equatable, Sendable {
     case .event: "Event"
     case .product: "Product"
     case .recipe: "Recipe"
-    case .schema(let schema): schema.type
     case .softwareApplication: "SoftwareApplication"
     }
   }
