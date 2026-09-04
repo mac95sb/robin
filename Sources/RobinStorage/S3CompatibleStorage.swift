@@ -84,7 +84,7 @@ public final class S3CompatibleStorage: Storage, StorageIntentSigner, Sendable {
     guard write.policy.contentTypes.isEmpty || write.policy.contentTypes.contains(write.contentType)
     else { throw StorageError.unsupportedContentType(write.contentType) }
     let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-    FileManager.default.createFile(atPath: temporary.path, contents: nil)
+    _ = FileManager.default.createFile(atPath: temporary.path, contents: nil)
     defer { try? FileManager.default.removeItem(at: temporary) }
     let handle = try FileHandle(forWritingTo: temporary)
     var hasher = SHA256()
@@ -444,8 +444,12 @@ private final class S3Listing: NSObject, XMLParserDelegate, @unchecked Sendable 
   static func parse(_ data: Data) -> [Object] {
     let delegate = S3Listing()
     let parser = XMLParser(data: data)
-    unsafe parser.delegate = delegate
-    parser.parse()
+    #if canImport(Darwin)
+      unsafe parser.delegate = delegate
+    #else
+      parser.delegate = delegate
+    #endif
+    _ = parser.parse()
     return delegate.objects
   }
 
