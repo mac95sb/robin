@@ -1,0 +1,27 @@
+@Tutorial(time: 5) {
+  @Intro(title: "Cache a Response") {
+    Define every value that changes a response before storing it.
+  }
+
+  @Section(title: "Build a safe cache key") {
+    @Steps {
+      @Step {
+        Create a ``CacheContext`` containing route parameters, selected query values, locale, visibility, and tenant.
+
+        @Code(name: "ResponseCache.swift", file: "CacheAResponse-01.swift")
+      }
+
+      @Step {
+        Create a typed ``CacheKey`` and store the value with a ``CachePolicy``.
+
+        @Code(name: "ResponseCache.swift", file: "CacheAResponse-02.swift")
+      }
+
+      @Step {
+        Invalidate related entries with tenant-scoped ``CacheTag`` values.
+
+        @Code(name: "ResponseCache.swift", file: "CacheAResponse-03.swift")
+      }
+    }
+  }
+}
