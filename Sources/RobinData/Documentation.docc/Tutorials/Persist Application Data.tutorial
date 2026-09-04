@@ -1,0 +1,25 @@
+@Tutorial(time: 10) {
+  @Intro(title: "Persist Application Data") {
+    Create a database, apply a migration, and execute a typed query.
+  }
+
+  @Section(title: "Use request-scoped repositories") {
+    @Steps {
+      @Step {
+        Open ``SQLiteDatabase`` for the default local persistence path or import `RobinPostgres` for a pooled production database.
+      }
+
+      @Step {
+        Apply ordered ``Migration`` values through ``Migrator`` before serving requests.
+      }
+
+      @Step {
+        Give each repository a ``RepositoryContext`` carrying the database and explicit tenant scope.
+      }
+
+      @Step {
+        Decode rows through ``DatabaseQuery`` so application models remain independent of Robin.
+      }
+    }
+  }
+}

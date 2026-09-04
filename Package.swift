@@ -25,10 +25,12 @@ let package = Package(
     .library(name: "RobinForms", targets: ["RobinForms"]),
     .library(name: "RobinRouting", targets: ["RobinRouting"]),
     .library(name: "RobinRuntime", targets: ["RobinRuntime"]),
+    .library(name: "RobinData", targets: ["RobinData"]),
     .library(name: "RobinServer", targets: ["RobinServer"]),
     .library(name: "RobinBuild", targets: ["RobinBuild"]),
     .library(name: "RobinTesting", targets: ["RobinTesting"]),
     .library(name: "RobinTooling", targets: ["RobinTooling"]),
+    .library(name: "RobinPostgres", targets: ["RobinPostgres"]),
     .executable(name: "robin", targets: ["RobinCLI"]),
   ],
   dependencies: [
@@ -126,6 +128,15 @@ let package = Package(
       swiftSettings: lowLevelFeatures
     ),
     .target(
+      name: "RobinData",
+      dependencies: [
+        "RobinCore",
+        .product(name: "NIOCore", package: "swift-nio"),
+        .product(name: "SQLiteNIO", package: "sqlite-nio"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
       name: "RobinServer",
       dependencies: [
         "RobinBuild",
@@ -169,6 +180,18 @@ let package = Package(
     .target(
       name: "RobinTooling",
       dependencies: ["RobinBuild", "RobinCore"],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinPostgres",
+      dependencies: [
+        "RobinData",
+        .product(name: "Logging", package: "swift-log"),
+        .product(name: "NIOCore", package: "swift-nio"),
+        .product(name: "NIOSSL", package: "swift-nio-ssl"),
+        .product(name: "PostgresNIO", package: "postgres-nio"),
+      ],
+      path: "Sources/RobinExtensions/RobinPostgres",
       swiftSettings: lowLevelFeatures
     ),
     .target(
@@ -244,6 +267,11 @@ let package = Package(
     .testTarget(
       name: "RobinRuntimeTests",
       dependencies: ["RobinRuntime"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinDataTests",
+      dependencies: ["RobinData", "RobinPostgres"],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(

@@ -31,7 +31,7 @@ run = '''
 set -eu
 rm -rf .robin/site
 mkdir -p .robin/site/reference
-for target in RobinCore RobinHTML RobinStyle RobinContent RobinForms RobinRouting RobinRuntime RobinServer RobinBuild RobinTesting RobinTooling; do
+for target in RobinCore RobinHTML RobinStyle RobinContent RobinForms RobinRouting RobinRuntime RobinData RobinServer RobinBuild RobinTesting RobinTooling RobinPostgres; do
   swift package --allow-writing-to-directory .robin/site generate-documentation --target "$target" --output-path ".robin/site/reference/$target" --transform-for-static-hosting --hosting-base-path "robin/reference/$target" --disable-indexing --warnings-as-errors --experimental-skip-synthesized-symbols --experimental-documentation-coverage --coverage-summary-level brief
 done
 
