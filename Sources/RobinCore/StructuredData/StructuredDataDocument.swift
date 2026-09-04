@@ -14,10 +14,12 @@ package struct StructuredDataDocument: Encodable {
     try container.encodeIfPresent(metadata.image?.url, forKey: "image")
 
     switch data {
-    case .article(let article):
-      try container.encode(PersonDocument(article.author), forKey: "author")
-      try container.encode(article.datePublished, forKey: "datePublished")
-      try container.encodeIfPresent(article.dateModified, forKey: "dateModified")
+    case .article:
+      try container.encodeIfPresent(metadata.author.map(PersonDocument.init), forKey: "author")
+      try container.encodeIfPresent(metadata.publishedAt, forKey: "datePublished")
+      try container.encodeIfPresent(metadata.modifiedAt, forKey: "dateModified")
+      try container.encodeIfPresent(
+        metadata.publisher.map(PersonDocument.init), forKey: "publisher")
     case .breadcrumbs(let breadcrumbs):
       try container.encode(
         breadcrumbs.items.enumerated().map { BreadcrumbDocument(position: $0 + 1, item: $1) },
@@ -56,10 +58,6 @@ package struct StructuredDataDocument: Encodable {
         recipe.aggregateRating.map(AggregateRatingDocument.init),
         forKey: "aggregateRating"
       )
-    case .schema(let schema):
-      for (key, value) in schema.properties {
-        try container.encode(SchemaValueDocument(value), forKey: key)
-      }
     case .softwareApplication(let application):
       try container.encode(application.operatingSystem, forKey: "operatingSystem")
       try container.encode(application.category, forKey: "applicationCategory")
@@ -68,43 +66,6 @@ package struct StructuredDataDocument: Encodable {
         application.aggregateRating.map(AggregateRatingDocument.init),
         forKey: "aggregateRating"
       )
-    }
-  }
-}
-
-private struct SchemaValueDocument: Encodable {
-  let value: StructuredData.Value
-
-  init(_ value: StructuredData.Value) { self.value = value }
-
-  func encode(to encoder: Encoder) throws {
-    switch value {
-    case .string(let value):
-      var container = encoder.singleValueContainer()
-      try container.encode(value)
-    case .number(let value):
-      var container = encoder.singleValueContainer()
-      try container.encode(value)
-    case .integer(let value):
-      var container = encoder.singleValueContainer()
-      try container.encode(value)
-    case .boolean(let value):
-      var container = encoder.singleValueContainer()
-      try container.encode(value)
-    case .date(let value):
-      var container = encoder.singleValueContainer()
-      try container.encode(value)
-    case .object(let type, let properties):
-      var container = encoder.container(keyedBy: SchemaKey.self)
-      try container.encode(type, forKey: "@type")
-      for (key, value) in properties {
-        try container.encode(SchemaValueDocument(value), forKey: key)
-      }
-    case .array(let values):
-      var container = encoder.unkeyedContainer()
-      for value in values {
-        try container.encode(SchemaValueDocument(value))
-      }
     }
   }
 }
@@ -145,6 +106,11 @@ private struct PersonDocument: Encodable {
   init(_ person: StructuredData.Person) {
     name = person.name
     url = person.url
+  }
+
+  init(_ identity: Metadata.Identity) {
+    name = identity.name
+    url = identity.url
   }
 
   enum CodingKeys: String, CodingKey {

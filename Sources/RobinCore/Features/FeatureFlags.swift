@@ -43,14 +43,23 @@ public struct FeatureFlags<Provider: FeatureFlagProvider>: Sendable {
     return try await provider.value(for: flag, context: context) ?? flag.defaultValue
   }
 
-  /// Reports whether a flag is past its removal date.
+  /// Reports whether a flag is fixed or past its removal date.
   ///
   /// - Parameters:
   ///   - flag: The flag to inspect.
   ///   - now: The date used for the comparison.
   /// - Returns: A removal warning when the deadline has passed; otherwise, an empty array.
   public func diagnostics<Value>(for flag: FeatureFlag<Value>, now: Date) -> [Diagnostic] {
-    guard let removalDate = flag.removalDate, removalDate <= now else { return [] }
-    return [Diagnostic(.warning, "Feature flag '\(flag.key)' is past its removal date")]
+    var diagnostics: [Diagnostic] = []
+    if let removalDate = flag.removalDate, removalDate <= now {
+      diagnostics.append(
+        Diagnostic(.warning, "Feature flag '\(flag.key)' is past its removal date"))
+    }
+    if let fixedValueSince = flag.fixedValueSince, fixedValueSince <= now {
+      diagnostics.append(
+        Diagnostic(
+          .warning, "Feature flag '\(flag.key)' is permanently fixed and should be removed"))
+    }
+    return diagnostics
   }
 }

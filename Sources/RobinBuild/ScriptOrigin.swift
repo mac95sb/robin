@@ -13,6 +13,8 @@ public enum ScriptOrigin: Codable, Equatable, Sendable {
   public enum DirectCapability: String, Codable, CaseIterable, Sendable {
     /// Browser API integration.
     case browserAPI
+    /// WebAuthn passkey ceremonies.
+    case webAuthn
     /// Streaming updates.
     case stream
     /// Enhanced navigation.

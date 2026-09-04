@@ -46,7 +46,7 @@ struct SpeculationRulesCompiler {
     encoder.outputFormatting = [.sortedKeys]
     let data = try encoder.encode(payload)
     let dependencies = ordered.flatMap(\.requiredAssets).compactMap {
-      assets.references[$0]?.outputPath
+      assets.references[$0]?.artifact.path
     }
     let artifact = try BuildArtifact(
       kind: .deploymentMetadata,

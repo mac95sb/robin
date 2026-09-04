@@ -20,7 +20,7 @@ import Testing
   )
   let values: [(StructuredData, String)] = [
     (
-      .article(.init(author: .init("Robin"), datePublished: date)),
+      .article(.init()),
       "Article"
     ),
     (
@@ -40,22 +40,6 @@ import Testing
       "Recipe"
     ),
     (
-      .schema(
-        .init(
-          type: "VideoObject",
-          properties: [
-            "duration": .string("PT1M"),
-            "isFamilyFriendly": .boolean(true),
-            "interactionStatistic": .object(
-              type: "InteractionCounter",
-              properties: ["userInteractionCount": .integer(12)]
-            ),
-          ]
-        )
-      ),
-      "VideoObject"
-    ),
-    (
       .softwareApplication(
         .init(
           operatingSystem: "macOS",
@@ -70,7 +54,9 @@ import Testing
   let metadata = Metadata(
     title: "Visible title",
     description: "Visible description",
-    canonicalURL: "https://example.com/page"
+    canonicalURL: "https://example.com/page",
+    author: .init("Robin"),
+    publishedAt: date
   )
 
   for (value, type) in values {

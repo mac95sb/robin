@@ -4,7 +4,7 @@ import RobinHTML
 
 struct ProcessedAssets {
   struct Reference {
-    let outputPath: String
+    let artifact: BuildArtifact
     let browserURL: String
   }
 
@@ -54,8 +54,18 @@ struct AssetProcessor {
         } ?? "/\(outputPath)"
       guard
         references.updateValue(
-          .init(outputPath: outputPath, browserURL: browserURL), forKey: asset.reference) == nil
+          .init(
+            artifact: artifact,
+            browserURL: browserURL
+          ),
+          forKey: asset.reference) == nil
       else { throw BuildError.duplicateArtifactPath(asset.reference) }
+      if case .robinDirectCapability(.webAuthn, _) = asset.scriptOrigin {
+        let crossorigin = cdnBaseURL == nil ? "" : " crossorigin=\"anonymous\""
+        headElements.append(
+          "<script type=\"module\" src=\"\(HTMLRenderer.escape(browserURL))\" integrity=\"\(integrity)\"\(crossorigin)></script>"
+        )
+      }
       for hint in asset.hints {
         try validate(hint, mediaType: final.mediaType, reference: asset.reference)
         headElements.append(
