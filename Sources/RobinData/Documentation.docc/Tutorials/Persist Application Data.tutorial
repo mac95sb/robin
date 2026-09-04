@@ -7,18 +7,26 @@
     @Steps {
       @Step {
         Open ``SQLiteDatabase`` for the default local persistence path or import `RobinPostgres` for a pooled production database.
+
+        @Code(name: "Persistence.swift", file: "PersistApplicationData-01.swift")
       }
 
       @Step {
         Apply ordered ``Migration`` values through ``Migrator`` before serving requests.
+
+        @Code(name: "Persistence.swift", file: "PersistApplicationData-02.swift")
       }
 
       @Step {
         Give each repository a ``RepositoryContext`` carrying the database and explicit tenant scope.
+
+        @Code(name: "Persistence.swift", file: "PersistApplicationData-03.swift")
       }
 
       @Step {
         Decode rows through ``DatabaseQuery`` so application models remain independent of Robin.
+
+        @Code(name: "Persistence.swift", file: "PersistApplicationData-04.swift")
       }
     }
   }
