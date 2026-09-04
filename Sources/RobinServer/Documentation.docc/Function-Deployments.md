@@ -51,8 +51,8 @@ package. Provider profiles and live smoke tests promote entries from experimenta
 
 | Provider or host | Output | Integration | Status |
 | --- | --- | --- | --- |
-| AWS Lambda | Native Lambda | API Gateway or Function URL codec and invocation channel | Codec implemented; live validation pending |
-| [Vercel Functions](https://vercel.com/docs/functions) | Native or WebAssembly | Generated Rust function bridge or JavaScript wrapper [importing precompiled Wasm](https://vercel.com/docs/functions/runtimes/wasm) | Adapter-backed; validation pending |
+| AWS Lambda | Native Lambda | API Gateway or Function URL codec and invocation channel | Local codec conformance verified; emulator and live validation pending |
+| [Vercel Functions](https://vercel.com/docs/functions) | WebAssembly | Official Build Output API with an Edge JavaScript adapter importing precompiled Wasm | Output profile verified; live Robin adapter validation pending |
 | Azure Functions | Native | Custom handler | Adapter-backed; validation pending |
 | Google Cloud Run functions and Cloud Run | Native or WASI | Custom runtime or container | Adapter-backed; validation pending |
 | Alibaba Cloud Function Compute | Native or WASI | Custom runtime or container | Adapter-backed; validation pending |
@@ -100,3 +100,66 @@ let configuration = BuildConfiguration(
 
 Use `ArtifactLayout` and `RoutingManifestEncoder` to map the neutral graph to a provider filesystem
 and routing format. Robin always records the neutral runtime contract in `deployment.json`.
+
+## Configure an AWS Lambda profile
+
+AWS custom runtimes require an executable named `bootstrap` at the deployment-package root. Build
+for the selected Linux architecture and keep the provider settings visible in ordinary
+`BuildConfiguration`:
+
+```swift
+let aws = BuildConfiguration(
+  runtimeArtifacts: [bootstrap, swiftCore],
+  artifactLayout: .init(),
+  runtimes: [
+    try DeploymentRuntime(
+      .lambda,
+      artifact: "bootstrap",
+      architecture: .arm64,
+      entryPoint: "bootstrap",
+      environment: ["DATABASE_URL"],
+      toolchain: "Swift 6.3.3 Linux",
+      containerImage: "swift:6.3.3-amazonlinux2",
+      maximumDurationMilliseconds: 30_000,
+      maximumMemoryMebibytes: 512
+    )
+  ]
+)
+```
+
+Package `bootstrap` and every runtime-library dependency at the archive root, preserve executable
+permissions, and select an OS-only Lambda runtime. API Gateway HTTP API and Function URLs use
+``AWSLambdaHTTPEventCodec`` payload format 2.0 by default; select 1.0 only for an API Gateway REST
+API that sends that envelope. AWS documents the custom-runtime entry point in its
+[runtime guide](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-custom.html).
+
+## Configure a Vercel profile
+
+Vercel's Build Output API is a filesystem contract rather than a Robin runtime. Use
+`ArtifactLayout` to place static files under `.vercel/output/static` and a generated host adapter
+plus WebAssembly artifact under `.vercel/output/functions/robin.func`. Use
+`VercelRoutingManifestEncoder` for `.vercel/output/config.json` and include the function's
+required `.vc-config.json` as deployment metadata. Keep the expanded configuration in source
+control; a named provider package is unnecessary.
+
+Vercel Build Output API version 3 requires `.vercel/output/config.json`, and each function lives in
+a directory ending in `.func`. Its official
+[configuration](https://vercel.com/docs/build-output-api/configuration) and
+[function primitive](https://vercel.com/docs/build-output-api/primitives) references are the
+authority for those files. Native Swift executables are not a portable Vercel profile; build the
+WebAssembly artifact and adapter on the target toolchain and validate the complete output before
+deployment.
+
+The provider conformance workflow pins Swift 6.3.3, verifies the official WASI SDK by checksum,
+compiles a WASI fixture, checks the versioned Build Output API fixture, and runs the shared
+persistent/Lambda/WASI HTTP suite without credentials. It pins Vercel CLI 59.10.0. Live AWS and
+Vercel deployment, cleanup, and performance measurements are final-release checks, run from
+protected environments with minimum-permission credentials rather than on ordinary changes.
+
+## Invocation-runtime limits
+
+Lambda-style and WebAssembly profiles buffer request and response bodies and reject WebSockets,
+server-sent events, response streaming, process-local coordination, workers, and persistent local
+filesystems. Put durable state in external services, make jobs idempotent, keep initialization
+reusable across warm invocations, and treat cancellation and deadlines as normal request outcomes.
+Choose a persistent deployment when the application needs any rejected capability.

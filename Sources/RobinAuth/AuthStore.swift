@@ -78,7 +78,10 @@ public actor AuthStore {
     return credentials.sorted { $0.createdAt < $1.createdAt }
   }
 
-  package func account(email: String, at now: Date) async throws -> Account? {
+  /// Returns the account that owns a normalized, verified email address.
+  ///
+  /// External identity plugins use this lookup only after their provider has verified the email.
+  public func account(verifiedEmail email: String, at now: Date = Date()) async throws -> Account? {
     guard let email = normalizedEmail(email),
       let data = try await store.value(
         forKey: authDigest(email), namespace: "robin.auth.email-index", at: now)

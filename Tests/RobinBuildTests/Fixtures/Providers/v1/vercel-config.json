@@ -1,0 +1,1 @@
+{"routes":[{"handle":"filesystem"},{"dest":"/robin","src":"^/api(?:/.*)?$"},{"dest":"/robin","src":"^/products/item$"}],"version":3}

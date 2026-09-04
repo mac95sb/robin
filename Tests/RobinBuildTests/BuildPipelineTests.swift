@@ -312,6 +312,90 @@ struct BuildPipelineTests {
     #expect(result.manifest.artifacts.map(\.path).contains("config/deployment.json"))
   }
 
+  @Test func emitsVersionedVercelBuildOutputRoutes() throws {
+    let root = temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let wasm = try BuildArtifact(
+      kind: .webAssembly,
+      path: "application.wasm",
+      bytes: [0, 97, 115, 109, 1, 0, 0, 0]
+    )
+    let adapter = try BuildArtifact(
+      kind: .hostAdapter,
+      path: "index.js",
+      bytes: Array("export {}".utf8),
+      mediaType: "text/javascript",
+      scriptOrigin: .hostAdapter(runtime: "vercel-edge", selectedBy: "DeploymentRuntime")
+    )
+    let functionConfigFixture = try #require(Bundle.module.resourceURL)
+      .appendingPathComponent("Fixtures/Providers/v1/vercel-function-config.json")
+    let functionConfig = try BuildArtifact(
+      kind: .deploymentMetadata,
+      path: ".vercel/output/functions/robin.func/.vc-config.json",
+      bytes: Array(try Data(contentsOf: functionConfigFixture)),
+      mediaType: "application/json"
+    )
+    let routes = try [
+      DeploymentRoute(
+        pattern: "/products/item", destination: .webAssembly("application.wasm"),
+        precedence: 20),
+      DeploymentRoute(
+        pattern: "/api/*", destination: .webAssembly("application.wasm"), precedence: 10),
+    ]
+
+    let result = try BuildPipeline.build(
+      SSRApplication(),
+      configuration: .init(
+        runtimeArtifacts: [wasm, adapter, functionConfig],
+        deploymentRoutes: routes,
+        routingManifestEncoder: VercelRoutingManifestEncoder(),
+        artifactLayout: .init(
+          staticFiles: ".vercel/output/static",
+          webAssembly: ".vercel/output/functions/robin.func",
+          hostAdapters: ".vercel/output/functions/robin.func"
+        ),
+        runtimes: [
+          try DeploymentRuntime(
+            .webAssembly,
+            artifact: "application.wasm",
+            architecture: .wasm32,
+            entryPoint: "fetch",
+            hostAdapter: "index.js",
+            environment: ["DATABASE_URL"],
+            toolchain: "Swift 6.3.3 WASI SDK"
+          )
+        ],
+        prerenderedPagePaths: ["/"]
+      ),
+      in: OutputLayout(projectRoot: root)
+    )
+
+    let config = try #require(
+      result.manifest.artifacts.first { $0.path == ".vercel/output/config.json" })
+    let generated = try Data(
+      contentsOf: root.appendingPathComponent(".robin/build/.vercel/output/config.json"))
+    let fixture = try #require(Bundle.module.resourceURL)
+      .appendingPathComponent("Fixtures/Providers/v1/vercel-config.json")
+    #expect(
+      String(decoding: generated, as: UTF8.self)
+        == (try String(contentsOf: fixture, encoding: .utf8)))
+    #expect(config.dependencies == [".vercel/output/functions/robin.func/application.wasm"])
+    #expect(
+      result.manifest.artifacts.map(\.path).contains(
+        ".vercel/output/functions/robin.func/.vc-config.json"))
+    #expect(
+      result.manifest.artifacts.map(\.path).contains(
+        ".vercel/output/functions/robin.func/index.js"))
+    #expect(result.manifest.artifacts.map(\.path).contains(".vercel/output/static/index.html"))
+    #expect(throws: BuildError.invalidDeploymentRoute("/api/*/items")) {
+      try VercelRoutingManifestEncoder().encode([
+        try DeploymentRoute(
+          pattern: "/api/*/items",
+          destination: .webAssembly(".vercel/output/functions/robin.func/application.wasm"))
+      ])
+    }
+  }
+
   @Test func runsChecksumPinnedAssetTransformsAndRecordsTheirIdentity() throws {
     let root = temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: root) }
@@ -443,7 +527,7 @@ struct BuildPipelineTests {
     }
   }
 
-  @Test func packagesNativeAndWASIOutputsWithDeterministicRuntimeMetadata() throws {
+  @Test func packagesPersistentLambdaAndWASIOutputsWithDeterministicRuntimeMetadata() throws {
     let root = temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: root) }
     let library = try BuildArtifact(
@@ -455,6 +539,12 @@ struct BuildPipelineTests {
       kind: .functionBundle,
       path: "bootstrap",
       bytes: [1],
+      dependencies: ["libswiftCore.so"]
+    )
+    let server = try BuildArtifact(
+      kind: .executable,
+      path: "RobinApp",
+      bytes: [3],
       dependencies: ["libswiftCore.so"]
     )
     let wasi = try BuildArtifact(
@@ -474,10 +564,11 @@ struct BuildPipelineTests {
       destination: .webAssembly("application.wasm")
     )
     let configuration = BuildConfiguration(
-      runtimeArtifacts: [native, wasi, adapter, library],
+      runtimeArtifacts: [server, native, wasi, adapter, library],
       deploymentRoutes: [route],
       routingManifestEncoder: try JSONRoutingManifestEncoder(),
       artifactLayout: .init(
+        executables: "bin",
         functionBundles: "functions",
         webAssembly: "components",
         hostAdapters: "adapters",
@@ -485,6 +576,12 @@ struct BuildPipelineTests {
         deploymentMetadata: "config"
       ),
       runtimes: [
+        try DeploymentRuntime(
+          .persistentHTTP,
+          artifact: "RobinApp",
+          architecture: .arm64,
+          environment: ["DATABASE_URL"]
+        ),
         try DeploymentRuntime(
           .lambda,
           artifact: "bootstrap",
@@ -514,6 +611,7 @@ struct BuildPipelineTests {
       APIApplication(), configuration: configuration, in: OutputLayout(projectRoot: root))
 
     #expect(try second.manifest.encoded() == firstManifest)
+    #expect(first.manifest.artifacts.map(\.path).contains("bin/RobinApp"))
     #expect(first.manifest.artifacts.map(\.path).contains("functions/bootstrap"))
     #expect(first.manifest.artifacts.map(\.path).contains("components/application.wasm"))
     #expect(first.manifest.artifacts.map(\.path).contains("adapters/adapter.js"))
@@ -523,7 +621,10 @@ struct BuildPipelineTests {
         == ["lib/libswiftCore.so"])
     #expect(
       first.manifest.artifacts.first { $0.path == "config/deployment.json" }?.dependencies
-        == ["adapters/adapter.js", "components/application.wasm", "functions/bootstrap"])
+        == [
+          "adapters/adapter.js", "bin/RobinApp", "components/application.wasm",
+          "functions/bootstrap",
+        ])
     let routes = try JSONDecoder().decode(
       [DeploymentRoute].self,
       from: Data(contentsOf: root.appendingPathComponent(".robin/build/routes.json"))
@@ -532,10 +633,10 @@ struct BuildPipelineTests {
     let deploymentData = try Data(
       contentsOf: root.appendingPathComponent(".robin/build/config/deployment.json"))
     let deployment = try JSONDecoder().decode(TestDeployment.self, from: deploymentData)
-    #expect(deployment.runtimes.map(\.interface) == ["lambda", "wasiHTTP"])
+    #expect(deployment.runtimes.map(\.interface) == ["lambda", "persistentHTTP", "wasiHTTP"])
     #expect(
       deployment.runtimes.map(\.artifact) == [
-        "functions/bootstrap", "components/application.wasm",
+        "functions/bootstrap", "bin/RobinApp", "components/application.wasm",
       ])
     #expect(!String(decoding: deploymentData, as: UTF8.self).contains("DATABASE_URL="))
   }

@@ -25,7 +25,7 @@ struct InvocationRuntimeTests {
     @RoutesBuilder var routes: RouteList { EchoEndpoint() }
   }
 
-  @Test func lambdaAndWASIProduceEquivalentHTTPResponses() async throws {
+  @Test func persistentLambdaAndWASIProduceEquivalentHTTPResponses() async throws {
     let codec = AWSLambdaHTTPEventCodec()
     let lambda = try InvocationRuntime(TestApplication(), codec: codec)
     let event = InvocationEvent(
@@ -45,10 +45,30 @@ struct InvocationRuntimeTests {
 
     let wasi = try WASIRuntime(TestApplication(), adapter: TestWASIAdapter())
     let wasiResponse = try await wasi.respond(to: decoded.request)
+    let persistent = try ApplicationResponder(
+      TestApplication(), transportCapabilities: .persistent)
+    let persistentResponse = await persistent.respond(to: decoded.request)
 
     #expect(lambdaResponse.statusCode == wasiResponse.head.status.code)
+    #expect(lambdaResponse.statusCode == persistentResponse.head.status.code)
     #expect(Array(lambdaResponse.body.utf8) == wasiResponse.body.bufferedBytes)
+    #expect(Array(lambdaResponse.body.utf8) == persistentResponse.body.bufferedBytes)
     #expect(lambdaResponse.isBase64Encoded == false)
+
+    let missingEvent = InvocationEvent(
+      id: "missing",
+      payload: Array(
+        #"{"version":"2.0","rawPath":"/missing","requestContext":{"http":{"method":"GET"}}}"#
+          .utf8))
+    let missing = try codec.decode(missingEvent.payload)
+    let lambdaMissing = try JSONDecoder().decode(
+      LambdaResponse.self,
+      from: Data(try await lambda.respond(to: missingEvent)))
+    let wasiMissing = try await wasi.respond(to: missing.request)
+    let persistentMissing = await persistent.respond(to: missing.request)
+    #expect(lambdaMissing.statusCode == 404)
+    #expect(lambdaMissing.statusCode == wasiMissing.head.status.code)
+    #expect(lambdaMissing.statusCode == persistentMissing.head.status.code)
   }
 
   @Test func awsCodecPreservesV1RepeatedFieldsAndBinaryBodies() throws {

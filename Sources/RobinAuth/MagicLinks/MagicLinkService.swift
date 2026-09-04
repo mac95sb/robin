@@ -80,7 +80,7 @@ public struct MagicLinkService: Sendable {
       audit(.init(kind: .rateLimited, accountID: nil, occurredAt: now()))
       throw error
     }
-    let account = try await store.account(email: email, at: now())
+    let account = try await store.account(verifiedEmail: email, at: now())
     if purpose == .recovery, recoveryPolicy != .magicLink {
       return
     }
@@ -130,7 +130,7 @@ public struct MagicLinkService: Sendable {
     {
       account = existing
     } else if record.purpose == .bootstrap,
-      let existing = try await store.account(email: record.email, at: now())
+      let existing = try await store.account(verifiedEmail: record.email, at: now())
     {
       account = existing
     } else {

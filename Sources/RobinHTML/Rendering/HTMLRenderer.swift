@@ -151,6 +151,29 @@ extension RenderElement.Attribute {
     case .syntaxLanguage: "data-robin-language"
     case .syntaxTheme: "data-robin-highlight-theme"
     case .syntaxHighlight: "data-robin-highlight"
+    case .accessibilityHidden: "aria-hidden"
+    case .imageRole: "role"
+    case .vectorX: "x"
+    case .vectorY: "y"
+    case .vectorWidth: "width"
+    case .vectorHeight: "height"
+    case .vectorCenterX: "cx"
+    case .vectorCenterY: "cy"
+    case .vectorRadius: "r"
+    case .vectorRadiusX: "rx"
+    case .vectorRadiusY: "ry"
+    case .vectorX1: "x1"
+    case .vectorY1: "y1"
+    case .vectorX2: "x2"
+    case .vectorY2: "y2"
+    case .vectorPath: "d"
+    case .vectorPoints: "points"
+    case .vectorViewBox: "viewBox"
+    case .vectorFill: "fill"
+    case .vectorStroke: "stroke"
+    case .vectorStrokeWidth: "stroke-width"
+    case .vectorStrokeLineCap: "stroke-linecap"
+    case .vectorStrokeLineJoin: "stroke-linejoin"
     }
   }
 
@@ -163,6 +186,14 @@ extension RenderElement.Attribute {
       .alternateText(let value), .action(let value), .labelFor(let value),
       .title(let value), .sandbox(let value):
       value
+    case .vectorX(let value), .vectorY(let value), .vectorWidth(let value),
+      .vectorHeight(let value), .vectorCenterX(let value), .vectorCenterY(let value),
+      .vectorRadius(let value), .vectorRadiusX(let value), .vectorRadiusY(let value),
+      .vectorX1(let value), .vectorY1(let value), .vectorX2(let value), .vectorY2(let value),
+      .vectorPath(let value), .vectorPoints(let value), .vectorViewBox(let value),
+      .vectorFill(let value), .vectorStroke(let value), .vectorStrokeWidth(let value),
+      .vectorStrokeLineCap(let value), .vectorStrokeLineJoin(let value):
+      value
     case .sourceSet(let candidates):
       candidates.sorted { ($0.width, $0.source) < ($1.width, $1.source) }
         .map { "\($0.source) \($0.width)w" }.joined(separator: ", ")
@@ -172,6 +203,8 @@ extension RenderElement.Attribute {
     case .buttonType(let value): value.rawValue
     case .inputType(let value): value.rawValue
     case .formMethod(let value): value.rawValue
+    case .accessibilityHidden: "true"
+    case .imageRole: "img"
     case .open: nil
     }
   }

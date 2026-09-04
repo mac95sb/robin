@@ -17,9 +17,25 @@ extension RobinApplication {
         path: executable.lastPathComponent,
         bytes: Array(try Data(contentsOf: executable))
       )
+      #if arch(arm64)
+        let architecture = DeploymentRuntime.Architecture.arm64
+      #elseif arch(x86_64)
+        let architecture = DeploymentRuntime.Architecture.x64
+      #else
+        throw BuildError.invalidRuntimeConfiguration("persistent deployment architecture")
+      #endif
       _ = try await BuildPipeline.build(
         application,
-        configuration: .init(runtimeArtifacts: [artifact]),
+        configuration: .init(
+          runtimeArtifacts: [artifact],
+          runtimes: [
+            try DeploymentRuntime(
+              .persistentHTTP,
+              artifact: artifact.path,
+              architecture: architecture
+            )
+          ]
+        ),
         in: OutputLayout(projectRoot: root)
       )
       return

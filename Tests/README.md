@@ -1,3 +1,3 @@
 #  **Developer Review Findings**
-1. We agreed we'd remove all OpenAPI related things and instead focus on a simple manifest that can be imported by SwiftUI applications allowing the web swift code + docc comments to become the API documentation. So remove anything related to OpenAPI.
+1. Use a simple manifest that SwiftUI applications can import, with the web Swift code and DocC comments serving as the API documentation. Do not add external schema-generation tooling.
 2. 

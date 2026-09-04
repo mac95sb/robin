@@ -1,0 +1,36 @@
+name: Provider conformance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  credential-free:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - name: Run shared HTTP and provider-output checks
+        run: |
+          set -o pipefail
+          mkdir -p .robin
+          mise run test -- --filter InvocationRuntimeTests 2>&1 | tee .robin/provider-conformance.log
+          mise run test -- --filter emitsVersionedVercelBuildOutputRoutes 2>&1 | tee -a .robin/provider-conformance.log
+      - name: Validate the pinned Swift WASI SDK
+        run: |
+          swift sdk install https://download.swift.org/swift-6.3.3-release/wasm-sdk/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE_wasm.artifactbundle.tar.gz --checksum cabfa08b73bb8ac783927ecd15fa386e99d0c139c5f232445067bcf58379cae7
+          swift build --package-path Tests/ProviderFixtures/WASI --swift-sdk swift-6.3.3-RELEASE_wasm
+      - name: Validate with the official pinned Vercel CLI
+        run: npx --yes vercel@59.10.0 --version
+      - name: Upload diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-conformance-${{ github.run_id }}
+          path: .robin/provider-conformance.log
+          if-no-files-found: ignore

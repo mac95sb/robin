@@ -19,6 +19,8 @@ public struct RenderElement: Equatable, Sendable {
     case blockquote
     /// An interactive button.
     case button
+    /// A circle in an inline vector image.
+    case circle
     /// An inline or preformatted code fragment.
     case code
     /// A disclosure widget.
@@ -27,6 +29,8 @@ public struct RenderElement: Equatable, Sendable {
     case dialog
     /// A neutral block-level container used by structural layout components.
     case div
+    /// An ellipse in an inline vector image.
+    case ellipse
     /// Emphasized inline text.
     case em
     /// Self-contained content with an optional caption.
@@ -59,6 +63,8 @@ public struct RenderElement: Equatable, Sendable {
     case input
     /// A caption for a form control.
     case label
+    /// A line in an inline vector image.
+    case line
     /// A list item.
     case li
     /// The document's main landmark.
@@ -69,6 +75,12 @@ public struct RenderElement: Equatable, Sendable {
     case ol
     /// A paragraph.
     case p
+    /// A path in an inline vector image.
+    case path
+    /// A polygon in an inline vector image.
+    case polygon
+    /// A polyline in an inline vector image.
+    case polyline
     /// A preformatted text block.
     case pre
     /// A search landmark.
@@ -95,6 +107,10 @@ public struct RenderElement: Equatable, Sendable {
     case tr
     /// An unordered list.
     case ul
+    /// An inline vector image.
+    case svg
+    /// A rectangle in an inline vector image.
+    case rect
 
     /// Whether the element never has children and serializes without a closing tag.
     var isVoid: Bool {
@@ -147,6 +163,52 @@ public struct RenderElement: Equatable, Sendable {
     case syntaxTheme(SyntaxHighlightTheme)
     /// The semantic role of a highlighted source-code region.
     case syntaxHighlight(CaseHighlight.Kind)
+    /// Hides decorative content from assistive technologies.
+    case accessibilityHidden
+    /// Marks an inline vector as an image for assistive technologies.
+    case imageRole
+    /// A vector element's horizontal origin.
+    case vectorX(String)
+    /// A vector element's vertical origin.
+    case vectorY(String)
+    /// A vector element's width.
+    case vectorWidth(String)
+    /// A vector element's height.
+    case vectorHeight(String)
+    /// A vector element's horizontal center.
+    case vectorCenterX(String)
+    /// A vector element's vertical center.
+    case vectorCenterY(String)
+    /// A vector element's radius.
+    case vectorRadius(String)
+    /// A vector element's horizontal radius.
+    case vectorRadiusX(String)
+    /// A vector element's vertical radius.
+    case vectorRadiusY(String)
+    /// A vector line's first horizontal coordinate.
+    case vectorX1(String)
+    /// A vector line's first vertical coordinate.
+    case vectorY1(String)
+    /// A vector line's second horizontal coordinate.
+    case vectorX2(String)
+    /// A vector line's second vertical coordinate.
+    case vectorY2(String)
+    /// A vector path's command data.
+    case vectorPath(String)
+    /// A vector polygon or polyline's points.
+    case vectorPoints(String)
+    /// A vector image's coordinate system.
+    case vectorViewBox(String)
+    /// A vector element's fill paint.
+    case vectorFill(String)
+    /// A vector element's stroke paint.
+    case vectorStroke(String)
+    /// A vector element's stroke width.
+    case vectorStrokeWidth(String)
+    /// A vector element's stroke line-cap shape.
+    case vectorStrokeLineCap(String)
+    /// A vector element's stroke line-join shape.
+    case vectorStrokeLineJoin(String)
 
     /// One image source and its intrinsic pixel width.
     public struct SourceCandidate: Equatable, Sendable {

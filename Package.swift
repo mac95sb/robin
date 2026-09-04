@@ -35,6 +35,10 @@ let package = Package(
     .library(name: "RobinBuild", targets: ["RobinBuild"]),
     .library(name: "RobinTesting", targets: ["RobinTesting"]),
     .library(name: "RobinTooling", targets: ["RobinTooling"]),
+    .library(name: "RobinPlugin", targets: ["RobinPlugin"]),
+    .library(name: "RobinLucide", targets: ["RobinLucide"]),
+    .library(name: "RobinPolar", targets: ["RobinPolar"]),
+    .library(name: "RobinOAuth", targets: ["RobinOAuth"]),
     .library(name: "RobinPostgres", targets: ["RobinPostgres"]),
     .executable(name: "robin", targets: ["RobinCLI"]),
   ],
@@ -227,6 +231,56 @@ let package = Package(
       swiftSettings: lowLevelFeatures
     ),
     .target(
+      name: "RobinPlugin",
+      dependencies: [
+        "RobinBuild",
+        "RobinContent",
+        "RobinCore",
+        "RobinServer",
+        "RobinStyle",
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+      ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinLucide",
+      dependencies: ["RobinHTML"],
+      path: "Sources/RobinExtensions/RobinLucide",
+      exclude: ["LICENSE", "README.md"],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinPolar",
+      dependencies: [
+        "RobinCore",
+        "RobinJobs",
+        "RobinPlugin",
+        "RobinRouting",
+        "RobinServer",
+        .product(name: "Crypto", package: "swift-crypto"),
+        .product(name: "HTTPTypes", package: "swift-http-types"),
+      ],
+      path: "Sources/RobinExtensions/RobinPolar",
+      exclude: ["README.md"],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
+      name: "RobinOAuth",
+      dependencies: [
+        "RobinAuth",
+        "RobinCore",
+        "RobinData",
+        "RobinPlugin",
+        "RobinRouting",
+        "RobinServer",
+        .product(name: "Crypto", package: "swift-crypto"),
+        .product(name: "HTTPTypes", package: "swift-http-types"),
+      ],
+      path: "Sources/RobinExtensions/RobinOAuth",
+      exclude: ["README.md"],
+      swiftSettings: lowLevelFeatures
+    ),
+    .target(
       name: "RobinPostgres",
       dependencies: [
         "RobinData",
@@ -236,6 +290,7 @@ let package = Package(
         .product(name: "PostgresNIO", package: "postgres-nio"),
       ],
       path: "Sources/RobinExtensions/RobinPostgres",
+      exclude: ["README.md"],
       swiftSettings: lowLevelFeatures
     ),
     .target(
@@ -374,6 +429,7 @@ let package = Package(
         "RobinAuth", "RobinBuild", "RobinCore", "RobinHTML", "RobinStyle",
         .product(name: "Crypto", package: "swift-crypto"),
       ],
+      resources: [.copy("Fixtures")],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
@@ -383,6 +439,33 @@ let package = Package(
         .product(name: "ArgumentParser", package: "swift-argument-parser"),
       ],
       resources: [.copy("Fixtures")],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinPluginTests",
+      dependencies: ["RobinPlugin"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinLucideTests",
+      dependencies: ["RobinHTML", "RobinLucide"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinPolarTests",
+      dependencies: [
+        "RobinCore", "RobinJobs", "RobinPolar", "RobinServer",
+        .product(name: "Crypto", package: "swift-crypto"),
+        .product(name: "HTTPTypes", package: "swift-http-types"),
+      ],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinOAuthTests",
+      dependencies: [
+        "RobinAuth", "RobinCore", "RobinData", "RobinOAuth", "RobinServer",
+        .product(name: "HTTPTypes", package: "swift-http-types"),
+      ],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
