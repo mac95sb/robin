@@ -1,10 +1,5 @@
 import Foundation
 
-struct Note: Codable, Sendable {
-  let id: Int
-  var content: String
-}
-
 // ponytail: Process-local demo storage; use request-scoped RobinData when SSR pages receive services.
 final class NotesStore: @unchecked Sendable {
   private let lock = NSLock()
