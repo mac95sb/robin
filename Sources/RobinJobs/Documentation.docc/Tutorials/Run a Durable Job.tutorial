@@ -7,14 +7,20 @@
     @Steps {
       @Step {
         Define a `Codable & Sendable` ``Job`` with a stable name.
+
+        @Code(name: "WelcomeEmailJob.swift", file: "RunADurableJob-01.swift")
       }
 
       @Step {
         Enqueue it through ``JobClient`` with an explicit tenant and idempotency key.
+
+        @Code(name: "WelcomeEmailJob.swift", file: "RunADurableJob-02.swift")
       }
 
       @Step {
         Register an ``AnyJobHandler`` and run ``JobWorker`` through `robin worker`.
+
+        @Code(name: "WelcomeEmailJob.swift", file: "RunADurableJob-03.swift", reset: true)
       }
     }
   }

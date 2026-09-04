@@ -7,14 +7,20 @@
     @Steps {
       @Step {
         Create an HTTPS message with ``MagicLinkEmail``.
+
+        @Code(name: "MagicLinkDelivery.swift", file: "SendAMagicLink-01.swift")
       }
 
       @Step {
         Preview it locally with ``DevelopmentMailbox``.
+
+        @Code(name: "MagicLinkDelivery.swift", file: "SendAMagicLink-02.swift")
       }
 
       @Step {
         Deliver it in production with ``SMTPEmailSender`` and an explicit ``EmailEnvelope``.
+
+        @Code(name: "MagicLinkDelivery.swift", file: "SendAMagicLink-03.swift", reset: true)
       }
     }
   }
