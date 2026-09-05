@@ -1,8 +1,10 @@
 import NIOCore
 import NIOWebSocket
 
+// Mutable handler state stays on the channel's event loop; the session task captures only sendable values.
 final class NIOWebSocketHandler: ChannelInboundHandler, @unchecked Sendable {
   typealias InboundIn = WebSocketFrame
+  static let maximumPendingMessages = 32
 
   private let session: WebSocketSession
   private var continuation: AsyncStream<WebSocketMessage>.Continuation?
@@ -13,7 +15,9 @@ final class NIOWebSocketHandler: ChannelInboundHandler, @unchecked Sendable {
   }
 
   func handlerAdded(context: ChannelHandlerContext) {
-    let (messages, continuation) = AsyncStream.makeStream(of: WebSocketMessage.self)
+    let (messages, continuation) = AsyncStream.makeStream(
+      of: WebSocketMessage.self,
+      bufferingPolicy: .bufferingOldest(Self.maximumPendingMessages))
     self.continuation = continuation
     let channel = context.channel
     let connection = WebSocketConnection(
@@ -48,9 +52,10 @@ final class NIOWebSocketHandler: ChannelInboundHandler, @unchecked Sendable {
     var payload = frame.unmaskedData
     switch frame.opcode {
     case .text:
-      continuation?.yield(.text(payload.readString(length: payload.readableBytes) ?? ""))
+      yield(
+        .text(payload.readString(length: payload.readableBytes) ?? ""), context: context)
     case .binary:
-      continuation?.yield(.binary(Array(payload.readableBytesView)))
+      yield(.binary(Array(payload.readableBytesView)), context: context)
     case .ping:
       context.channel.writeAndFlush(
         WebSocketFrame(fin: true, opcode: .pong, data: payload),
@@ -61,6 +66,15 @@ final class NIOWebSocketHandler: ChannelInboundHandler, @unchecked Sendable {
       context.close(promise: nil)
     default:
       break
+    }
+  }
+
+  private func yield(_ message: WebSocketMessage, context: ChannelHandlerContext) {
+    guard let continuation else { return }
+    if case .dropped = continuation.yield(message) {
+      continuation.finish()
+      task?.cancel()
+      context.close(promise: nil)
     }
   }
 

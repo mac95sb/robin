@@ -21,6 +21,11 @@ run = "swift test"
 description = "Format Swift sources in place"
 run = "swift format format --in-place --recursive --parallel Sources Tests Templates Package.swift"
 
+[tasks.benchmark]
+description = "Measure representative release-mode operations and guard against gross regressions"
+env = { ROBIN_BENCHMARKS = "1" }
+run = "swift test -c release --filter ReleaseBenchmarks"
+
 [tasks.lint]
 description = "Check Swift source formatting"
 run = "swift format lint --strict --recursive --parallel Sources Tests Templates Package.swift"
@@ -51,6 +56,8 @@ if [ -n "$missing" ]; then
   printf 'Undocumented public symbols:\n%s\n' "$missing" >&2
   exit 1
 fi
+swift run RobinDocumentation
+cp -R .robin/build/. .robin/site/
 '''
 
 [tasks.check]

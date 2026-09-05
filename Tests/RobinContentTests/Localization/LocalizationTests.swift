@@ -6,6 +6,13 @@ import Testing
 
 @Suite("Content localization")
 struct LocalizationTests {
+  @Test func malformedLanguageTokensFallBack() {
+    let negotiator = LocaleNegotiator(supported: ["en", "fr"], defaultLocale: "en")
+    for value in [";", ";;", ";q=1", ",,", " "] {
+      #expect(negotiator.resolve(.init(acceptLanguage: value)) == "en")
+      #expect(negotiator.resolve(.init(acceptLanguage: "\(value),fr;q=0.5")) == "fr")
+    }
+  }
   @Test func negotiatesInRequiredPrecedenceAndFormatsRTLContent() {
     let negotiator = LocaleNegotiator(supported: ["en-GB", "fr", "ar"], defaultLocale: "en-GB")
 

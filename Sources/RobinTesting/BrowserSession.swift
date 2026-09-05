@@ -4,20 +4,6 @@ import Foundation
   import FoundationNetworking
 #endif
 
-/// Errors produced by a W3C WebDriver test session.
-public enum BrowserSessionError: Error, Equatable, Sendable {
-  /// The WebDriver endpoint is not loopback-only HTTP.
-  case unsafeEndpoint(String)
-  /// The WebDriver response is malformed.
-  case invalidResponse
-  /// WebDriver rejected a command.
-  case commandFailed(String)
-  /// An element identifier cannot be represented by the constrained selector API.
-  case invalidElementIdentifier(String)
-  /// The selected browser cannot enforce the requested profile.
-  case unsupportedProfile(String)
-}
-
 /// Drives a local browser through the W3C WebDriver HTTP protocol.
 public actor BrowserSession {
   private static let elementKey = "element-6066-11e4-a52e-4f735466cecf"

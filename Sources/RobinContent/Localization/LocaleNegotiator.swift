@@ -42,9 +42,9 @@ public struct LocaleNegotiator: Sendable {
   private static func headerCandidates(_ header: String) -> [String] {
     var candidates: [(locale: String, quality: Double, index: Int)] = []
     for (index, item) in header.split(separator: ",").enumerated() {
-      let parts = item.split(separator: ";", maxSplits: 1)
+      let parts = item.split(separator: ";", maxSplits: 1, omittingEmptySubsequences: false)
       let locale = parts[0].trimmingCharacters(in: .whitespaces)
-      guard locale != "*" else { continue }
+      guard !locale.isEmpty, locale != "*" else { continue }
       let quality =
         parts.count == 2
         ? Double(parts[1].trimmingCharacters(in: .whitespaces).dropFirst(2)) ?? 0

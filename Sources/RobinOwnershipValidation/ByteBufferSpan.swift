@@ -7,6 +7,7 @@ public struct ByteBufferSpan {
   /// - Parameter buffer: The byte buffer whose readable region is inspected.
   /// - Returns: The validation checksum.
   public static func checksum(_ buffer: borrowing ByteBuffer) -> UInt64 {
+    // The span borrows only readable bytes and cannot outlive this synchronous buffer access.
     unsafe buffer.withUnsafeReadableBytes { rawBytes in
       let bytes = unsafe rawBytes.bindMemory(to: UInt8.self)
       return unsafe checksum(bytes.span)

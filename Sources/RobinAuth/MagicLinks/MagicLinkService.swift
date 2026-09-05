@@ -125,9 +125,10 @@ public struct MagicLinkService: Sendable {
       let record = try await store.consumeMagicLink(token, at: now())
     else { throw AuthError.invalidCredential }
     let account: Account
-    if let accountID = record.accountID,
-      let existing = try await store.account(id: accountID, at: now())
-    {
+    if let accountID = record.accountID {
+      guard let existing = try await store.account(id: accountID, at: now()),
+        existing.verifiedEmail.flatMap(normalizedEmail) == record.email
+      else { throw AuthError.invalidCredential }
       account = existing
     } else if record.purpose == .bootstrap,
       let existing = try await store.account(verifiedEmail: record.email, at: now())

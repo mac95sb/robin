@@ -3,71 +3,6 @@ import NIOCore
 import NIOPosix
 import NIOSSL
 
-/// Typed configuration for the built-in SMTP transport.
-public struct SMTPConfiguration: Sendable {
-  /// Connection security policy.
-  public enum Security: Sendable {
-    /// Plain SMTP, intended for loopback MTAs such as local Postfix.
-    case plain
-    /// Upgrade a plain connection with required STARTTLS.
-    case startTLS
-    /// Establish TLS before the SMTP greeting.
-    case implicitTLS
-  }
-
-  /// Optional SMTP AUTH credentials.
-  public struct Credentials: Sendable {
-    /// Authentication identity.
-    public let username: String
-    /// Authentication secret.
-    public let password: String
-
-    /// Creates SMTP credentials.
-    public init(username: String, password: String) {
-      precondition(!username.contains("\0"))
-      self.username = username
-      self.password = password
-    }
-  }
-
-  /// SMTP host configured by the application.
-  public let host: String
-  /// SMTP port.
-  public let port: Int
-  /// Connection security.
-  public let security: Security
-  /// Optional SMTP AUTH credentials.
-  public let credentials: Credentials?
-  /// Default public sender configured by the application.
-  public let defaultSender: EmailAddress
-  /// EHLO identity.
-  public let clientName: String
-  /// Connect and response timeout.
-  public let timeout: Duration
-
-  /// Creates SMTP settings without selecting any implicit framework endpoint.
-  public init(
-    host: String,
-    port: Int,
-    security: Security,
-    credentials: Credentials? = nil,
-    defaultSender: EmailAddress,
-    clientName: String = "localhost",
-    timeout: Duration = .seconds(10)
-  ) {
-    precondition(!host.isEmpty && (1...65_535).contains(port))
-    precondition(!clientName.isEmpty && !clientName.contains(where: { $0 == "\r" || $0 == "\n" }))
-    precondition(timeout > .zero)
-    self.host = host
-    self.port = port
-    self.security = security
-    self.credentials = credentials
-    self.defaultSender = defaultSender
-    self.clientName = clientName
-    self.timeout = timeout
-  }
-}
-
 /// Production SMTP sender supporting local MTAs, STARTTLS, and implicit TLS.
 public actor SMTPEmailSender: EmailSender {
   private let configuration: SMTPConfiguration
@@ -181,7 +116,8 @@ public actor SMTPEmailSender: EmailSender {
       .channelOption(ChannelOptions.connectTimeout, value: timeout)
       .connect(host: host, port: configuration.port) { channel in
         channel.eventLoop.makeCompletedFuture {
-          let (responses, continuation) = AsyncThrowingStream<String, Error>.makeStream()
+          let (responses, continuation) = AsyncThrowingStream<String, Error>.makeStream(
+            bufferingPolicy: .bufferingOldest(128))
           if case .implicitTLS = security {
             try channel.pipeline.syncOperations.addHandler(Self.tlsHandler(host: host))
           }
@@ -238,18 +174,6 @@ public actor SMTPEmailSender: EmailSender {
   }
 }
 
-/// SMTP connection and protocol framing errors.
-public enum SMTPError: Error, Equatable, Sendable {
-  /// The sender has shut down.
-  case closed
-  /// The server closed the connection before a complete response.
-  case connectionClosed
-  /// A server line did not contain a valid SMTP response code.
-  case invalidResponse(String)
-  /// The server did not respond before the configured timeout.
-  case timedOut
-}
-
 private struct SMTPResponse: Sendable {
   let code: Int
   let lines: [String]
@@ -261,7 +185,7 @@ private struct SMTPConnection: Sendable {
   let responses: AsyncThrowingStream<String, Error>
 }
 
-// Access is serialized by one SMTP conversation.
+// One SMTP conversation serializes access. macOS 14 lacks the isolation-aware iterator overload.
 private final class SMTPResponseReader: @unchecked Sendable {
   private var iterator: AsyncThrowingStream<String, Error>.Iterator
 
@@ -278,7 +202,9 @@ private final class SMTPResponseReader: @unchecked Sendable {
     }
     var lines = [String(first.dropFirst(min(4, first.count)))]
     if first.dropFirst(3).first == "-" {
-      while let line = try await nextLine() {
+      while true {
+        guard let line = try await nextLine() else { throw SMTPError.connectionClosed }
+        guard lines.count < 128 else { throw SMTPError.responseTooLarge }
         guard Int(line.prefix(3)) == code else { throw SMTPError.invalidResponse(line) }
         lines.append(String(line.dropFirst(min(4, line.count))))
         if line.dropFirst(3).first == " " { break }
@@ -303,10 +229,12 @@ private final class SMTPLineCodec: ByteToMessageDecoder, MessageToByteEncoder {
 
   func decode(context: ChannelHandlerContext, buffer: inout ByteBuffer) throws -> DecodingState {
     guard let newline = buffer.readableBytesView.firstIndex(of: UInt8(ascii: "\n")) else {
+      guard buffer.readableBytes <= 4_096 else { throw SMTPError.responseTooLarge }
       return .needMoreData
     }
     let length = buffer.readableBytesView.distance(
       from: buffer.readableBytesView.startIndex, to: newline)
+    guard length <= 4_096 else { throw SMTPError.responseTooLarge }
     guard var line = buffer.readString(length: length) else { return .needMoreData }
     buffer.moveReaderIndex(forwardBy: 1)
     if line.last == "\r" { line.removeLast() }
@@ -322,7 +250,7 @@ private final class SMTPLineCodec: ByteToMessageDecoder, MessageToByteEncoder {
 
 extension SMTPLineCodec: Sendable {}
 
-private final class SMTPLineReceiver: ChannelInboundHandler, @unchecked Sendable {
+private final class SMTPLineReceiver: ChannelInboundHandler, Sendable {
   typealias InboundIn = String
   private let continuation: AsyncThrowingStream<String, Error>.Continuation
 
@@ -331,7 +259,10 @@ private final class SMTPLineReceiver: ChannelInboundHandler, @unchecked Sendable
   }
 
   func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-    continuation.yield(unwrapInboundIn(data))
+    if case .dropped = continuation.yield(unwrapInboundIn(data)) {
+      continuation.finish(throwing: SMTPError.responseTooLarge)
+      context.close(promise: nil)
+    }
   }
 
   func errorCaught(context: ChannelHandlerContext, error: Error) {
@@ -345,6 +276,7 @@ private final class SMTPLineReceiver: ChannelInboundHandler, @unchecked Sendable
   }
 }
 
+// The scheduled task is created, replaced, and cancelled only on this channel's event loop.
 private final class SMTPResponseTimeoutHandler: ChannelInboundHandler, @unchecked Sendable {
   typealias InboundIn = NIOAny
   private let timeout: TimeAmount

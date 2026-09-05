@@ -1,3 +1,5 @@
+import Foundation
+
 /// One event in a `text/event-stream` response.
 public struct ServerSentEvent: Equatable, Sendable {
   /// Event payload. Newlines are emitted as multiple `data` fields.
@@ -35,7 +37,9 @@ public struct ServerSentEvent: Equatable, Sendable {
         components.seconds * 1_000 + components.attoseconds / 1_000_000_000_000_000
       lines.append("retry: \(milliseconds)")
     }
-    lines += data.split(separator: "\n", omittingEmptySubsequences: false).map { "data: \($0)" }
+    lines += data.replacingOccurrences(of: "\r\n", with: "\n")
+      .replacingOccurrences(of: "\r", with: "\n")
+      .split(separator: "\n", omittingEmptySubsequences: false).map { "data: \($0)" }
     return Array((lines.joined(separator: "\n") + "\n\n").utf8)
   }
 }

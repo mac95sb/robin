@@ -1,13 +1,5 @@
 import Foundation
 
-/// Operation authorized by a time-limited storage intent.
-public enum StorageIntentOperation: Sendable {
-  /// Upload one object.
-  case upload(contentType: String, maximumBytes: Int64)
-  /// Download one object.
-  case download
-}
-
 /// A time-limited direct object-storage request.
 public struct SignedStorageIntent: Sendable {
   /// Signed destination.
@@ -35,14 +27,4 @@ public struct SignedStorageIntent: Sendable {
     self.formFields = formFields
     self.expiresAt = expiresAt
   }
-}
-
-/// Provider contract for direct signed uploads and downloads.
-public protocol StorageIntentSigner: Sendable {
-  /// Creates a signed direct-storage request.
-  func intent(
-    for key: ScopedObjectKey,
-    operation: StorageIntentOperation,
-    expiresAt: Date
-  ) async throws -> SignedStorageIntent
 }

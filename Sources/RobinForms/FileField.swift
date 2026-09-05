@@ -1,5 +1,5 @@
 /// An uploaded file represented by its metadata and bytes.
-public struct FileField: Equatable, Sendable {
+public struct FileField: Codable, Equatable, Sendable {
   /// The client-supplied filename.
   public let filename: String
   /// The client-supplied media type.

@@ -17,11 +17,11 @@ public struct ContentCollection: Sendable {
   /// Returns one one-based page.
   public func page(_ number: Int, size: Int) throws -> ContentPage {
     guard number > 0, size > 0 else { throw ContentCollectionError.invalidPage }
-    let start = (number - 1) * size
-    let totalPages = max(1, (documents.count + size - 1) / size)
-    guard start < documents.count || number == 1 && documents.isEmpty else {
+    let totalPages = documents.isEmpty ? 1 : (documents.count - 1) / size + 1
+    guard number <= totalPages else {
       throw ContentCollectionError.invalidPage
     }
+    let start = (number - 1) * size
     return ContentPage(
       documents: Array(documents.dropFirst(start).prefix(size)), number: number,
       totalPages: totalPages)

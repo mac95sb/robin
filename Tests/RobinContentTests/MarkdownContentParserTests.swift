@@ -6,6 +6,26 @@ import Testing
 
 @Suite("Markdown content parsing and embed/host validation")
 struct MarkdownContentParserTests {
+  @Test func duplicateDirectiveArgumentsProduceDiagnostics() {
+    for directive in [
+      "@Footnote(id: a, id: b)", "@Admonition(kind: note, kind: warning)",
+      "@Embed(source: \"https://example.com\", source: \"https://other.example\")",
+    ] {
+      let parsed = MarkdownContentParser.parse(directive, allowedEmbedHosts: ["example.com"])
+      #expect(parsed.nodes.isEmpty)
+      #expect(!parsed.diagnostics.isEmpty)
+    }
+  }
+
+  @Test func paginationHandlesExtremePositiveInputs() throws {
+    let parsed = MarkdownContentParser.parse("# Page", allowedEmbedHosts: [])
+    let collection = ContentCollection([
+      ContentDocument(id: "page", frontMatter: parsed.frontMatter, content: parsed)
+    ])
+    #expect(throws: ContentCollectionError.invalidPage) { try collection.page(Int.max, size: 2) }
+    #expect(try collection.page(1, size: Int.max).documents.count == 1)
+    #expect(try ContentCollection([]).page(1, size: Int.max).documents.isEmpty)
+  }
   @Test func parsesTypedFrontMatterCollectionsAndPagination() throws {
     let parsed = MarkdownContentParser.parse(
       """
@@ -101,6 +121,28 @@ struct MarkdownContentParserTests {
       try HTMLRenderer.render(parsed)
         == "<blockquote><p>Quoted <strong>text</strong></p></blockquote><ol><li>First</li><li>Second</li></ol>"
     )
+  }
+
+  @Test func executableLinkSchemesRenderAsInertText() throws {
+    for destination in [
+      "javascript:alert(1)",
+      "JaVaScRiPt:alert(1)",
+      "data:text/html,unsafe",
+      "java\nscript:alert(1)",
+    ] {
+      let content = MarkdownContentParser.parse(
+        "[Safe label](\(destination))", allowedEmbedHosts: [])
+      let html = try HTMLRenderer.render(content)
+      #expect(html.contains("Safe label"))
+      #expect(!html.contains("href="))
+    }
+
+    let safe = try HTMLRenderer.render(
+      MarkdownContentParser.parse(
+        "[Local](/about) [Web](https://example.com)", allowedEmbedHosts: [])
+    )
+    #expect(safe.contains("href=\"/about\""))
+    #expect(safe.contains("href=\"https://example.com\""))
   }
 
   @Test func extractsAndValidatesLocalReferences() {

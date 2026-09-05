@@ -1,4 +1,5 @@
 import Foundation
+import NIOCore
 
 /// Controls when a forwarded client address may influence abuse protection.
 public struct TrustedProxyPolicy: Equatable, Sendable {
@@ -8,23 +9,31 @@ public struct TrustedProxyPolicy: Equatable, Sendable {
   /// Creates an exact-address proxy allowlist.
   ///
   /// - Parameter trustedAddresses: Transport peer addresses allowed to set `X-Forwarded-For`.
-  public init(trustedAddresses: Set<String> = []) { self.trustedAddresses = trustedAddresses }
+  public init(trustedAddresses: Set<String> = []) {
+    self.trustedAddresses = Set(trustedAddresses.compactMap(Self.normalized))
+  }
 
   /// Resolves the abuse-protection identity without trusting arbitrary forwarding headers.
   ///
   /// - Parameters:
   ///   - remoteAddress: The transport peer address.
   ///   - forwardedFor: The untrusted `X-Forwarded-For` header value.
-  /// - Returns: The first valid forwarded address for a trusted peer, the peer address otherwise,
+  /// - Returns: The first untrusted address walking from the peer toward the client,
   ///   or `"unknown"` when no peer address is available.
   public func clientAddress(remoteAddress: String?, forwardedFor: String?) -> String {
-    guard let remoteAddress, trustedAddresses.contains(remoteAddress), let forwardedFor,
-      let first = forwardedFor.split(separator: ",").first
+    guard let remoteAddress, var current = Self.normalized(remoteAddress), let forwardedFor
     else { return remoteAddress ?? "unknown" }
-    let candidate = first.trimmingCharacters(in: .whitespaces)
-    let valid =
-      !candidate.isEmpty
-      && candidate.allSatisfy { $0.isNumber || "abcdefABCDEF.:".contains($0) }
-    return valid ? candidate : remoteAddress
+    for hop in forwardedFor.split(separator: ",", omittingEmptySubsequences: false).reversed() {
+      guard trustedAddresses.contains(current) else { break }
+      guard let candidate = Self.normalized(hop.trimmingCharacters(in: .whitespaces)) else {
+        return Self.normalized(remoteAddress) ?? remoteAddress
+      }
+      current = candidate
+    }
+    return current
+  }
+
+  private static func normalized(_ address: String) -> String? {
+    try? SocketAddress(ipAddress: address, port: 0).ipAddress
   }
 }

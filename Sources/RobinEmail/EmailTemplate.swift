@@ -1,44 +1,3 @@
-import Foundation
-
-/// An allowlisted email-safe component node.
-public enum EmailComponent: Sendable {
-  /// Escaped body text.
-  case text(String, style: EmailTextStyle = .body)
-  /// A safe absolute web link.
-  case link(label: String, destination: URL)
-  /// A vertical sequence of email components.
-  case stack([EmailComponent])
-  /// A deliberate line break.
-  case lineBreak
-}
-
-/// Inline styles supported by the email renderer.
-public enum EmailTextStyle: Sendable {
-  /// Ordinary paragraph content.
-  case body
-  /// Primary heading content.
-  case heading
-  /// Secondary, visually muted content.
-  case muted
-}
-
-/// Builds a sequence of email-safe components.
-@resultBuilder
-public struct EmailBuilder {
-  private init() {}
-
-  /// Combines component expressions.
-  public static func buildBlock(_ components: EmailComponent...) -> EmailComponent {
-    .stack(components)
-  }
-
-  /// Accepts a component expression.
-  public static func buildExpression(_ component: EmailComponent) -> EmailComponent { component }
-
-  /// Converts a string expression into safe text.
-  public static func buildExpression(_ text: String) -> EmailComponent { .text(text) }
-}
-
 /// A typed message body rendered for constrained email clients.
 public struct EmailTemplate: Sendable {
   /// Root component.
@@ -92,12 +51,6 @@ extension EmailComponent {
     case .lineBreak: "\n"
     }
   }
-}
-
-/// Email-template validation errors.
-public enum EmailTemplateError: Error, Equatable, Sendable {
-  /// Email links must use HTTP or HTTPS.
-  case unsafeLink
 }
 
 extension String {

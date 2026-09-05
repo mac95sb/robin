@@ -4,6 +4,23 @@ import Testing
 
 @Suite("Transactional email")
 struct EmailTests {
+  @Test func messageIdentifiersCannotChangeMIMEFraming() throws {
+    let address = try EmailAddress("sender@example.com")
+    for id in [
+      "", "a\r\nBcc: x", "a\"; boundary=x", "a\\b", "a>b", String(repeating: "a", count: 65),
+    ] {
+      #expect(throws: EmailError.invalidHeader) {
+        try EmailMessage(
+          id: id, from: address, to: [address], subject: "Test", text: "Body", html: "Body")
+      }
+    }
+    let message = try EmailMessage(
+      id: "message_1.2-3", from: address, to: [address], subject: "Test", text: "Body", html: "Body"
+    )
+    #expect(
+      String(decoding: MIMEMessage.serialize(message), as: UTF8.self).contains(
+        "Message-ID: <message_1.2-3@robin.local>"))
+  }
   @Test func rendersSafeAlternativesAndCapturesDevelopmentPreview() async throws {
     let template = EmailTemplate {
       EmailComponent.text("Hello <Robin>", style: .heading)

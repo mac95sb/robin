@@ -1,35 +1,6 @@
 import Foundation
 import RobinCore
 
-/// A type-erased, retry-safe typed job handler.
-public struct AnyJobHandler: Sendable {
-  package let type: String
-  package let execute: @Sendable (Data, JobContext) async throws -> Void
-
-  /// Erases a typed job handler.
-  public init<Value: Job>(
-    _ type: Value.Type,
-    handle: @escaping @Sendable (Value, JobContext) async throws -> Void
-  ) {
-    self.type = type.name
-    self.execute = { data, context in
-      try await handle(JSONDecoder().decode(Value.self, from: data), context)
-    }
-  }
-}
-
-/// Worker lifecycle events suitable for logs, metrics, and traces.
-public enum JobWorkerEvent: Equatable, Sendable {
-  /// A job execution began.
-  case started(id: String, type: String, attempt: Int)
-  /// A job completed.
-  case completed(id: String)
-  /// A job was scheduled to retry.
-  case retrying(id: String, at: Date)
-  /// A job reached dead-letter state.
-  case deadLettered(id: String)
-}
-
 /// Runs typed handlers against a provider-neutral queue.
 public struct JobWorker: Sendable {
   /// Receives structured worker lifecycle events.
@@ -108,10 +79,4 @@ public struct JobWorker: Sendable {
       if try await !runOnce() { try await Task.sleep(for: pollInterval) }
     }
   }
-}
-
-/// Worker configuration errors.
-public enum JobWorkerError: Error, Equatable, Sendable {
-  /// No typed handler was registered for a queued job type.
-  case missingHandler(String)
 }

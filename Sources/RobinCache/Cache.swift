@@ -2,42 +2,6 @@ import Crypto
 import Foundation
 import RobinCore
 
-/// Whether a cache hit is fresh or serviceable during background revalidation.
-public enum CacheFreshness: Equatable, Sendable {
-  /// The entry has not expired.
-  case fresh
-  /// The entry expired but remains inside its stale-while-revalidate window.
-  case stale
-}
-
-/// A decoded cache hit and its HTTP validators.
-public struct CachedValue<Value: Sendable>: Sendable {
-  /// The decoded application value.
-  public let value: Value
-  /// Current freshness state.
-  public let freshness: CacheFreshness
-  /// Entity tag for conditional requests.
-  public let entityTag: String
-  /// Source modification time for conditional requests.
-  public let lastModified: Date
-}
-
-/// Observable cache operations.
-public enum CacheEvent: Equatable, Sendable {
-  /// A key was not found.
-  case miss(String)
-  /// A fresh key was found.
-  case hit(String)
-  /// A stale key was found.
-  case stale(String)
-  /// A key was stored.
-  case stored(String)
-  /// Tags were invalidated.
-  case invalidated(Int)
-  /// A provider or encoding operation failed for a key.
-  case failed(String)
-}
-
 /// Typed encoding, tenant-aware tags, and observability over a cache provider.
 public struct Cache: Sendable {
   /// Receives cache events for logs, metrics, or traces.

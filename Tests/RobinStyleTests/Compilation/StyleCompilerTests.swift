@@ -182,7 +182,9 @@ struct StyleCompilerTests {
     let escapedTheme = Theme(
       lightColors: [:],
       darkColors: [:],
-      typography: [typography: Typography(family: "A\\B\"C\nD\u{0001}E", size: 16, weight: 400)],
+      typography: [
+        typography: Typography(family: "A\\B\"C\nD\u{0001}E</StYlE>", size: 16, weight: 400)
+      ],
       spacing: [:],
       radii: [:],
       breakpoints: [:]
@@ -196,7 +198,8 @@ struct StyleCompilerTests {
 
     let result = try StyleCompiler.compile(root, theme: escapedTheme, mode: .production)
 
-    #expect(result.css.contains(#"font-family:"A\\B\"C\A D\1 E";"#))
+    #expect(result.css.contains(#"font-family:"A\\B\"C\A D\1 E\3C /StYlE>";"#))
+    #expect(!result.css.contains("<"))
     #expect(!result.css.contains("\n"))
     #expect(!result.css.unicodeScalars.contains("\u{0001}"))
   }

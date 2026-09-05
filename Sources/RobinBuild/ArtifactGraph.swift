@@ -40,6 +40,11 @@ public struct ArtifactGraph: Sendable {
     let buildRoot = layout.path(for: .build)
     let cacheRoot = layout.path(for: .cache).appendingPathComponent("build", isDirectory: true)
     let manifestURL = buildRoot.appendingPathComponent("manifest.json")
+    for url in [buildRoot, cacheRoot, manifestURL] {
+      guard layout.contains(url) else {
+        throw BuildError.outputEscapesRobinRoot(url.path(percentEncoded: false))
+      }
+    }
     try fileManager.createDirectory(at: buildRoot, withIntermediateDirectories: true)
     try fileManager.createDirectory(at: cacheRoot, withIntermediateDirectories: true)
 

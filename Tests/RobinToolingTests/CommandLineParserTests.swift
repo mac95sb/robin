@@ -11,14 +11,14 @@ struct CommandLineParserTests {
     let defaults = try #require(
       try RobinCommandLine.parseAsRoot(["init", "Example"]) as? InitCommand)
     #expect(defaults.projectName == "Example")
-    #expect(defaults.template == .ssr)
+    #expect(defaults.template == .dashboard)
     #expect(defaults.templatesDirectory == nil)
 
     let configured = try #require(
       try RobinCommandLine.parseAsRoot([
-        "init", "Example", "-t", "static", "--templates", "/tmp/templates",
+        "init", "Example", "-t", "blog", "--templates", "/tmp/templates",
       ]) as? InitCommand)
-    #expect(configured.template == .static)
+    #expect(configured.template == .blog)
     #expect(configured.templatesDirectory == "/tmp/templates")
 
     #expect(throws: (any Error).self) {

@@ -133,6 +133,16 @@ public struct RenderElement: Equatable, Sendable {
     case name(String)
     /// The form control's value.
     case value(String)
+    /// Requires a value before native form submission.
+    case required
+    /// The minimum text length, measured in UTF-16 code units.
+    case minimumLength(Int)
+    /// The maximum text length, measured in UTF-16 code units.
+    case maximumLength(Int)
+    /// Identifies elements describing this control.
+    case accessibilityDescribedBy(String)
+    /// Marks a control whose submitted value failed validation.
+    case accessibilityInvalid
     /// An accessible label for the element.
     case accessibilityLabel(String)
     /// A hyperlink's destination, serialized as `href`.
@@ -149,6 +159,8 @@ public struct RenderElement: Equatable, Sendable {
     case action(String)
     /// A form's submission method.
     case formMethod(FormMethod)
+    /// Uses multipart encoding to submit file controls.
+    case multipartEncoding
     /// A label's associated control identifier, serialized as `for`.
     case labelFor(String)
     /// A disclosure or dialog's expanded/visible state, serialized as the bare `open` attribute.
@@ -262,6 +274,8 @@ public struct RenderElement: Equatable, Sendable {
       case url
       /// A telephone number input, serialized as the HTML `tel` type.
       case telephone = "tel"
+      /// An uploaded file selected by the user.
+      case file
     }
   }
 

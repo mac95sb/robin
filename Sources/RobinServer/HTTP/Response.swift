@@ -7,6 +7,7 @@ public struct Response: Sendable {
   public var head: HTTPResponse
   /// The response body and its transport requirements.
   public var body: ResponseBody
+  package var compiledStyleHash: String?
 
   /// Creates a response from normalized HTTP values.
   ///

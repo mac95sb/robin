@@ -266,6 +266,7 @@ public struct StyleCompiler {
     var escaped = ""
     for scalar in value.unicodeScalars {
       switch scalar {
+      case "<": escaped += "\\3C "
       case "\\": escaped += "\\\\"
       case "\"": escaped += "\\\""
       case "\n": escaped += "\\A "
@@ -456,6 +457,15 @@ private indirect enum ConditionExpression {
       }
       let value = String(rest[rest.index(after: colon)...])
       guard value.utf8.count == length else { throw ThemeError.invalidCondition(source) }
+      let identifier = "[-_a-zA-Z][-_a-zA-Z0-9]*"
+      let qualifier =
+        "(?:[.#]\(identifier)|:(?:checked|open|hover|focus|focus-within|focus-visible|disabled|enabled|empty|first-child|last-child|only-child|required|optional|valid|invalid))"
+      let compound = "(?:[a-zA-Z][-_a-zA-Z0-9]*|\\*|\(qualifier))\(qualifier)*"
+      let selector =
+        "^[ \\t\\r\\n]*(?:[>+~][ \\t\\r\\n]*)?\(compound)(?:[ \\t\\r\\n]*[>+~][ \\t\\r\\n]*\(compound)|[ \\t\\r\\n]+\(compound))*[ \\t\\r\\n]*$"
+      guard value.utf8.count <= 1_024,
+        value.range(of: selector, options: .regularExpression) != nil
+      else { throw ThemeError.invalidCondition(source) }
       return .has(value)
     }
     if source.hasPrefix("not:") { return .not(try parse(String(source.dropFirst(4)))) }

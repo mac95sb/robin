@@ -7,6 +7,10 @@ import RobinPolar
 import RobinServer
 import Testing
 
+#if canImport(FoundationNetworking)
+  import FoundationNetworking
+#endif
+
 @Suite("Polar integration")
 struct PolarIntegrationTests {
   @Test func rejectsInsecureRemoteAPI() throws {
@@ -27,7 +31,7 @@ struct PolarIntegrationTests {
       return PolarHTTPResponse(
         statusCode: 201,
         body: Data(
-          #"{"id":"checkout-1","status":"open","url":"https://checkout.example/1","subscription_id":null}"#
+          #"{"id":"checkout-1","status":"open","url":"https://checkout.example/1","subscription_id":"subscription-1"}"#
             .utf8))
     }
 
@@ -36,8 +40,24 @@ struct PolarIntegrationTests {
         products: ["product-1"], successURL: #require(URL(string: "https://example.com/paid"))))
 
     #expect(checkout.id == "checkout-1")
+    #expect(checkout.subscriptionID == "subscription-1")
     #expect(await capture.request?.url?.path == "/v1/checkouts")
     #expect(await capture.request?.value(forHTTPHeaderField: "Authorization") == "Bearer token")
+  }
+
+  @Test func subscriptionDecodesProviderIdentifiers() async throws {
+    let client = try PolarClient(accessToken: Secret("token")) { _ in
+      PolarHTTPResponse(
+        statusCode: 200,
+        body: Data(
+          #"{"id":"subscription-1","status":"active","product_id":"product-1","customer_id":"customer-1","cancel_at_period_end":false,"current_period_end":"2026-10-01T00:00:00Z"}"#
+            .utf8))
+    }
+    let subscription = try await client.subscription(id: "subscription-1")
+    #expect(subscription.productID == "product-1")
+    #expect(subscription.customerID == "customer-1")
+    #expect(!subscription.cancelAtPeriodEnd)
+    #expect(subscription.currentPeriodEnd != nil)
   }
 
   @Test func webhookVerifiesBeforeDurableEnqueue() async throws {

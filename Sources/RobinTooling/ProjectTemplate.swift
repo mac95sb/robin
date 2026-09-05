@@ -1,5 +1,6 @@
 package enum ProjectTemplate: String, CaseIterable, Sendable {
-  case `static`
-  case ssr
-  case api
+  case blog
+  case dashboard
+  case apiService = "api-service"
+  case realtimeChat = "realtime-chat"
 }

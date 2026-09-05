@@ -32,8 +32,9 @@ public actor SQLiteDatabase: Database {
   public func withConnection<Result: Sendable>(
     _ operation: @Sendable (any DatabaseConnection) async throws -> Result
   ) async throws -> Result {
-    await gate.acquire()
+    try await gate.acquire()
     do {
+      try Task.checkCancellation()
       try ensureOpen()
       let result = try await operation(SQLiteConnectionAdapter(connection: connection))
       await gate.release()
@@ -47,24 +48,27 @@ public actor SQLiteDatabase: Database {
   public func transaction<Result: Sendable>(
     _ operation: @Sendable (any DatabaseConnection) async throws -> Result
   ) async throws -> Result {
-    await gate.acquire()
+    try await gate.acquire()
     let adapter = SQLiteConnectionAdapter(connection: connection)
     do {
+      try Task.checkCancellation()
       try ensureOpen()
       _ = try await connection.query("BEGIN IMMEDIATE")
       let result = try await operation(adapter)
+      try Task.checkCancellation()
       _ = try await connection.query("COMMIT")
       await gate.release()
       return result
     } catch {
-      _ = try? await connection.query("ROLLBACK")
+      // The future-based cleanup completes even when the calling task is cancelled.
+      _ = try? await connection.query("ROLLBACK").get()
       await gate.release()
       throw error
     }
   }
 
   public func isHealthy() async -> Bool {
-    await gate.acquire()
+    do { try await gate.acquire() } catch { return false }
     let healthy: Bool
     if closed {
       healthy = false
@@ -78,9 +82,9 @@ public actor SQLiteDatabase: Database {
   public func shutdown() async throws {
     guard !closed else { return }
     closed = true
-    await gate.acquire()
+    try await gate.acquire(checkCancellation: false)
     do {
-      try await connection.close()
+      try await connection.close().get()
       await gate.release()
     } catch {
       await gate.release()
@@ -95,14 +99,29 @@ public actor SQLiteDatabase: Database {
 
 private actor ConnectionGate {
   private var available = true
-  private var waiters: [CheckedContinuation<Void, Never>] = []
+  private var waiters: [(id: UUID, continuation: CheckedContinuation<Void, Error>)] = []
 
-  func acquire() async {
+  func acquire(checkCancellation: Bool = true) async throws {
+    if checkCancellation { try Task.checkCancellation() }
     guard !available else {
       available = false
       return
     }
-    await withCheckedContinuation { waiters.append($0) }
+    let id = UUID()
+    if !checkCancellation {
+      try await withCheckedThrowingContinuation { waiters.append((id, $0)) }
+      return
+    }
+    try await withTaskCancellationHandler {
+      try await withCheckedThrowingContinuation { waiters.append((id, $0)) }
+    } onCancel: {
+      Task { await self.cancel(id) }
+    }
+  }
+
+  private func cancel(_ id: UUID) {
+    guard let index = waiters.firstIndex(where: { $0.id == id }) else { return }
+    waiters.remove(at: index).continuation.resume(throwing: CancellationError())
   }
 
   func release() {
@@ -110,16 +129,8 @@ private actor ConnectionGate {
       available = true
       return
     }
-    waiters.removeFirst().resume()
+    waiters.removeFirst().continuation.resume()
   }
-}
-
-/// SQLite database lifecycle errors.
-public enum SQLiteDatabaseError: Error, Equatable, Sendable {
-  /// The database has already shut down.
-  case closed
-  /// Persistent databases require an absolute path.
-  case relativePath(String)
 }
 
 private struct SQLiteConnectionAdapter: DatabaseConnection {

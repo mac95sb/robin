@@ -11,6 +11,7 @@ import NIOPosix
 final class NIOHTTPHandler: ChannelInboundHandler, @unchecked Sendable {
   typealias InboundIn = HTTPServerRequestPart
   typealias OutboundOut = HTTPServerResponsePart
+  static let maximumPendingRequests = 16
 
   private let responder: ApplicationResponder
   private let maximumBodyBytes: Int
@@ -21,7 +22,6 @@ final class NIOHTTPHandler: ChannelInboundHandler, @unchecked Sendable {
   private var requestBody = ByteBuffer()
   private var bodyIsTooLarge = false
   private var pending: [(Request?, HTTPVersion, HTTPResponse.Status)] = []
-  private var pendingIndex = 0
   private var isResponding = false
   private var applicationTask: Task<Void, Never>?
   private var outputTask: Task<Void, Never>?
@@ -56,6 +56,11 @@ final class NIOHTTPHandler: ChannelInboundHandler, @unchecked Sendable {
     case .end:
       guard let head = requestHead else { return }
       requestHead = nil
+      guard pending.count < Self.maximumPendingRequests else {
+        requestBody.clear()
+        context.close(promise: nil)
+        return
+      }
       let request =
         bodyIsTooLarge
         ? nil
@@ -80,17 +85,16 @@ final class NIOHTTPHandler: ChannelInboundHandler, @unchecked Sendable {
   }
 
   private func respondToNextRequest(context: ChannelHandlerContext) {
-    guard !isResponding, pendingIndex < pending.count else { return }
+    guard !isResponding, !pending.isEmpty else { return }
     isResponding = true
-    let (request, version, failureStatus) = pending[pendingIndex]
-    pendingIndex += 1
+    let (request, version, failureStatus) = pending.removeFirst()
     let context = NIOLoopBound(context, eventLoop: context.eventLoop)
     let response =
       request.map { request in
         let requestContext = RequestContext(
           requestID: UUID().uuidString.lowercased(),
           clientAddress: clientAddressResolver(
-            request.head, context.value.remoteAddress?.description),
+            request.head, context.value.remoteAddress?.ipAddress),
           deadline: ContinuousClock.now.advanced(by: requestTimeout)
         )
         let promise = context.eventLoop.makePromise(of: Response.self)
@@ -112,10 +116,6 @@ final class NIOHTTPHandler: ChannelInboundHandler, @unchecked Sendable {
       applicationTask = nil
       outputTask = nil
       isResponding = false
-      if pendingIndex == pending.count {
-        pending.removeAll(keepingCapacity: true)
-        pendingIndex = 0
-      }
       respondToNextRequest(context: context.value)
     }
   }

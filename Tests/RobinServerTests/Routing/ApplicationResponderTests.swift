@@ -1,14 +1,27 @@
+import Crypto
 import Foundation
 import HTTPTypes
 import RobinCore
 import RobinHTML
 import RobinRouting
+import RobinStyle
 import Testing
 
 @testable import RobinServer
 
 @Suite("Transport-neutral application responder")
 struct ApplicationResponderTests {
+  private enum GreetingKey: ConfigurationKey {
+    static let defaultValue = "missing"
+  }
+
+  private struct ServicePage: Page {
+    let path = "/services"
+    @RequestValue(GreetingKey.self) private var greeting
+
+    var body: ComponentContent { Text { greeting } }
+  }
+
   private struct Input: Codable, Sendable { let name: String }
   private struct Output: Codable, Sendable, Equatable {
     let id: Int
@@ -130,10 +143,11 @@ struct ApplicationResponderTests {
   @Test func applicationPagesUseTheSameResponderAsControllers() async throws {
     struct Home: Page {
       let path = "/"
+      var metadata: Metadata { Metadata(title: "Home", language: "fr") }
       var body: ComponentContent { Text { "Home" } }
     }
     struct TestApplication: App {
-      var metadata: Metadata { Metadata() }
+      var metadata: Metadata { Metadata(site: "Example", description: "Welcome") }
       var pages: some Pages { Home() }
     }
     let responder = try ApplicationResponder(
@@ -145,9 +159,61 @@ struct ApplicationResponderTests {
       to: Request(HTTPRequest(method: .get, scheme: nil, authority: nil, path: "/"))
     )
 
+    let html = String(decoding: try #require(response.body.bufferedBytes), as: UTF8.self)
+    #expect(html.hasPrefix("<!doctype html><html lang=\"fr\""))
+    #expect(html.contains("<title>Home"))
+    #expect(html.contains("<meta name=\"description\" content=\"Welcome\">"))
+    #expect(html.contains("<body><p>Home</p></body>"))
+  }
+
+  @Test func asyncRequestServicesAreVisibleWhileRenderingPages() async throws {
+    struct TestApplication: App {
+      var metadata: Metadata { Metadata() }
+      var pages: some Pages { ServicePage() }
+    }
+    let responder = try ApplicationResponder(
+      TestApplication(),
+      middleware: [
+        .requestServices { _, context in
+          await Task.yield()
+          return context.services.setting(GreetingKey.self, to: "loaded")
+        }
+      ],
+      transportCapabilities: .persistent)
+
+    let response = await responder.respond(
+      to: Request(HTTPRequest(method: .get, scheme: nil, authority: nil, path: "/services")))
+
     #expect(
-      String(decoding: try #require(response.body.bufferedBytes), as: UTF8.self) == "<p>Home</p>"
-    )
+      String(decoding: try #require(response.body.bufferedBytes), as: UTF8.self).contains("loaded"))
+  }
+
+  @Test(arguments: [SecurityPolicy(), SecurityPolicy(contentSecurityPolicy: "default-src 'none'")])
+  func pageStylesHaveAnExactHashUnderTheDefaultSecurityPolicy(_ policy: SecurityPolicy) async throws
+  {
+    struct StyledPage: Page {
+      let path = "/"
+      var body: ComponentContent { Text { "Styled" }.padding(.md) }
+    }
+    struct Site: App {
+      var pages: some Pages { StyledPage() }
+    }
+    let responder = try ApplicationResponder(
+      Site(), middleware: [.security(policy)], transportCapabilities: .persistent)
+    let response = await responder.respond(
+      to: Request(.init(method: .get, scheme: nil, authority: nil, path: "/")))
+    let html = String(decoding: try #require(response.body.bufferedBytes), as: UTF8.self)
+    let start = try #require(html.range(of: "<style data-robin-style>"))
+    let end = try #require(html.range(of: "</style>", range: start.upperBound..<html.endIndex))
+    let css = html[start.upperBound..<end.lowerBound]
+    let hash = Data(SHA256.hash(data: Array(css.utf8))).base64EncodedString()
+    let csp = try #require(response.head.headerFields[HTTPField.Name("content-security-policy")!])
+    if policy.contentSecurityPolicy == SecurityPolicy().contentSecurityPolicy {
+      #expect(csp.contains("style-src 'self' 'sha256-\(hash)'"))
+      #expect(!csp.contains("unsafe-inline"))
+    } else {
+      #expect(csp == policy.contentSecurityPolicy)
+    }
   }
 
   @Test func nestedPageAndRouteGroupsComposeTheirPaths() async throws {

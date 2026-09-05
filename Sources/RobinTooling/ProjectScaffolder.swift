@@ -123,7 +123,7 @@ package struct ProjectScaffolder {
             text
             .replacingOccurrences(of: placeholder, with: projectName)
             .replacingOccurrences(
-              of: #".package(path: "../..")"#,
+              of: #".package(name: "robin", path: "../..")"#,
               with: #".package(url: "https://github.com/mac95sb/robin.git", branch: "main")"#)
           try Data(text.utf8)
             .write(to: output, options: .atomic)

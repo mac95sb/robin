@@ -116,7 +116,9 @@ private func inlineContent(_ content: [ContentInline]) -> ComponentContent {
         return RobinHTML.Strong { inlineContent(children) }.body.nodes
       case .code(let code): return RobinHTML.InlineCode { code }.body.nodes
       case .link(let destination, let children):
-        return RobinHTML.Link(destination) { inlineContent(children) }.body.nodes
+        let content = inlineContent(children)
+        return ContentReferenceValidator.isSafeLinkDestination(destination)
+          ? RobinHTML.Link(destination) { content }.body.nodes : content.nodes
       case .image(let source, let alternativeText):
         return RobinHTML.Image(source: source, alternateText: alternativeText).body.nodes
       case .footnoteReference(let id, let occurrence):

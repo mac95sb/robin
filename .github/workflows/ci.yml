@@ -17,3 +17,40 @@ jobs:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
       - run: mise run check
+      - run: mise run benchmark
+
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: robin-test
+        ports: [5432:5432]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - name: Run shared PostgreSQL conformance
+        env:
+          ROBIN_POSTGRES_TESTS: "1"
+          PGPASSWORD: robin-test
+        run: mise run test -- --filter PostgresDatabaseTests
+
+  starters:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        template: [blog, dashboard, api-service, realtime-chat]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - name: Build and test the starter
+        working-directory: Templates/${{ matrix.template }}
+        run: mise run test

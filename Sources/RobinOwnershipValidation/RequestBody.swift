@@ -8,6 +8,9 @@ public struct RequestBody: ~Copyable {
   ///
   /// - Parameter buffer: The byte buffer transferred into the body.
   public init(_ buffer: consuming ByteBuffer) { self.buffer = buffer }
+
+  /// Borrows the temporary body storage without consuming or copying its readable bytes.
+  public borrowing func checksum() -> UInt64 { ByteBufferSpan.checksum(buffer) }
   /// Transfers the stored byte buffer to the caller.
   ///
   /// - Returns: The consumed byte buffer.

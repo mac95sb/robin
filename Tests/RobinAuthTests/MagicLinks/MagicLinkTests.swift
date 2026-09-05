@@ -8,6 +8,36 @@ import Testing
 
 @Suite("Email magic links")
 struct MagicLinkTests {
+  @Test func changedEmailRejectsOldLookupAndPendingLinks() async throws {
+    let database = try await TestDatabase.sqlite()
+    let values = try await DatabaseKeyValueStore(database: database.database)
+    let store = AuthStore(values)
+    let mailbox = DevelopmentMailbox()
+    let service = MagicLinkService(
+      configuration: try configuration(), sender: mailbox,
+      store: store, sessions: AuthSessionManager(store: store))
+    for purpose in [MagicLinkPurpose.signIn, .recovery, .bootstrap] {
+      for replacement in [String?.none, "new@example.com"] {
+        let id = UUID().uuidString
+        let oldEmail = "\(id)@example.com"
+        let account = try Account(id: id, name: "Member", verifiedEmail: oldEmail)
+        try await store.save(account)
+        try await service.requestLink(for: oldEmail, purpose: purpose, clientIdentity: id)
+        let pending = try token(from: #require(await mailbox.allMessages().last?.message.text))
+        let newEmail = replacement.map { "\(id)-\($0)" }
+        try await store.save(Account(id: id, name: "Member", verifiedEmail: newEmail))
+        #expect(try await store.account(verifiedEmail: oldEmail) == nil)
+        if let newEmail { #expect(try await store.account(verifiedEmail: newEmail)?.id == id) }
+        await #expect(throws: AuthError.invalidCredential) {
+          try await service.consume(token: pending)
+        }
+        let count = await mailbox.allMessages().count
+        try await service.requestLink(for: oldEmail, purpose: .signIn, clientIdentity: id)
+        #expect(await mailbox.allMessages().count == count)
+      }
+    }
+    try await database.remove()
+  }
   @Test func bootstrapIsVerifiedSingleUseAndEnumerationResistant() async throws {
     let date = MutableDate(Date(timeIntervalSince1970: 2_000))
     let testDatabase = try await TestDatabase.sqlite()

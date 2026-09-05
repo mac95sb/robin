@@ -224,10 +224,6 @@ public struct BuildPipeline {
       }
       let body = try HTMLRenderer.render(root, styles: styles.className(for:))
       var metadata = application.metadata.merging(page: page.metadata)
-      var schemas: Set<String> = []
-      for data in metadata.structuredData where !schemas.insert(data.schemaName).inserted {
-        throw BuildError.duplicateStructuredData(data.schemaName)
-      }
       var referencedAssets = Set(
         referencedAssetPaths(in: originalRoot, references: assets.references))
       metadata = try processedMetadata(
@@ -272,6 +268,15 @@ public struct BuildPipeline {
     "assets/\(name)-\(ContentDigest.sha256(bytes).prefix(12)).\(suffix)"
   }
 
+  package static func serverDocument(body: String, metadata: Metadata, css: String) throws -> String
+  {
+    var referencedAssets: Set<String> = []
+    let metadata = try processedMetadata(metadata, assets: [:], referencedAssets: &referencedAssets)
+    return try document(
+      body: body, metadata: metadata, stylesheets: [], script: nil,
+      additionalHeadElements: css.isEmpty ? [] : ["<style data-robin-style>\(css)</style>"])
+  }
+
   private static func document(
     body: String,
     metadata: Metadata,
@@ -279,6 +284,10 @@ public struct BuildPipeline {
     script: ResourceReference?,
     additionalHeadElements: [String]
   ) throws -> String {
+    var schemas: Set<String> = []
+    for data in metadata.structuredData where !schemas.insert(data.schemaName).inserted {
+      throw BuildError.duplicateStructuredData(data.schemaName)
+    }
     let language = HTMLRenderer.escape(metadata.language ?? "en")
     let direction = LocalizationFormatter(locale: metadata.language ?? "en").direction.rawValue
     var head =

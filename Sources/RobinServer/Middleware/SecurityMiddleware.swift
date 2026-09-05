@@ -26,13 +26,17 @@ extension Middleware {
         )
       }
 
+      let hasTrustedOrigin = origin.map(policy.allowedOrigins.contains) == true
+
       if request.method.rawValue.caseInsensitiveCompare("OPTIONS") == .orderedSame, origin != nil {
         var response = Response(status: HTTPResponse.Status(code: 204))
         applyHeaders(to: &response, policy: policy, origin: origin, requestID: context.requestID)
         return response
       }
 
-      if Self.requiresCSRF(request, sessionCookieName: policy.sessionCookieName) {
+      if !hasTrustedOrigin
+        && Self.requiresCSRF(request, sessionCookieName: policy.sessionCookieName)
+      {
         let header = request.header(Self.csrfHeader)
         guard let cookie = request.cookie(named: policy.csrfCookieName), header == cookie else {
           return secured(
@@ -111,6 +115,12 @@ extension Middleware {
   ) {
     response.head.headerFields[requestIDHeader] = requestID
     response.head.headerFields[contentSecurityPolicyHeader] = policy.contentSecurityPolicy
+    if policy.contentSecurityPolicy == SecurityPolicy().contentSecurityPolicy,
+      let hash = response.compiledStyleHash
+    {
+      response.head.headerFields[contentSecurityPolicyHeader] =
+        policy.contentSecurityPolicy + "; style-src 'self' '\(hash)'"
+    }
     response.head.headerFields[frameOptionsHeader] = "DENY"
     response.head.headerFields[contentTypeOptionsHeader] = "nosniff"
     response.head.headerFields[referrerPolicyHeader] = "strict-origin-when-cross-origin"

@@ -1,36 +1,3 @@
-import Foundation
-
-/// The SQL dialect used to render a statement.
-public enum SQLDialect: Equatable, Sendable {
-  /// SQLite SQL with question-mark bindings.
-  case sqlite
-  /// PostgreSQL SQL with numbered bindings.
-  case postgres
-}
-
-/// A safe SQL identifier.
-public struct SQLIdentifier: Hashable, Sendable {
-  /// The unquoted identifier.
-  public let value: String
-
-  /// Creates an identifier containing letters, digits, or underscores.
-  ///
-  /// The first character must be a letter or underscore.
-  public init(_ value: String) throws {
-    guard let first = value.unicodeScalars.first,
-      first == "_" || CharacterSet.letters.contains(first),
-      value.unicodeScalars.allSatisfy({ $0 == "_" || CharacterSet.alphanumerics.contains($0) })
-    else { throw SQLStatementError.invalidIdentifier(value) }
-    self.value = value
-  }
-}
-
-/// Errors raised while constructing database-neutral SQL.
-public enum SQLStatementError: Error, Equatable, Sendable {
-  /// An identifier contained unsupported characters.
-  case invalidIdentifier(String)
-}
-
 /// A database-neutral SQL statement with typed bindings.
 public struct SQLStatement: ExpressibleByStringInterpolation, ExpressibleByStringLiteral, Sendable {
   enum Part: Sendable {

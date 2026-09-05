@@ -6,6 +6,28 @@ import Testing
 
 @Suite("Project diagnostics")
 struct ProjectDiagnosticsTests {
+  @Test func exportRejectsEscapingLinksWithoutDeletingExternalFiles() throws {
+    for path in [".robin", ".robin/build", ".robin/export"] {
+      let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+      defer { try? FileManager.default.removeItem(at: root) }
+      let project = root.appendingPathComponent("project")
+      let outside = root.appendingPathComponent("outside")
+      try FileManager.default.createDirectory(
+        at: outside.appendingPathComponent("build"), withIntermediateDirectories: true)
+      try FileManager.default.createDirectory(
+        at: outside.appendingPathComponent("export"), withIntermediateDirectories: true)
+      let marker = outside.appendingPathComponent("export/keep.txt")
+      try Data("keep".utf8).write(to: marker)
+      let link = project.appendingPathComponent(path)
+      try FileManager.default.createDirectory(
+        at: link.deletingLastPathComponent(), withIntermediateDirectories: true)
+      try FileManager.default.createSymbolicLink(at: link, withDestinationURL: outside)
+      #expect(throws: RobinCommandRunnerError.outputEscapesRobinRoot) {
+        try RobinCommandRunner.run(.export, at: project)
+      }
+      #expect(try Data(contentsOf: marker) == Data("keep".utf8))
+    }
+  }
   @Test func lintFindingsAreStructuredSourceLocatedAndActionable() throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     try FileManager.default.createDirectory(
@@ -70,6 +92,10 @@ struct ProjectDiagnosticsTests {
       "let old = FeatureFlag(\"old\", default: false, removalDate: .distantPast)".utf8
     ).write(to: root.appendingPathComponent("Sources/App/App.swift"))
 
-    #expect(ProjectDoctor.diagnose(at: root).contains { $0.code == "stale-feature-flag" })
+    let diagnostics = ProjectDoctor.diagnose(at: root)
+    #expect(diagnostics.contains { $0.code == "stale-feature-flag" })
+    for code in ["swift-language-mode", "strict-memory-safety", "warnings-as-errors"] {
+      #expect(diagnostics.contains { $0.code == code && $0.remediation != nil })
+    }
   }
 }

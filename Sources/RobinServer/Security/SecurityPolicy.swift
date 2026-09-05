@@ -5,6 +5,8 @@ public struct SecurityPolicy: Sendable {
   /// The maximum accepted request-body size.
   public let maximumBodyBytes: Int
   /// The Content-Security-Policy value added to responses.
+  /// The default policy also authorizes the exact CSS compiled for a server page by its hash.
+  /// Custom policies are emitted unchanged and must authorize any inline page styles themselves.
   public let contentSecurityPolicy: String
   /// The cookie containing the CSRF token.
   public let csrfCookieName: String

@@ -17,6 +17,9 @@ public enum RenderDiagnostic: Error, Equatable, Sendable {
   /// A responsive image source has a nonpositive intrinsic width.
   case invalidResponsiveImageWidth(Int)
 
+  /// A navigation attribute uses an unsupported or malformed URL.
+  case invalidURL(attribute: String, value: String)
+
   /// An element has style declarations that cannot be mapped to a generated class name.
   ///
   /// - Parameter element: The kind of element whose declarations could not be resolved.

@@ -68,6 +68,11 @@ let package = Package(
     .package(url: "https://github.com/swiftlang/swift-docc-plugin.git", from: "1.5.0"),
   ],
   targets: [
+    .executableTarget(
+      name: "RobinDocumentation",
+      dependencies: ["RobinBuild", "RobinCore", "RobinHTML", "RobinStyle"],
+      swiftSettings: upcomingFeatures
+    ),
     .target(
       name: "RobinCore",
       dependencies: [.product(name: "SystemPackage", package: "swift-system")],
@@ -75,7 +80,7 @@ let package = Package(
     ),
     .target(
       name: "RobinOwnershipValidation",
-      dependencies: [.product(name: "NIOCore", package: "swift-nio")],
+      dependencies: ["RobinData", "RobinJobs", .product(name: "NIOCore", package: "swift-nio")],
       swiftSettings: lowLevelFeatures
     ),
     .target(
@@ -172,11 +177,13 @@ let package = Package(
     .target(
       name: "RobinServer",
       dependencies: [
+        "RobinForms",
         "RobinBuild",
         "RobinCache",
         "RobinCore",
         "RobinHTML",
         "RobinRouting",
+        "RobinStyle",
         .product(name: "HTTPTypes", package: "swift-http-types"),
         .product(name: "StructuredFieldValues", package: "swift-http-structured-headers"),
         .product(name: "Logging", package: "swift-log"),
@@ -207,10 +214,13 @@ let package = Package(
         "RobinCore",
         "RobinData",
         "RobinEmail",
+        "RobinHTML",
+        "RobinRouting",
         "RobinServer",
         .product(name: "Crypto", package: "swift-crypto"),
         .product(name: "HTTPTypes", package: "swift-http-types"),
         .product(name: "WebAuthn", package: "swift-webauthn"),
+        .product(name: "NIOCore", package: "swift-nio"),
       ],
       swiftSettings: lowLevelFeatures
     ),
@@ -323,6 +333,8 @@ let package = Package(
       name: "RobinOwnershipValidationTests",
       dependencies: [
         "RobinOwnershipValidation",
+        "RobinData",
+        "RobinJobs",
         .product(name: "NIOCore", package: "swift-nio"),
       ],
       swiftSettings: upcomingFeatures
@@ -400,11 +412,13 @@ let package = Package(
     .testTarget(
       name: "RobinServerTests",
       dependencies: [
+        "RobinBuild",
         "RobinCache",
         "RobinCore",
         "RobinHTML",
         "RobinRouting",
         "RobinServer",
+        "RobinStyle",
         .product(name: "Crypto", package: "swift-crypto"),
         .product(name: "HTTPTypes", package: "swift-http-types"),
         .product(name: "NIOCore", package: "swift-nio"),
@@ -418,6 +432,7 @@ let package = Package(
       dependencies: [
         "RobinAuth", "RobinBuild", "RobinCore", "RobinData", "RobinEmail", "RobinHTML",
         "RobinServer",
+        .product(name: "Crypto", package: "swift-crypto"),
         .product(name: "HTTPTypes", package: "swift-http-types"),
         .product(name: "WebAuthn", package: "swift-webauthn"),
       ],
@@ -427,6 +442,7 @@ let package = Package(
       name: "RobinBuildTests",
       dependencies: [
         "RobinAuth", "RobinBuild", "RobinCore", "RobinHTML", "RobinStyle",
+        "RobinCache", "RobinContent", "RobinData", "RobinRouting", "RobinServer",
         .product(name: "Crypto", package: "swift-crypto"),
       ],
       resources: [.copy("Fixtures")],

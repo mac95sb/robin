@@ -29,6 +29,8 @@ public indirect enum Condition: Equatable, Hashable, Sendable {
   /// Applies while a disclosure or dialog is open.
   case open
   /// Applies when the element contains a descendant matching the selector.
+  /// Supports ASCII element, class and ID selectors, combinators, and nonfunctional state
+  /// pseudo-classes. Attribute selectors, escapes and functional pseudo-classes are rejected.
   case has(String)
   /// Applies at or above a tokenized container width.
   case containerMinimumWidth(BreakpointToken)

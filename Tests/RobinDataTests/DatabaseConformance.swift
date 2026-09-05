@@ -27,6 +27,23 @@ func runDatabaseConformance(_ database: any Database) async throws {
 
   #expect(try await repository.all() == [Record(id: 1, value: "kept")])
 
+  let (started, signal) = AsyncStream<Void>.makeStream()
+  let (held, release) = AsyncStream<Void>.makeStream()
+  let cancelled = Task {
+    try await database.transaction { connection in
+      try await connection.execute("INSERT INTO records(id, value) VALUES (\(3), \("cancelled"))")
+      signal.yield(())
+      // Stream cancellation ends normally; the database must still roll back before committing.
+      for await _ in held { break }
+    }
+  }
+  for await _ in started { break }
+  cancelled.cancel()
+  await #expect(throws: (any Error).self) { try await cancelled.value }
+  signal.finish()
+  release.finish()
+  #expect(try await repository.all() == [Record(id: 1, value: "kept")])
+
   let now = Date(timeIntervalSince1970: 100)
   let store = try await DatabaseKeyValueStore(database: database, now: { now })
   #expect(try await store.put(Data("one".utf8), forKey: "key", namespace: "a"))
@@ -52,6 +69,13 @@ func runDatabaseConformance(_ database: any Database) async throws {
     return results
   }
   #expect(winners.filter(\.self).count == 1)
+  let previous = try #require(try await store.value(forKey: "winner", namespace: "race", at: now))
+  #expect(
+    try await store.put(
+      Data("updated".utf8), forKey: "winner", namespace: "race", condition: .ifEqual(previous)))
+  #expect(
+    try await !store.put(
+      Data("stale".utf8), forKey: "winner", namespace: "race", condition: .ifEqual(previous)))
 
   #expect(
     try await store.put(

@@ -66,7 +66,8 @@ struct InitCommand: ParsableCommand {
   )
 
   @Argument(help: "The project name.") var projectName: String
-  @Option(name: .shortAndLong, help: "The project template.") var template = ProjectTemplate.ssr
+  @Option(name: .shortAndLong, help: "The project template.")
+  var template = ProjectTemplate.dashboard
   @Option(name: .customLong("templates"), help: "A custom templates directory.")
   var templatesDirectory: String?
 

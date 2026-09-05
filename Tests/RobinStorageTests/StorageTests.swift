@@ -73,13 +73,21 @@ struct StorageTests {
       for: key, operation: .download, expiresAt: date.addingTimeInterval(300))
 
     #expect(upload.method == "POST")
-    #expect(upload.formFields["key"]?.contains("tenant:4:acme/avatars/user.txt") == true)
+    let objectPath = try #require(upload.formFields["key"])
+    #expect(objectPath.hasPrefix("robin/") && objectPath.count == 70)
     #expect(upload.formFields["X-Amz-Signature"]?.count == 64)
     let policy = try #require(upload.formFields["Policy"].flatMap { Data(base64Encoded: $0) })
     #expect(String(decoding: policy, as: UTF8.self).contains("content-length-range"))
     #expect(download.method == "GET")
     #expect(download.url.absoluteString.contains("X-Amz-Signature="))
-    #expect(download.url.absoluteString.contains("tenant%3A4%3Aacme"))
+    #expect(download.url.path == "/uploads/\(objectPath)")
+    var paths = Set<String>()
+    for tenant in ["a//b", "a/b/", "a/../b", "a%2Fb", "日本語"] {
+      let scoped = try self.key(tenant: tenant)
+      let intent = try await storage.intent(
+        for: scoped, operation: .download, expiresAt: date.addingTimeInterval(300))
+      #expect(paths.insert(intent.url.path).inserted)
+    }
   }
 
   @Test func liveS3ProviderConformance() async throws {
@@ -92,8 +100,8 @@ struct StorageTests {
         accessKeyID: "robin-access", secretAccessKey: "robin-secret123",
         keyPrefix: "conformance-\(UUID().uuidString)"),
       now: { date })
-    let first = try key(tenant: "first")
-    let second = try key(tenant: "second")
+    let first = try key(tenant: "a//b")
+    let second = try key(tenant: "a/b/")
     let policy = StoragePolicy(contentTypes: ["text/plain"], maximumBytes: 5)
     _ = try await storage.put(
       StorageWrite(

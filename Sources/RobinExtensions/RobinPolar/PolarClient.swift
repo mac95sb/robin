@@ -5,98 +5,6 @@ import RobinCore
   import FoundationNetworking
 #endif
 
-/// A transport response used by ``PolarClient``.
-public struct PolarHTTPResponse: Sendable {
-  /// HTTP status code returned by Polar.
-  public let statusCode: Int
-  /// Complete response body.
-  public let body: Data
-
-  /// Creates a transport response.
-  public init(statusCode: Int, body: Data) {
-    self.statusCode = statusCode
-    self.body = body
-  }
-}
-
-/// The Polar API environment used by a client.
-public enum PolarEnvironment: Sendable {
-  /// Polar's production API.
-  case production
-  /// Polar's sandbox API.
-  case sandbox
-  /// A compatible custom API root, including the `/v1` path.
-  case custom(URL)
-
-  var url: URL {
-    switch self {
-    case .production: URL(string: "https://api.polar.sh/v1")!
-    case .sandbox: URL(string: "https://sandbox-api.polar.sh/v1")!
-    case .custom(let url): url
-    }
-  }
-}
-
-/// Input for a Polar checkout session.
-public struct PolarCheckoutRequest: Encodable, Sendable {
-  /// Product identifiers offered by the checkout.
-  public let products: [String]
-  /// Same-origin or absolute destination after a successful checkout.
-  public let successURL: URL
-  /// Optional verified customer email.
-  public let customerEmail: String?
-  /// Stable application account identifier used to reconcile the Polar customer.
-  public let externalCustomerID: String?
-  /// Non-sensitive values copied to the resulting customer.
-  public let customerMetadata: [String: String]
-
-  /// Creates a checkout request.
-  public init(
-    products: [String],
-    successURL: URL,
-    customerEmail: String? = nil,
-    externalCustomerID: String? = nil,
-    customerMetadata: [String: String] = [:]
-  ) throws {
-    guard !products.isEmpty, products.allSatisfy({ !$0.isEmpty }),
-      successURL.scheme == "https" || successURL.scheme == "http"
-    else { throw PolarError.invalidInput }
-    self.products = products
-    self.successURL = successURL
-    self.customerEmail = customerEmail
-    self.externalCustomerID = externalCustomerID
-    self.customerMetadata = customerMetadata
-  }
-}
-
-/// A created Polar checkout session.
-public struct PolarCheckout: Decodable, Equatable, Sendable {
-  /// Checkout identifier.
-  public let id: String
-  /// Current provider status.
-  public let status: String
-  /// Hosted checkout destination.
-  public let url: URL
-  /// Associated subscription identifier, when the checkout created one.
-  public let subscriptionID: String?
-}
-
-/// A Polar subscription projection used by Robin applications.
-public struct PolarSubscription: Decodable, Equatable, Sendable {
-  /// Subscription identifier.
-  public let id: String
-  /// Current provider status.
-  public let status: String
-  /// Subscribed product identifier.
-  public let productID: String
-  /// Polar customer identifier.
-  public let customerID: String
-  /// Whether cancellation is scheduled at the current period boundary.
-  public let cancelAtPeriodEnd: Bool
-  /// Current billing-period end, when supplied by Polar.
-  public let currentPeriodEnd: Date?
-}
-
 /// Minimal typed client for Polar checkout and subscription operations.
 public struct PolarClient: Sendable {
   /// Request execution supplied by URLSession in production and replaceable in tests.
@@ -167,24 +75,11 @@ public struct PolarClient: Sendable {
       throw PolarError.providerStatus(response.statusCode)
     }
     let decoder = JSONDecoder()
-    decoder.keyDecodingStrategy = .convertFromSnakeCase
     decoder.dateDecodingStrategy = .iso8601
     do { return try decoder.decode(Output.self, from: response.body) } catch {
       throw PolarError.invalidResponse
     }
   }
-}
-
-/// Polar client and webhook failures that are safe to surface without provider response bodies.
-public enum PolarError: Error, Equatable, Sendable {
-  /// Client configuration is incomplete or unsafe.
-  case invalidConfiguration
-  /// An operation received invalid input.
-  case invalidInput
-  /// Polar returned an unsuccessful status.
-  case providerStatus(Int)
-  /// Polar returned an unusable response.
-  case invalidResponse
 }
 
 private struct EmptyBody: Encodable {}

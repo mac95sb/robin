@@ -35,17 +35,23 @@ public struct PasskeyClientModule: Sendable {
   public let registration: Ceremony?
   /// Authentication ceremony, when enabled.
   public let authentication: Ceremony?
+  /// Reloads the current page after successful authentication when enabled.
+  public let reloadOnCompletion: Bool
 
   /// Creates the client module configuration.
   ///
   /// - Parameters:
   ///   - registration: The optional registration flow.
   ///   - authentication: The optional authentication flow.
+  ///   - reloadOnCompletion: Whether to refresh server-rendered account content on success.
   /// - Throws: ``AuthError/invalidConfiguration`` when neither flow is present.
-  public init(registration: Ceremony? = nil, authentication: Ceremony? = nil) throws {
+  public init(
+    registration: Ceremony? = nil, authentication: Ceremony? = nil, reloadOnCompletion: Bool = false
+  ) throws {
     guard registration != nil || authentication != nil else { throw AuthError.invalidConfiguration }
     self.registration = registration
     self.authentication = authentication
+    self.reloadOnCompletion = reloadOnCompletion
   }
 
   /// Returns the capability-scoped asset for a Robin build configuration.
@@ -64,7 +70,9 @@ public struct PasskeyClientModule: Sendable {
   private func source() throws -> String {
     let configuration = try String(
       decoding: JSONEncoder().encode(
-        Configuration(registration: registration, authentication: authentication)),
+        Configuration(
+          registration: registration, authentication: authentication,
+          reloadOnCompletion: reloadOnCompletion)),
       as: UTF8.self)
     return #"""
       const config=\#(configuration);
@@ -74,7 +82,7 @@ public struct PasskeyClientModule: Sendable {
       const csrf=()=>document.cookie.split("; ").find(value=>value.startsWith("robin-csrf="))?.split("=").slice(1).join("=");
       const request=async(url,body)=>{const token=csrf(),response=await fetch(url,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json",...(token?{"X-CSRF-Token":decodeURIComponent(token)}:{})},body:body===undefined?undefined:JSON.stringify(body)});if(!response.ok)throw new Error("passkey request failed");return response.status===204?null:response.json()};
       const prepare=options=>{options.challenge=bytes(options.challenge);if(options.user?.id)options.user.id=bytes(options.user.id);if(options.allowCredentials)options.allowCredentials.forEach(item=>item.id=bytes(item.id));return options};
-      const run=async(kind,flow)=>{try{const start=await request(flow.beginURL),credential=kind==="create"?await navigator.credentials.create({publicKey:prepare(start.options)}):await navigator.credentials.get({publicKey:prepare(start.options)});await request(flow.finishURL,{ceremonyID:start.id,credential:serialize(kind,credential)});dispatchEvent(new CustomEvent("robin:passkey-complete",{detail:{kind}}))}catch(error){const cancelled=error?.name==="NotAllowedError";dispatchEvent(new CustomEvent(cancelled?"robin:passkey-cancelled":"robin:passkey-error",{detail:{kind}}))}};
+      const run=async(kind,flow)=>{try{const start=await request(flow.beginURL),credential=kind==="create"?await navigator.credentials.create({publicKey:prepare(start.options)}):await navigator.credentials.get({publicKey:prepare(start.options)});await request(flow.finishURL,{ceremonyID:start.id,credential:serialize(kind,credential)});dispatchEvent(new CustomEvent("robin:passkey-complete",{detail:{kind}}));if(config.reloadOnCompletion)location.reload()}catch(error){const cancelled=error?.name==="NotAllowedError";dispatchEvent(new CustomEvent(cancelled?"robin:passkey-cancelled":"robin:passkey-error",{detail:{kind}}))}};
       for(const [kind,flow] of [["create",config.registration],["get",config.authentication]])if(flow)document.getElementById(flow.buttonID)?.addEventListener("click",()=>run(kind,flow));
       """#
   }
@@ -89,11 +97,14 @@ private struct Configuration: Encodable {
 
   let registration: Ceremony?
   let authentication: Ceremony?
+  let reloadOnCompletion: Bool
 
   init(
     registration: PasskeyClientModule.Ceremony?,
-    authentication: PasskeyClientModule.Ceremony?
+    authentication: PasskeyClientModule.Ceremony?,
+    reloadOnCompletion: Bool
   ) {
+    self.reloadOnCompletion = reloadOnCompletion
     self.registration = registration.map {
       Ceremony(buttonID: $0.buttonID, beginURL: $0.beginURL, finishURL: $0.finishURL)
     }

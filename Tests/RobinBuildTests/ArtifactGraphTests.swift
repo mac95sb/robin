@@ -5,6 +5,33 @@ import Testing
 
 @Suite("Deterministic build artifact graph")
 struct ArtifactGraphTests {
+  @Test func emptyGraphsRejectEscapingOutputLinksBeforeWriting() throws {
+    for path in [".robin", ".robin/build", ".robin/cache", ".robin/build/manifest.json"] {
+      let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+      defer { try? FileManager.default.removeItem(at: root) }
+      let project = root.appendingPathComponent("project")
+      let outside = root.appendingPathComponent("outside")
+      try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+      let marker = outside.appendingPathComponent("manifest.json")
+      try Data("untouched".utf8).write(to: marker)
+      let link = project.appendingPathComponent(path)
+      try FileManager.default.createDirectory(
+        at: link.deletingLastPathComponent(), withIntermediateDirectories: true)
+      try FileManager.default.createSymbolicLink(
+        at: link, withDestinationURL: path.hasSuffix(".json") ? marker : outside)
+      let layout = OutputLayout(projectRoot: project)
+      let expected =
+        path == ".robin/cache"
+        ? layout.path(for: .cache).appendingPathComponent("build", isDirectory: true)
+        : path.hasSuffix(".json")
+          ? layout.path(for: .build).appendingPathComponent("manifest.json")
+          : layout.path(for: .build)
+      #expect(throws: BuildError.outputEscapesRobinRoot(expected.path(percentEncoded: false))) {
+        try ArtifactGraph([]).materialize(in: layout)
+      }
+      #expect(try Data(contentsOf: marker) == Data("untouched".utf8))
+    }
+  }
   @Test func materializesContentAddressedArtifactsInDependencyOrder() throws {
     let projectRoot = FileManager.default.temporaryDirectory.appendingPathComponent(
       UUID().uuidString, isDirectory: true)

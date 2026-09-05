@@ -2,10 +2,16 @@ import RobinCore
 import ServiceContextModule
 
 private struct RequestIDContextKey: ServiceContextKey { typealias Value = String }
+
 private struct TenantContextKey: ServiceContextKey { typealias Value = TenantContext<String> }
+
 private struct SessionIDContextKey: ServiceContextKey { typealias Value = String }
+
 private struct PrincipalContextKey: ServiceContextKey { typealias Value = RequestContext.Principal }
+
 private struct JobContextKey: ServiceContextKey { typealias Value = RequestContext.Job }
+
+private struct ServicesContextKey: ServiceContextKey { typealias Value = ConfigurationValues }
 
 /// Read-only values scoped to one request.
 public struct RequestContext: Sendable {
@@ -83,13 +89,19 @@ public struct RequestContext: Sendable {
     propagated[SessionIDContextKey.self] = sessionID
     propagated[PrincipalContextKey.self] = principal
     propagated[JobContextKey.self] = job
+    propagated[ServicesContextKey.self] = services
     self.serviceContext = propagated
+  }
+
+  package static var currentServices: ConfigurationValues {
+    ServiceContext.current?[ServicesContextKey.self] ?? .init()
   }
 
   package func replacing(
     tenant: TenantContext<String>? = nil,
     sessionID: String? = nil,
-    principal: Principal? = nil
+    principal: Principal? = nil,
+    services: ConfigurationValues? = nil
   ) -> Self {
     Self(
       requestID: requestID,
@@ -99,7 +111,7 @@ public struct RequestContext: Sendable {
       job: job,
       clientAddress: clientAddress,
       deadline: deadline,
-      services: services,
+      services: services ?? self.services,
       serviceContext: serviceContext
     )
   }

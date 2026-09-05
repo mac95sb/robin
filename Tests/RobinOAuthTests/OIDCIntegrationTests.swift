@@ -7,6 +7,10 @@ import RobinOAuth
 import RobinServer
 import Testing
 
+#if canImport(FoundationNetworking)
+  import FoundationNetworking
+#endif
+
 @Suite("OpenID Connect integration")
 struct OIDCIntegrationTests {
   @Test func rejectsInsecureRemoteEndpoints() throws {

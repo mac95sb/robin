@@ -3,6 +3,18 @@ import Testing
 
 @Suite("Form")
 struct FormTests {
+  @Test func rejectsExecutableActionsForEveryMethod() throws {
+    for method in [RenderElement.Attribute.FormMethod.get, .post] {
+      for value in ["javascript:alert(1)", "java\rscript:alert(1)", "mailto:user@example.com"] {
+        #expect(throws: RenderDiagnostic.invalidURL(attribute: "action", value: value)) {
+          try HTMLRenderer.render(Form(action: value, method: method) { "Submit" })
+        }
+      }
+    }
+    #expect(
+      try HTMLRenderer.render(Form(action: "?save=true") { "Submit" }).contains(
+        "action=\"?save=true\""))
+  }
   @Test func formDefaultsToPostSubmission() throws {
     let form = try HTMLRenderer.render(
       Form(action: "/subscribe") { Input(name: "email", accessibilityLabel: "Email") }

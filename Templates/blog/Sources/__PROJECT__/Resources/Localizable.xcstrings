@@ -1,0 +1,72 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "about" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "About" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "À propos" } }
+      }
+    },
+    "aboutBody" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Robin keeps content, metadata, styles, and builds in Swift." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Robin réunit le contenu, les métadonnées, les styles et le build en Swift." } }
+      }
+    },
+    "benefits" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "What this starter demonstrates" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ce que démontre ce projet" } }
+      }
+    },
+    "footer" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Built with Robin — no raw HTML, CSS, or JavaScript." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Créé avec Robin — sans HTML, CSS ou JavaScript brut." } }
+      }
+    },
+    "home" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Home" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Accueil" } }
+      }
+    },
+    "intro" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Posts, metadata, localization, and static output in ordinary Swift." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Articles, métadonnées, localisation et sortie statique en Swift ordinaire." } }
+      }
+    },
+    "localizedRoutes" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Localized canonical routes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Routes canoniques localisées" } }
+      }
+    },
+    "ordinarySwift" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "A complete page is still ordinary Swift" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Une page complète reste du Swift ordinaire" } }
+      }
+    },
+    "structuredMetadata" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Structured data and social metadata" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Données structurées et métadonnées sociales" } }
+      }
+    },
+    "title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The __PROJECT__ blog" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le blog __PROJECT__" } }
+      }
+    },
+    "typedComponents" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Typed, semantic components" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Composants typés et sémantiques" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

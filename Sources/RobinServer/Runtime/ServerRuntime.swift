@@ -13,12 +13,6 @@ import RobinHTML
 import RobinRouting
 import ServiceLifecycle
 
-/// Errors raised before a persistent server can start.
-public enum ServerStartupError: Error, Equatable, Sendable {
-  /// A pages-only application must be built as static output instead.
-  case staticApplication
-}
-
 /// Resolves the client address from normalized request metadata and the direct peer address.
 ///
 /// The default resolver returns the direct peer. Supply a custom resolver only when the server is
@@ -31,7 +25,7 @@ public actor ServerRuntime {
   private let group: MultiThreadedEventLoopGroup
   private let threadPool: NIOThreadPool
   private let channel: Channel
-  private let quiescingHelper: ServerQuiescingHelper
+  private var quiescingHelper: ServerQuiescingHelper?
   private var isShutDown = false
 
   private init(
@@ -92,7 +86,7 @@ public actor ServerRuntime {
     )
     let sslContext = try tls?.makeContext()
     let group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-    let quiescingHelper = ServerQuiescingHelper(group: group)
+    var quiescingHelper: ServerQuiescingHelper? = ServerQuiescingHelper(group: group)
     let threadPool = NIOThreadPool(numberOfThreads: min(4, System.coreCount))
     threadPool.start()
     let fileIO = NonBlockingFileIO(threadPool: threadPool)
@@ -106,10 +100,10 @@ public actor ServerRuntime {
     do {
       let channel = try await ServerBootstrap(group: group)
         .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
-        .serverChannelInitializer { channel in
+        .serverChannelInitializer { [quiescingHelper] channel in
           channel.eventLoop.makeCompletedFuture {
             try channel.pipeline.syncOperations.addHandler(
-              quiescingHelper.makeServerChannelHandler(channel: channel)
+              quiescingHelper!.makeServerChannelHandler(channel: channel)
             )
           }
         }
@@ -169,9 +163,10 @@ public actor ServerRuntime {
         group: group,
         threadPool: threadPool,
         channel: channel,
-        quiescingHelper: quiescingHelper
+        quiescingHelper: quiescingHelper!
       )
     } catch {
+      quiescingHelper = nil
       try await group.shutdownGracefully()
       try await threadPool.shutdownGracefully()
       throw error
@@ -199,7 +194,7 @@ public actor ServerRuntime {
           requestID: UUID().uuidString.lowercased(),
           clientAddress: clientAddressResolver(
             request.head,
-            channel.remoteAddress?.description
+            channel.remoteAddress?.ipAddress
           )
         )
         return channel.eventLoop.makeFutureWithTask {
@@ -294,8 +289,9 @@ public actor ServerRuntime {
     guard !isShutDown else { return }
     isShutDown = true
     let promise = channel.eventLoop.makePromise(of: Void.self)
-    quiescingHelper.initiateShutdown(promise: promise)
+    quiescingHelper?.initiateShutdown(promise: promise)
     try await promise.futureResult.get()
+    quiescingHelper = nil
     try await group.shutdownGracefully()
     try await threadPool.shutdownGracefully()
   }
@@ -308,9 +304,9 @@ extension ServerRuntime: Service {
   public func run() async throws {
     try await withTaskCancellationHandler {
       try await channel.closeFuture.get()
-      try await shutdown()
-    } onCancel: {
-      quiescingHelper.initiateShutdown(promise: nil)
+    } onCancel: { [weak quiescingHelper] in
+      quiescingHelper?.initiateShutdown(promise: nil)
     }
+    try await shutdown()
   }
 }

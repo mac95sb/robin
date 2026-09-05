@@ -19,6 +19,7 @@ public actor AuthStore {
   ///   - now: The time used to read an existing email index.
   /// - Throws: ``AuthError/invalidInput`` when another account owns the verified email, or an
   ///   encoding or durable-storage error.
+  /// Previously associated email addresses remain reserved to their original account.
   public func save(_ account: Account, at now: Date = Date()) async throws {
     if let email = account.verifiedEmail.flatMap(normalizedEmail) {
       let key = authDigest(email)
@@ -86,7 +87,10 @@ public actor AuthStore {
       let data = try await store.value(
         forKey: authDigest(email), namespace: "robin.auth.email-index", at: now)
     else { return nil }
-    return try await account(id: String(decoding: data, as: UTF8.self), at: now)
+    guard let account = try await account(id: String(decoding: data, as: UTF8.self), at: now),
+      account.verifiedEmail.flatMap(normalizedEmail) == email
+    else { return nil }
+    return account
   }
 
   package func saveCredential(_ credential: PasskeyCredential) async throws -> Bool {

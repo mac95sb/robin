@@ -5,6 +5,7 @@ package enum RobinCommandRunnerError: Error, Equatable, CustomStringConvertible,
   case commandFailed(String, Int32)
   case buildBudgetExceeded(actualMilliseconds: Int, budgetMilliseconds: Int)
   case missingBuildOutput
+  case outputEscapesRobinRoot
 
   package var description: String {
     switch self {
@@ -14,6 +15,8 @@ package enum RobinCommandRunnerError: Error, Equatable, CustomStringConvertible,
       "The build took \(actual) ms, exceeding the configured \(budget) ms budget."
     case .missingBuildOutput:
       "No .robin/build output exists; run `robin build` first."
+    case .outputEscapesRobinRoot:
+      "Build and export paths must remain inside the project's .robin directory."
     }
   }
 }
@@ -61,10 +64,13 @@ package struct RobinCommandRunner {
     case .export:
       let layout = OutputLayout(projectRoot: projectRoot)
       let source = layout.path(for: .build)
+      let destination = layout.path(for: .export)
+      guard layout.contains(source), layout.contains(destination) else {
+        throw RobinCommandRunnerError.outputEscapesRobinRoot
+      }
       guard FileManager.default.fileExists(atPath: source.path) else {
         throw RobinCommandRunnerError.missingBuildOutput
       }
-      let destination = layout.path(for: .export)
       if FileManager.default.fileExists(atPath: destination.path) {
         try FileManager.default.removeItem(at: destination)
       }

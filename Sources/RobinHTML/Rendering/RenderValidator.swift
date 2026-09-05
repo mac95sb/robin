@@ -1,3 +1,4 @@
+import Foundation
 @_spi(Rendering) import RobinCore
 
 /// Validates resolved component trees before rendering.
@@ -26,6 +27,17 @@ struct RenderValidator {
       var names = Set<String>()
       for attribute in element.attributes {
         let name = attribute.validationName
+        switch attribute {
+        case .href(let value):
+          if !safeURL(value, schemes: ["http", "https", "mailto", "tel"]) {
+            diagnostics.append(.invalidURL(attribute: name, value: value))
+          }
+        case .action(let value):
+          if !safeURL(value, schemes: ["http", "https"]) {
+            diagnostics.append(.invalidURL(attribute: name, value: value))
+          }
+        default: break
+        }
         if !names.insert(name).inserted {
           diagnostics.append(.duplicateAttribute(element: element.kind, name: name))
         }
@@ -47,6 +59,14 @@ struct RenderValidator {
       }
     }
   }
+
+  private static func safeURL(_ value: String, schemes: Set<String>) -> Bool {
+    guard !value.unicodeScalars.contains(where: { $0.value < 0x20 || $0.value == 0x7F }),
+      !value.contains("\\"),
+      let components = URLComponents(string: value.trimmingCharacters(in: .whitespaces))
+    else { return false }
+    return components.scheme.map { schemes.contains($0.lowercased()) } ?? true
+  }
 }
 
 extension RenderElement.Attribute {
@@ -56,6 +76,12 @@ extension RenderElement.Attribute {
     case .buttonType, .inputType: "type"
     case .name: "name"
     case .value: "value"
+    case .required: "required"
+    case .minimumLength: "minlength"
+    case .maximumLength: "maxlength"
+    case .accessibilityDescribedBy: "aria-describedby"
+    case .accessibilityInvalid: "aria-invalid"
+    case .multipartEncoding: "enctype"
     case .accessibilityLabel: "aria-label"
     case .href: "href"
     case .source: "src"

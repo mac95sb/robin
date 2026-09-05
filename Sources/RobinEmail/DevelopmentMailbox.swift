@@ -1,15 +1,5 @@
 import Foundation
 
-/// A captured development delivery.
-public struct DevelopmentEmail: Sendable {
-  /// Message shown by the preview.
-  public let message: EmailMessage
-  /// SMTP/provider envelope used for delivery.
-  public let envelope: EmailEnvelope
-  /// Capture time.
-  public let receivedAt: Date
-}
-
 /// Bounded in-process mailbox for development and tests.
 public actor DevelopmentMailbox: EmailSender {
   private let capacity: Int

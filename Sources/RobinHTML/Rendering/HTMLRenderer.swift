@@ -136,6 +136,12 @@ extension RenderElement.Attribute {
     case .buttonType, .inputType: "type"
     case .name: "name"
     case .value: "value"
+    case .required: "required"
+    case .minimumLength: "minlength"
+    case .maximumLength: "maxlength"
+    case .accessibilityDescribedBy: "aria-describedby"
+    case .accessibilityInvalid: "aria-invalid"
+    case .multipartEncoding: "enctype"
     case .accessibilityLabel: "aria-label"
     case .href: "href"
     case .source: "src"
@@ -205,7 +211,11 @@ extension RenderElement.Attribute {
     case .formMethod(let value): value.rawValue
     case .accessibilityHidden: "true"
     case .imageRole: "img"
-    case .open: nil
+    case .minimumLength(let value), .maximumLength(let value): String(value)
+    case .accessibilityDescribedBy(let value): value
+    case .accessibilityInvalid: "true"
+    case .multipartEncoding: "multipart/form-data"
+    case .open, .required: nil
     }
   }
 }

@@ -6,6 +6,26 @@ import Testing
 
 @Suite("SMTP transport")
 struct SMTPTests {
+  @Test(arguments: [
+    String(repeating: "x", count: 4_097),
+    Array(repeating: "220-more", count: 130).joined(separator: "\r\n"),
+  ])
+  func rejectsOversizedResponses(_ greeting: String) async throws {
+    let server = try await SMTPTestServer(credentials: nil, greeting: greeting)
+    let address = try EmailAddress("sender@example.com")
+    let sender = SMTPEmailSender(
+      configuration: .init(
+        host: "127.0.0.1", port: server.port, security: .plain, defaultSender: address))
+    let message = try EmailMessage(
+      from: address, to: [address], subject: "Limits",
+      text: "Test", html: "<p>Test</p>")
+    await #expect(throws: SMTPError.responseTooLarge) {
+      try await sender.send(message, envelope: .init(sender: address, recipients: [address]))
+    }
+    try await sender.shutdown()
+    try await server.shutdown()
+  }
+
   @Test func sendsThroughLoopbackWithAndWithoutAuthentication() async throws {
     for credentials in [nil, SMTPConfiguration.Credentials(username: "user", password: "secret")] {
       let server = try await SMTPTestServer(credentials: credentials)
@@ -41,7 +61,9 @@ private final class SMTPTestServer: @unchecked Sendable {
   private let group: MultiThreadedEventLoopGroup
   private let channel: Channel
 
-  init(credentials: SMTPConfiguration.Credentials?) async throws {
+  init(credentials: SMTPConfiguration.Credentials?, greeting: String = "220 localhost ready")
+    async throws
+  {
     let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     self.group = group
     self.channel = try await ServerBootstrap(group: group)
@@ -50,7 +72,8 @@ private final class SMTPTestServer: @unchecked Sendable {
         channel.eventLoop.makeCompletedFuture {
           try channel.pipeline.syncOperations.addHandler(ByteToMessageHandler(TestLineCodec()))
           try channel.pipeline.syncOperations.addHandler(MessageToByteHandler(TestLineCodec()))
-          try channel.pipeline.syncOperations.addHandler(SMTPTestHandler(credentials: credentials))
+          try channel.pipeline.syncOperations.addHandler(
+            SMTPTestHandler(credentials: credentials, greeting: greeting))
         }
       }
       .bind(host: "127.0.0.1", port: 0).get()
@@ -70,15 +93,17 @@ private final class SMTPTestHandler: ChannelInboundHandler, @unchecked Sendable 
   private let authentication: String?
   private var authenticated = false
   private var receivingData = false
+  private let greeting: String
 
-  init(credentials: SMTPConfiguration.Credentials?) {
+  init(credentials: SMTPConfiguration.Credentials?, greeting: String) {
+    self.greeting = greeting
     self.authentication = credentials.map {
       "AUTH PLAIN \(Data("\0\($0.username)\0\($0.password)".utf8).base64EncodedString())"
     }
   }
 
   func channelActive(context: ChannelHandlerContext) {
-    context.writeAndFlush(wrapOutboundOut("220 localhost ready"), promise: nil)
+    context.writeAndFlush(wrapOutboundOut(greeting), promise: nil)
   }
 
   func channelRead(context: ChannelHandlerContext, data: NIOAny) {

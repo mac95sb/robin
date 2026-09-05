@@ -35,6 +35,10 @@ public struct ContentReferenceValidator: Sendable {
     }
   }
 
+  package static func isSafeLinkDestination(_ destination: String) -> Bool {
+    localPath(destination, relativeTo: "/") != nil || isAllowedExternal(destination)
+  }
+
   private static func localPath(_ destination: String, relativeTo sourceRoute: String) -> String? {
     if destination.hasPrefix("#") { return normalized(sourceRoute) }
     guard let components = URLComponents(string: destination), components.scheme == nil,

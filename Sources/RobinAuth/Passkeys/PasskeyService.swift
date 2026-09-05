@@ -10,6 +10,9 @@ public struct PasskeyService: Sendable {
   private let now: @Sendable () -> Date
   private let limiter: AuthRateLimiter
   private let attemptLimit: Int
+  package var origin: String {
+    configuration.origin.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+  }
   private let audit: @Sendable (AuthAuditEvent) -> Void
 
   /// Creates the built-in passkey service.

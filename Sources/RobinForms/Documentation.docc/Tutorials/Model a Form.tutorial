@@ -6,11 +6,15 @@
   @Section(title: "Declare fields") {
     @Steps {
       @Step {
-        Add ``Field`` properties to the request model and use ``FileField`` for uploads.
+        Apply ``FormModel()`` to a structure and declare default-valued ``Field`` properties.
+        Set stable names, labels, required values, length constraints, and custom validation.
+        Use ``FileField`` for uploads.
       }
 
       @Step {
-        Handle ``FieldValidationError`` as a client input error.
+        Render projected fields inside `RobinHTML.Form`. Decode submissions with RobinServer's
+        `request.form`, then call `validated()` before changing stored data. Redisplay invalid
+        forms with ``FormErrorSummary`` and projected fields to preserve entered text.
       }
     }
   }

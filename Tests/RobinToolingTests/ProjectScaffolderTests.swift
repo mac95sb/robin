@@ -24,7 +24,7 @@ struct ProjectScaffolderTests {
     #expect(package.contains("name: \"Example\""))
     #expect(!package.contains("__PROJECT__"))
     #expect(package.contains("https://github.com/mac95sb/robin.git"))
-    #expect(!package.contains(#".package(path: "../..")"#))
+    #expect(!package.contains(#".package(name: "robin", path: "../..")"#))
     #expect(
       !FileManager.default.fileExists(atPath: destination.appendingPathComponent(".build").path))
     #expect(
@@ -35,20 +35,20 @@ struct ProjectScaffolderTests {
     #expect(!app.contains("applicationMode"))
     #expect(app.contains("@main"))
     #expect(app.contains("struct Site: App"))
-    #expect(app.contains("RobinApplication.run(Self())"))
+    #expect(app.contains("RobinApplication.run("))
     #expect(
       !FileManager.default.fileExists(
         atPath: destination.appendingPathComponent("Sources/Example/RobinMain.swift").path
       ))
-    if template == .api {
+    if template == .apiService {
       #expect(!app.contains("metadata"))
       let controller = try String(
         contentsOf: destination.appendingPathComponent(
-          "Sources/Example/Controllers/ProjectController.swift"), encoding: .utf8)
+          "Sources/Example/Controllers/TodoController.swift"), encoding: .utf8)
       #expect(controller.contains("RouteDefinition.path"))
       #expect(!controller.contains("RouteDefinition<Int>"))
-      #expect(controller.contains("struct ProjectController: Controller"))
-      #expect(controller.contains("let route = \"projects\""))
+      #expect(controller.contains("struct TodoController: Controller"))
+      #expect(controller.contains("let route = \"todos\""))
       #expect(!controller.contains("RouteDefinition<Void>"))
     } else {
       #expect(app.contains("LocalizedPages("))
@@ -67,20 +67,34 @@ struct ProjectScaffolderTests {
             "Sources/Example/SiteLocalization.swift"
           ).path))
     }
-    if template == .api {
+    if template == .apiService {
       #expect(app.contains("RouteGroup("))
       let controller = try String(
         contentsOf: destination.appendingPathComponent(
           "Sources/Example/Controllers/HealthController.swift"), encoding: .utf8)
       #expect(controller.contains("let route = \"health\""))
       #expect(!controller.contains("typealias"))
-    } else if template == .ssr {
+    } else if template == .dashboard {
       #expect(app.contains("AppController(notes: notes)"))
+      #expect(app.contains(".authSessions("))
       let controller = try String(
         contentsOf: destination.appendingPathComponent(
           "Sources/Example/Controllers/AppController.swift"), encoding: .utf8)
       #expect(controller.contains("struct AppController: Controller"))
       #expect(controller.contains("RouteDefinition.path(\"system\", \"health\")"))
+    } else if template == .blog {
+      let page = try String(
+        contentsOf: destination.appendingPathComponent(
+          "Sources/Example/Views/Pages/HomePage.swift"), encoding: .utf8)
+      #expect(page.contains("MarkdownContentParser.parse"))
+    } else if template == .realtimeChat {
+      #expect(app.contains("ChatController(messages: messages)"))
+      #expect(app.contains(".authSessions("))
+      let controller = try String(
+        contentsOf: destination.appendingPathComponent(
+          "Sources/Example/Controllers/ChatController.swift"), encoding: .utf8)
+      #expect(controller.contains("WebSocketSession"))
+      #expect(controller.contains("messages.append"))
     }
   }
 
@@ -89,7 +103,7 @@ struct ProjectScaffolderTests {
     #expect(throws: ProjectScaffolderError.invalidProjectName("../escape")) {
       try ProjectScaffolder.create(
         name: "../escape",
-        template: .ssr,
+        template: .dashboard,
         templatesDirectory: repositoryRoot.appendingPathComponent("Templates"),
         projectRoot: root
       )
@@ -99,7 +113,7 @@ struct ProjectScaffolderTests {
     #expect(throws: ProjectScaffolderError.self) {
       try ProjectScaffolder.create(
         name: "Existing",
-        template: .ssr,
+        template: .dashboard,
         templatesDirectory: repositoryRoot.appendingPathComponent("Templates"),
         projectRoot: root
       )
@@ -109,7 +123,7 @@ struct ProjectScaffolderTests {
   @Test func findsTemplatesFromTheSourceCheckout() throws {
     let destination = try ProjectScaffolder.create(
       name: "Example",
-      template: .static,
+      template: .blog,
       templatesDirectory: nil,
       projectRoot: temporaryDirectory(),
       environment: [:]

@@ -6,6 +6,13 @@ Add passwordless authentication and authorization to a Robin server application.
 
 RobinAuth uses passkeys as its built-in authentication method. ``PasskeyService`` delegates WebAuthn validation to `swift-webauthn` and stores challenges, credentials, accounts, and sessions through ``AuthStore``. Use ``PasskeyClientModule`` only on pages that run a passkey ceremony.
 
+Register ``PasskeyController`` for the browser sign-up, sign-in, and sign-out endpoints. The
+`dashboard` and `realtime-chat` starters show this composition with durable SQLite sessions.
+Open their local pages at `http://localhost:8080/en`; change the relying-party configuration and
+allowed origins together before deployment. Passkey verification requires JavaScript and a
+browser authenticator. Existing authenticated sessions continue to support ordinary HTML requests
+with JavaScript disabled; email magic links provide an optional alternative sign-in mechanism.
+
 Create one store and session issuer, then share them with the passkey service:
 
 ```swift
@@ -34,6 +41,7 @@ Apply `Middleware.authSessions(_:store:cookieName:)` before `Middleware.authoriz
 
 ### Passkeys
 
+- ``PasskeyController``
 - ``PasskeyConfiguration``
 - ``PasskeyService``
 - ``PasskeyRegistrationCeremony``

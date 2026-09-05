@@ -1,8 +1,11 @@
 import Foundation
 import HTTPTypes
+import RobinBuild
 import RobinCore
-import RobinHTML
+import RobinForms
+@_spi(Rendering) import RobinHTML
 import RobinRouting
+@_spi(Rendering) import RobinStyle
 import ServiceContextModule
 import Tracing
 
@@ -62,7 +65,23 @@ public struct ApplicationResponder: Sendable {
     errorResponses: ErrorResponses = .init(),
     transportCapabilities: TransportCapabilities
   ) throws {
-    let pages: [any ServerRoute] = application.pages.pages.map { RegisteredPageRoute($0) }
+    let pageRegistrations = application.pages.pages
+    let pages: [any ServerRoute]
+    if pageRegistrations.isEmpty {
+      pages = []
+    } else {
+      let theme: Theme
+      if let configured = application.theme as? Theme {
+        theme = configured
+      } else if application.theme is DefaultApplicationTheme {
+        theme = .default
+      } else {
+        throw BuildError.unsupportedTheme
+      }
+      pages = pageRegistrations.map {
+        RegisteredPageRoute($0, metadata: application.metadata, theme: theme)
+      }
+    }
     let routes: [any ServerRoute] = try flattenedApplicationRoutes(application.routes.routes).map {
       registration in
       guard let route = registration.route as? any ServerRoute else {
@@ -115,6 +134,9 @@ public struct ApplicationResponder: Sendable {
             request: request,
             context: context
           )
+        } catch is FieldValidationError, is MultipartError {
+          return errorResponse(
+            "Invalid form submission", status: .badRequest, request: request, context: context)
         } catch is CancellationError {
           return errorResponse(
             "Request cancelled", status: HTTPResponse.Status(code: 499), request: request,
@@ -131,22 +153,24 @@ public struct ApplicationResponder: Sendable {
     request: Request,
     context: RequestContext
   ) async throws -> Response {
-    guard index < middleware.count else {
-      for route in routes {
-        if let response = try await route.respond(to: request, context: context, api: api) {
-          return response
+    try await ServiceContext.withValue(context.serviceContext) {
+      guard index < middleware.count else {
+        for route in routes {
+          if let response = try await route.respond(to: request, context: context, api: api) {
+            return response
+          }
         }
+        return errorResponses.notFound(request, context)
       }
-      return errorResponses.notFound(request, context)
-    }
 
-    return try await middleware[index].respond(
-      to: request,
-      context: context,
-      next: .init { request, context in
-        try await run(index + 1, request: request, context: context)
-      }
-    )
+      return try await middleware[index].respond(
+        to: request,
+        context: context,
+        next: .init { request, context in
+          try await run(index + 1, request: request, context: context)
+        }
+      )
+    }
   }
 
   private func errorResponse(
@@ -221,13 +245,17 @@ private struct GroupedServerRoute: APIRoute, ServerRoute {
 private struct RegisteredPageRoute: ServerRoute {
   let path: String
   let metadata = RouteMetadata()
-  private let render: @Sendable () throws -> String
+  private let render: @Sendable () throws -> Response
   let requiredCapabilities: TransportCapabilities = []
 
-  init(_ page: any Page) {
+  init(_ page: any Page, metadata: Metadata, theme: Theme) {
     precondition(page.path.first == "/")
     self.path = page.path
-    self.render = { try HTMLRenderer.render(page) }
+    self.render = {
+      try Response.html(metadata: metadata.merging(page: page.metadata), theme: theme) {
+        page.body
+      }
+    }
   }
 
   var pattern: RoutePattern {
@@ -241,7 +269,7 @@ private struct RegisteredPageRoute: ServerRoute {
   ) async throws -> Response? {
     guard request.method == .get else { return nil }
     guard request.path == path else { return nil }
-    return try .html(render())
+    return try render()
   }
 }
 

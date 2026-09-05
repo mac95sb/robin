@@ -7,6 +7,10 @@ import Testing
 
 @testable import RobinServer
 
+#if canImport(FoundationNetworking)
+  import FoundationNetworking
+#endif
+
 @Suite("Invocation runtimes")
 struct InvocationRuntimeTests {
   private struct Echo: Codable, Equatable, Sendable { let value: String }
@@ -54,6 +58,23 @@ struct InvocationRuntimeTests {
     #expect(Array(lambdaResponse.body.utf8) == wasiResponse.body.bufferedBytes)
     #expect(Array(lambdaResponse.body.utf8) == persistentResponse.body.bufferedBytes)
     #expect(lambdaResponse.isBase64Encoded == false)
+
+    let listener = try await ServerRuntime.start(TestApplication(), port: 0)
+    do {
+      let address = try #require(await listener.localAddress)
+      var request = URLRequest(url: URL(string: "http://127.0.0.1:\(address.port)/api/echo")!)
+      request.httpMethod = "POST"
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+      request.httpBody = Data(decoded.request.body)
+      request.timeoutInterval = 5
+      let (body, head) = try await URLSession.shared.data(for: request)
+      #expect((head as? HTTPURLResponse)?.statusCode == lambdaResponse.statusCode)
+      #expect(Array(body) == persistentResponse.body.bufferedBytes)
+      try await listener.shutdown()
+    } catch {
+      try? await listener.shutdown()
+      throw error
+    }
 
     let missingEvent = InvocationEvent(
       id: "missing",

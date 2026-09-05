@@ -4,3 +4,4 @@
 hk.local.pkl
 mise.local.toml
 .DS_Store
+!Templates/*/AGENTS.md

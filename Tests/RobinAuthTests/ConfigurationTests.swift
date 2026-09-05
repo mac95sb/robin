@@ -18,9 +18,9 @@ struct ConfigurationTests {
       TrustedProxyPolicy().clientAddress(
         remoteAddress: "proxy", forwardedFor: "203.0.113.9") == "proxy")
     #expect(
-      TrustedProxyPolicy(trustedAddresses: ["proxy"])
-        .clientAddress(remoteAddress: "proxy", forwardedFor: "203.0.113.9, 198.51.100.4")
-        == "203.0.113.9")
+      TrustedProxyPolicy(trustedAddresses: ["127.0.0.1"])
+        .clientAddress(remoteAddress: "127.0.0.1", forwardedFor: "203.0.113.9, 198.51.100.4")
+        == "198.51.100.4")
     #expect(throws: AuthError.invalidConfiguration) {
       try PasskeyConfiguration(
         relyingPartyID: "example.com",
@@ -35,5 +35,20 @@ struct ConfigurationTests {
         sender: EmailAddress("auth@example.com"),
         signingKey: Secret(Data(repeating: 0, count: 31)))
     }
+  }
+
+  @Test func proxyChainsStopAtTheFirstUntrustedHop() {
+    let policy = TrustedProxyPolicy(trustedAddresses: ["127.0.0.1", "::1"])
+    #expect(
+      policy.clientAddress(remoteAddress: "127.0.0.1", forwardedFor: "203.0.113.9, ::1")
+        == "203.0.113.9")
+    #expect(
+      policy.clientAddress(remoteAddress: "198.51.100.4", forwardedFor: "203.0.113.9")
+        == "198.51.100.4")
+    for header in ["203.0.113.9,", "203.0.113.9, bad", "203.0.113.9, 127.0.0.1:80"] {
+      #expect(policy.clientAddress(remoteAddress: "127.0.0.1", forwardedFor: header) == "127.0.0.1")
+    }
+    #expect(
+      policy.clientAddress(remoteAddress: "::1", forwardedFor: "2001:db8::1") == "2001:db8::1")
   }
 }

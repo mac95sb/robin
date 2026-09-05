@@ -67,7 +67,7 @@ public struct MarkdownContentParser {
       case is HTMLBlock:
         diagnostics.append(.rawHTMLRejected)
       case let directive as BlockDirective where directive.name == "Footnote":
-        let arguments = arguments(of: directive)
+        guard let arguments = arguments(of: directive, diagnostics: &diagnostics) else { continue }
         let id = arguments["id"] ?? ""
         if footnotes.updateValue(plainText(directive), forKey: id) == nil {
           footnoteOrder.append(id)
@@ -75,7 +75,7 @@ public struct MarkdownContentParser {
           diagnostics.append(.duplicateFootnote(id))
         }
       case let directive as BlockDirective where directive.name == "Admonition":
-        let arguments = arguments(of: directive)
+        guard let arguments = arguments(of: directive, diagnostics: &diagnostics) else { continue }
         let kind = AdmonitionKind(rawValue: (arguments["kind"] ?? "note").lowercased())
         guard let kind else {
           diagnostics.append(.unsupportedNode("Admonition kind '\(arguments["kind"] ?? "")'"))
@@ -88,7 +88,7 @@ public struct MarkdownContentParser {
               title: arguments["title"] ?? kind.rawValue.capitalized,
               body: plainText(directive))))
       case let directive as BlockDirective where directive.name == "Embed":
-        let arguments = arguments(of: directive)
+        guard let arguments = arguments(of: directive, diagnostics: &diagnostics) else { continue }
         let source = arguments["source"] ?? ""
         let host = URL(string: source)?.host
         if source.hasPrefix("https://"), let host, allowedEmbedHosts.contains(host) {
@@ -235,11 +235,17 @@ public struct MarkdownContentParser {
     }.joined(separator: " ")
   }
 
-  private static func arguments(of directive: BlockDirective) -> [String: String] {
-    Dictionary(
-      uniqueKeysWithValues: directive.argumentText.parseNameValueArguments().map {
-        ($0.name, $0.value)
+  private static func arguments(
+    of directive: BlockDirective, diagnostics: inout [ContentDiagnostic]
+  ) -> [String: String]? {
+    var result: [String: String] = [:]
+    for argument in directive.argumentText.parseNameValueArguments() {
+      guard result.updateValue(argument.value, forKey: argument.name) == nil else {
+        diagnostics.append(
+          .unsupportedNode("Duplicate \(directive.name) argument '\(argument.name)'"))
+        return nil
       }
-    )
+    }
+    return result
   }
 }
