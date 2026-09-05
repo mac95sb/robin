@@ -46,3 +46,6 @@ PostgreSQL and object-storage integration tests need their explicit test environ
 the default test run does not establish live-provider conformance.
 
 See the module DocC guides for deployment, security, native-first interaction, and persistence.
+
+Use the [Developer Testing Guide](DEVELOPER_TESTING_GUIDE.md) to try the framework and record
+the API changes you would like to make.
