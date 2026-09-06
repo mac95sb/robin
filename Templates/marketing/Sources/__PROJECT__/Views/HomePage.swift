@@ -25,7 +25,7 @@ struct HomePage: Page {
             .font(.body, color: .muted, on: .dark)
           Stack {
             Link(Site.documentationURL) { "Start building →" }.marketingAction()
-            Link("/#examples") { "See what ships ↓" }.marketingAction(primary: false)
+            Link(Site.homeURL + "#examples") { "See what ships ↓" }.marketingAction(primary: false)
           }.flex(wrap: .wrap, align: .center, gap: .md)
           Text { "Typed components · Deterministic CSS · Optional browser capabilities" }
             .margin(.zero).starterLink()

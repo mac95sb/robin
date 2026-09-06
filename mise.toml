@@ -60,6 +60,9 @@ python3 scripts/check-documentation.py --self-test
 python3 scripts/check-documentation.py
 swift run RobinDocumentation
 cp -R .robin/build/. .robin/site/
+(cd Templates/marketing && swift run --scratch-path .build/mise -- __PROJECT__ --github-pages)
+cp -R Templates/marketing/.robin/build/. .robin/site/
+python3 scripts/assemble-pages.py
 '''
 
 [tasks.check]

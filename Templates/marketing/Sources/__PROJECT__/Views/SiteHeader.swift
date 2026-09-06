@@ -8,7 +8,7 @@ struct SiteHeader: Component {
 
   var body: ComponentContent {
     Header {
-      Link("/") {
+      Link(Site.homeURL) {
         Image(source: "/robin-logo.png", alternateText: "").frame(width: 36, height: 36)
         Text { "Robin" }
       }.flex(align: .center, gap: .zero)
@@ -16,8 +16,8 @@ struct SiteHeader: Component {
         .font(.emphasis, color: .foreground, on: .dark)
       Stack {
         Navigation {
-          Link("/#features") { "Features" }.marketingLink()
-          Link("/#examples") { "Examples" }.marketingLink()
+          Link(Site.homeURL + "#features") { "Features" }.marketingLink()
+          Link(Site.homeURL + "#examples") { "Examples" }.marketingLink()
           Link(Site.documentationURL) { "Docs" }.marketingLink()
           Link(Site.sourceURL) { "GitHub" }.marketingLink()
         }.flex(align: .center, gap: .lg).hidden(on: .below(.md))
@@ -32,8 +32,8 @@ struct SiteHeader: Component {
         }.starterPicker().anchor(menuAnchor).hidden(on: .md)
         Popover(id: "marketing-menu") {
           Navigation {
-            Link("/#features") { "Features" }.starterMenuItem()
-            Link("/#examples") { "Examples" }.starterMenuItem()
+            Link(Site.homeURL + "#features") { "Features" }.starterMenuItem()
+            Link(Site.homeURL + "#examples") { "Examples" }.starterMenuItem()
             Link(Site.documentationURL) { "Docs" }.starterMenuItem()
             Link(Site.sourceURL) { "GitHub" }.starterMenuItem()
           }.grid(columns: 1, gap: .sm)

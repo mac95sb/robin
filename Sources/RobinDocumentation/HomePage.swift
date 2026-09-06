@@ -3,12 +3,13 @@ import RobinHTML
 import RobinStyle
 
 struct HomePage: Page {
-  let path = "/"
+  let path = "/docs"
   var metadata: Metadata { Metadata(title: "Documentation") }
 
   var body: ComponentContent {
     Main {
-      Heading { "Robin" }
+      Link("https://mac95sb.github.io/robin/") { "← Robin home" }
+      Heading { "Robin documentation" }
       Text { "Build static sites, server-rendered applications, and APIs in Swift." }
       Text {
         "Start with a blog, marketing site, workspace, or API service. The workspace combines private notes and realtime conversations. Compose typed pages and controllers; Robin infers how to run them."

@@ -16,5 +16,12 @@ struct Documentation: App {
     _ = try BuildPipeline.build(
       Self(), configuration: .init(cdnBaseURL: URL(string: "https://mac95sb.github.io/robin")!),
       in: OutputLayout(projectRoot: URL(fileURLWithPath: FileManager.default.currentDirectoryPath)))
+    let navigation = Navigation(id: "robin-site-navigation") {
+      Link("/robin/") { "Robin home" }
+      " · "
+      Link("/robin/docs/") { "All documentation" }
+    }
+    try HTMLRenderer.render(navigation).write(
+      to: URL(fileURLWithPath: ".robin/docc-navigation.html"), atomically: true, encoding: .utf8)
   }
 }
