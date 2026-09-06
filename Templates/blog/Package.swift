@@ -23,6 +23,7 @@ let package = Package(
         .product(name: "RobinContent", package: "robin"),
         .product(name: "RobinCore", package: "robin"),
         .product(name: "RobinHTML", package: "robin"),
+        .product(name: "RobinLucide", package: "robin"),
         .product(name: "RobinStyle", package: "robin"),
       ],
       resources: [.process("Resources")],

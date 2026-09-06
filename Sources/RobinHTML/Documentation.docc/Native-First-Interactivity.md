@@ -63,9 +63,9 @@ Disclosure(label: { "Shipping details" }) {
 }
 ```
 
-``Dialog`` provides the typed dialog structure and initial open state. Typed popovers and standard
-Invoker Commands are not yet part of Robin's public component surface. Until they are, keep an
-essential action as a link or form round trip instead of adding application JavaScript.
+``Dialog`` provides typed dialog structure and initial open state. ``Popover`` uses native auto
+popovers, with Escape and outside-click dismissal. A ``Button`` can invoke ``PopoverCommand``
+to show, hide, or toggle its target without application JavaScript.
 
 ## Responsive state and animation
 
@@ -85,6 +85,13 @@ Hover, focus, checked, open, color-scheme, container, and viewport conditions re
 Typed keyframes, scroll timelines, anchor positioning, starting styles, and cross-document View
 Transitions also remain native CSS. Unsupported animation is decorative fallback; it must not hide
 content or an essential action.
+
+## Browser-local state
+
+For immediate local changes, use `RobinRuntime.State` and its projected bindings. For example,
+`Button(action: #action { count += 10 }) { "+10" }` describes a typed operation, and
+`Text { $count }` displays its value. Static builds and server-rendered pages select the shared
+state interpreter automatically. Native popovers and disclosures continue to use their native controls.
 
 ## Server actions
 

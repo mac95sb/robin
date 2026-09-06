@@ -96,9 +96,10 @@ package struct ProjectScaffolder {
       )
     else { throw ProjectScaffolderError.templatesUnavailable }
     for case let entry as URL in enumerator {
-      let relative = entry.path.replacingOccurrences(of: source.path + "/", with: "")
+      let relative = entry.resolvingSymlinksInPath().path.replacingOccurrences(
+        of: source.path + "/", with: "")
       let root = String(relative.split(separator: "/").first ?? "")
-      if root == ".build" || root == ".swiftpm" {
+      if root == ".build" || root == ".swiftpm" || root == ".robin" {
         if relative == root { enumerator.skipDescendants() }
         continue
       }

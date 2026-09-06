@@ -44,7 +44,7 @@ public struct ApplicationResponder: Sendable {
         available: transportCapabilities
       )
     }
-    self.middleware = middleware
+    self.middleware = middleware + [.clientState]
     self.api = api
     self.errorResponses = errorResponses
   }

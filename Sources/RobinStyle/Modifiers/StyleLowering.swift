@@ -25,7 +25,7 @@ extension Condition {
     case .dark: .dark
     case .containerMinimumWidth(let token): .containerMinimumWidthToken(token.rawValue)
     case .startingStyle: .startingStyle
-    case .below, .between, .checked, .open, .has, .and, .or, .not:
+    case .below, .between, .pressed, .selected, .checked, .open, .has, .and, .or, .not:
       .expression(encoded)
     }
   }
@@ -39,6 +39,8 @@ extension Condition {
     case .dark: "dark"
     case .below(let token): "max:\(token.rawValue)"
     case .between(let lower, let upper): "between:\(lower.rawValue):\(upper.rawValue)"
+    case .pressed: "pseudo:pressed"
+    case .selected: "pseudo:selected"
     case .checked: "pseudo:checked"
     case .open: "pseudo:open"
     case .has(let selector): "has:\(selector.utf8.count):\(selector)"

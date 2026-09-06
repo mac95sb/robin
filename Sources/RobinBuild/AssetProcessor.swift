@@ -60,10 +60,26 @@ struct AssetProcessor {
           ),
           forKey: asset.reference) == nil
       else { throw BuildError.duplicateArtifactPath(asset.reference) }
-      if case .robinDirectCapability(.webAuthn, _) = asset.scriptOrigin {
+      if asset.scriptOrigin.map({ origin in
+        switch origin {
+        case .robinDirectCapability(.webAuthn, _),
+          .robinDirectCapability(.navigation, "FormSubmissionClientModule"),
+          .robinDirectCapability(.navigation, "TabsClientModule"):
+          true
+        default: false
+        }
+      }) == true {
         let crossorigin = cdnBaseURL == nil ? "" : " crossorigin=\"anonymous\""
         headElements.append(
           "<script type=\"module\" src=\"\(HTMLRenderer.escape(browserURL))\" integrity=\"\(integrity)\"\(crossorigin)></script>"
+        )
+      }
+      if case .robinDirectCapability(.browserAPI, "SitePreferencesClientModule") = asset
+        .scriptOrigin
+      {
+        let crossorigin = cdnBaseURL == nil ? "" : " crossorigin=\"anonymous\""
+        headElements.append(
+          "<script src=\"\(HTMLRenderer.escape(browserURL))\" integrity=\"\(integrity)\"\(crossorigin)></script>"
         )
       }
       for hint in asset.hints {

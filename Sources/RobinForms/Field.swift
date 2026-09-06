@@ -110,23 +110,40 @@ extension Field: Component {
   }
 
   /// Renders the field with an explicit document identifier when multiple forms share field names.
-  @ViewBuilder public func input(id: String) -> ComponentContent {
+  public func input(id: String) -> ComponentContent {
+    input(id: id) { $0 }
+  }
+
+  /// Renders a customized native control with its label and validation feedback.
+  ///
+  /// - Parameters:
+  ///   - id: The identifier shared by the label, control, and validation feedback.
+  ///   - multiline: Uses a text area for a string field instead of a single-line input.
+  ///   - content: Styles or wraps the native control while preserving its label and error message.
+  @ViewBuilder public func input(
+    id: String, multiline: Bool = false,
+    @ViewBuilder content: (ComponentContent) -> ComponentContent
+  ) -> ComponentContent {
     Label(for: id) { label }
-    control(id: id)
+    content(control(id: id, multiline: multiline))
     if let validationError { Text(id: "\(id)-error") { validationError.message } }
   }
 
-  private func control(id: String) -> ComponentContent {
+  private func control(id: String, multiline: Bool) -> ComponentContent {
+    precondition(!multiline || Value.self == String.self)
+    var children: [RenderNode] = []
     let isFile = Value.self == FileField.self
     var attributes: [RenderElement.Attribute] = [
-      .identifier(id), .name(name), .inputType(isFile ? .file : .text),
+      .identifier(id), .name(name),
       .accessibilityLabel(label),
     ]
+    if !multiline { attributes.append(.inputType(isFile ? .file : .text)) }
     if !isFile {
       let initial =
         (wrappedValue as? String)
         ?? (try? JSONEncoder().encode(wrappedValue)).flatMap { String(data: $0, encoding: .utf8) }
-      attributes.append(.value(submittedText ?? initial ?? ""))
+      let value = submittedText ?? initial ?? ""
+      if multiline { children = [.text(value)] } else { attributes.append(.value(value)) }
     }
     if required { attributes.append(.required) }
     if let minimumLength { attributes.append(.minimumLength(minimumLength)) }
@@ -134,6 +151,8 @@ extension Field: Component {
     if validationError != nil {
       attributes += [.accessibilityInvalid, .accessibilityDescribedBy("\(id)-error")]
     }
-    return .node(.element(.init(kind: .input, attributes: attributes)))
+    return .node(
+      .element(
+        .init(kind: multiline ? .textarea : .input, attributes: attributes, children: children)))
   }
 }

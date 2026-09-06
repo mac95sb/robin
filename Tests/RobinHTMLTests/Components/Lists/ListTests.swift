@@ -8,7 +8,7 @@ struct ListTests {
       List { ListItem { "One" } }
     )
 
-    #expect(list == "<ul><li>One</li></ul>")
+    #expect(list == "<ul role=\"list\"><li>One</li></ul>")
   }
 
   @Test func orderedListLowersToOL() throws {
@@ -16,6 +16,6 @@ struct ListTests {
       List(ordered: true) { ListItem { "One" } }
     )
 
-    #expect(list == "<ol><li>One</li></ol>")
+    #expect(list == "<ol role=\"list\"><li>One</li></ol>")
   }
 }

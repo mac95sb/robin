@@ -1,3 +1,4 @@
+import Foundation
 import RobinCore
 import RobinHTML
 import RobinServer
@@ -18,6 +19,8 @@ struct Site: App {
   static func main() async throws {
     try await RobinApplication.run(
       Self(),
+      address: .init(
+        host: "127.0.0.1", port: Int(ProcessInfo.processInfo.environment["PORT"] ?? "8080") ?? 8080),
       middleware: [.security(.init(requestsPerMinute: 120))])
   }
 }

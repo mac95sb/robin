@@ -70,6 +70,33 @@ struct BuildPipelineTests {
     let stylesheets = result.manifest.artifacts.filter { $0.mediaType == "text/css" }
     #expect(stylesheets.count == 2)
     #expect(stylesheets.allSatisfy { !$0.path.contains("home") && !$0.path.contains("about") })
+    let css = try stylesheets.map { stylesheet in
+      try String(
+        contentsOf: root.appendingPathComponent(".robin/build/\(stylesheet.path)"), encoding: .utf8)
+    }
+    #expect(css.filter { $0.contains("body{margin:0}") }.count == 1)
+    #expect(css.filter { $0.contains(":root{background:") }.count == 1)
+    let shared = try #require(stylesheets.indices.first { css[$0].contains("body{margin:0}") })
+    func classes(in page: String) -> Set<String> {
+      Set(
+        page.components(separatedBy: "class=\"").dropFirst().flatMap {
+          $0.prefix { $0 != "\"" }.split(separator: " ").map(String.init)
+        })
+    }
+    let homeClasses = classes(in: html)
+    let aboutClasses = classes(in: about)
+    for name in homeClasses.intersection(aboutClasses) {
+      #expect(css[shared].contains(".\(name){"))
+      #expect(css.filter { $0.contains(".\(name){") }.count == 1)
+    }
+    for name in homeClasses.subtracting(aboutClasses) {
+      #expect(!css[shared].contains(".\(name){"))
+      #expect(css.filter { $0.contains(".\(name){") }.count == 1)
+    }
+    for page in [html, about] {
+      let firstStyle = try #require(page.range(of: "data-robin-style href=\""))
+      #expect(page[firstStyle.upperBound...].hasPrefix("/\(stylesheets[shared].path)"))
+    }
   }
 
   @Test func validatesModeSpecificRuntimeArtifacts() throws {
@@ -135,10 +162,11 @@ struct BuildPipelineTests {
 
     let result = try BuildPipeline.build(
       HighlightedApplication(), in: OutputLayout(projectRoot: root))
-    let stylesheet = try #require(result.manifest.artifacts.first { $0.mediaType == "text/css" })
-    let css = String(
-      decoding: try Data(
-        contentsOf: root.appendingPathComponent(".robin/build/\(stylesheet.path)")), as: UTF8.self)
+    let css = try result.manifest.artifacts.filter { $0.mediaType == "text/css" }.map {
+      stylesheet in
+      try String(
+        contentsOf: root.appendingPathComponent(".robin/build/\(stylesheet.path)"), encoding: .utf8)
+    }.joined()
 
     #expect(css.contains("data-robin-highlight-theme=\"xcode-default-dark\""))
     #expect(css.contains("data-robin-highlight=\"keyword\""))

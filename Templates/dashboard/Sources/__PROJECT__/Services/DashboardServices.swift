@@ -5,6 +5,8 @@ import RobinData
 struct DashboardServices: Sendable {
   private let database: SQLiteDatabase
   let storage: any KeyValueStore
+  let messages: MessageStore
+  let usernames: UsernameStore
   let authentication: AuthStore
   let sessions: AuthSessionManager
   let passkeys: PasskeyService
@@ -15,6 +17,8 @@ struct DashboardServices: Sendable {
     let authentication = AuthStore(storage)
     self.database = database
     self.storage = storage
+    self.messages = MessageStore(storage)
+    self.usernames = UsernameStore(storage: storage)
     self.authentication = authentication
     let sessions = AuthSessionManager(store: authentication)
     self.sessions = sessions

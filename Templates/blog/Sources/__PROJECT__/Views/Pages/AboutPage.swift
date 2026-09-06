@@ -9,24 +9,30 @@ struct AboutPage: Page {
   var metadata: Metadata {
     Metadata(
       title: t("about"),
-      description: t("aboutBody"),
-      structuredData: [.article(.init(kind: .blogPosting))])
+      description: t("aboutBody"))
   }
 
   var body: ComponentContent {
-    Main {
-      Article {
-        Heading { t("about") }
-        Text { t("aboutBody") }
-        Heading(.two) { t("ordinarySwift") }
-        CodeBlock(
-          "Heading { \"Hello, world!\" }",
-          language: "swift",
-          theme: .xcodeDefaultDark)
-        Link(localizedPath("/")) { t("home") }
+    Stack {
+      SiteHeader()
+      Main {
+        Article {
+          Heading { t("about") }.starterTitle()
+          Text { t("aboutBody") }
+          Heading(.two) { t("ordinarySwift") }.starterTitle()
+          CodeBlock(
+            "Heading { \"Hello, world!\" }",
+            language: "swift",
+            theme: .xcode
+          )
+          .padding(.lg)
+          .border(color: .border, width: 0, radius: .lg)
+          Link(localizedPath("/")) { t("home") }.starterLink()
+        }.starterSection()
       }
-    }
-    .frame(maxWidth: 720)
-    .margin(.lg)
+      .frame(maxWidth: 720)
+      .grid(columns: 1, gap: .lg)
+      SiteFooter()
+    }.starterPage()
   }
 }

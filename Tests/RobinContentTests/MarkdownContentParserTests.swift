@@ -77,7 +77,7 @@ struct MarkdownContentParserTests {
     #expect(parsed.diagnostics == [.rawHTMLRejected])
   }
 
-  @Test func fencedCodeUsesTheSharedSyntaxHighlighter() {
+  @Test func fencedCodeUsesTheSharedSyntaxHighlighter() throws {
     let parsed = MarkdownContentParser.parse(
       """
       ```swift
@@ -90,6 +90,9 @@ struct MarkdownContentParserTests {
       return
     }
     #expect(highlights == SyntaxHighlighter.highlight(source, language: "swift"))
+    let html = try HTMLRenderer.render(parsed)
+    #expect(html.contains("<pre data-robin-highlight-theme=\"xcode\">"))
+    #expect(html.contains("data-robin-highlight=\"keyword\""))
   }
 
   @Test func parsedInlineMarkupRendersAsTypedHTML() throws {
@@ -119,7 +122,7 @@ struct MarkdownContentParserTests {
 
     #expect(
       try HTMLRenderer.render(parsed)
-        == "<blockquote><p>Quoted <strong>text</strong></p></blockquote><ol><li>First</li><li>Second</li></ol>"
+        == "<blockquote><p>Quoted <strong>text</strong></p></blockquote><ol role=\"list\"><li>First</li><li>Second</li></ol>"
     )
   }
 

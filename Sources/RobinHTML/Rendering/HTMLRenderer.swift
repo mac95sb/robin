@@ -6,6 +6,16 @@ import Foundation
 /// The renderer escapes text and attribute values, orders attributes consistently, and can map
 /// compiled style declarations to generated class names.
 public struct HTMLRenderer {
+  /// Renders indented markup for a source-code preview. Inline text and preformatted content
+  /// remain intact; whitespace is added only between block container children.
+  @_spi(Rendering)
+  public static func formatted(
+    _ root: RenderNode,
+    styles: @escaping @Sendable ([StyleDeclaration]) -> String?
+  ) throws -> String {
+    if let diagnostic = validate(root).first { throw diagnostic }
+    return try serialize(root, styles: styles, stateIDs: stateIdentifiers(in: root), indentation: 0)
+  }
   /// Validates and renders a resolved component tree without style declarations.
   ///
   /// Validation completes before serialization. If the tree has multiple diagnostics, this
@@ -89,27 +99,35 @@ public struct HTMLRenderer {
   ) throws -> String {
     let diagnostics = validate(root)
     if let first = diagnostics.first { throw first }
-    return try serialize(root, styles: styleResolver)
+    return try serialize(root, styles: styleResolver, stateIDs: stateIdentifiers(in: root))
   }
 
   private static func serialize(
     _ node: RenderNode,
-    styles: (@Sendable ([StyleDeclaration]) -> String?)?
+    styles: (@Sendable ([StyleDeclaration]) -> String?)?,
+    stateIDs: [String: String],
+    indentation: Int? = nil
   ) throws -> String {
     switch node.renderingStorage {
     case .text(let text): escape(text)
     case .fragment(let children):
-      try children.map { try serialize($0, styles: styles) }.joined()
-    case .element(let element): try serialize(element, styles: styles)
+      try children.map {
+        try serialize($0, styles: styles, stateIDs: stateIDs, indentation: indentation)
+      }
+      .joined(separator: indentation == nil ? "" : "\n")
+    case .element(let element):
+      try serialize(element, styles: styles, stateIDs: stateIDs, indentation: indentation)
     }
   }
 
   private static func serialize(
     _ element: RenderElement,
-    styles: (@Sendable ([StyleDeclaration]) -> String?)?
+    styles: (@Sendable ([StyleDeclaration]) -> String?)?,
+    stateIDs: [String: String],
+    indentation: Int? = nil
   ) throws -> String {
-    var attributes: [(name: String, value: String?)] = element.attributes.map {
-      ($0.name, $0.value)
+    var attributes: [(name: String, value: String?)] = try element.attributes.map {
+      ($0.name, try stateAttributeValue($0, identifiers: stateIDs) ?? $0.value)
     }
     if !element.styles.isEmpty {
       guard let className = styles?(element.styles) else {
@@ -117,25 +135,55 @@ public struct HTMLRenderer {
       }
       attributes.append(("class", className))
     }
+    for attribute in element.attributes {
+      if case .popoverCommand(let command) = attribute {
+        attributes.append((name: "commandfor", value: command.target))
+      }
+    }
     let serializedAttributes = attributes.sorted {
       ($0.name, $0.value ?? "") < ($1.name, $1.value ?? "")
     }.map { attribute in
       attribute.value.map { " \(attribute.name)=\"\(escape($0))\"" } ?? " \(attribute.name)"
     }.joined()
 
-    if element.kind.isVoid { return "<\(element.kind.rawValue)\(serializedAttributes)>" }
-    let children = try element.children.map { try serialize($0, styles: styles) }.joined()
-    return "<\(element.kind.rawValue)\(serializedAttributes)>\(children)</\(element.kind.rawValue)>"
+    let padding = String(repeating: "  ", count: indentation ?? 0)
+    if element.kind.isVoid { return "\(padding)<\(element.kind.rawValue)\(serializedAttributes)>" }
+    let containers: Set<RenderElement.Kind> = [
+      .div, .section, .main, .nav, .header, .footer, .article, .aside, .ul, .ol, .form,
+    ]
+    if let indentation, containers.contains(element.kind), !element.children.isEmpty,
+      element.children.allSatisfy({ if case .element = $0.renderingStorage { true } else { false } }
+      )
+    {
+      let children = try element.children.map {
+        try serialize($0, styles: styles, stateIDs: stateIDs, indentation: indentation + 1)
+      }.joined(separator: "\n")
+      return
+        "\(padding)<\(element.kind.rawValue)\(serializedAttributes)>\n\(children)\n\(padding)</\(element.kind.rawValue)>"
+    }
+    let children = try element.children.map {
+      try serialize($0, styles: styles, stateIDs: stateIDs)
+    }.joined()
+    return
+      "\(padding)<\(element.kind.rawValue)\(serializedAttributes)>\(children)</\(element.kind.rawValue)>"
   }
 }
 
 extension RenderElement.Attribute {
   fileprivate var name: String {
     switch self {
+    case .popover: "popover"
+    case .popoverCommand: "command"
+    case .languageLink: "data-robin-language-link"
     case .identifier: "id"
     case .buttonType, .inputType: "type"
     case .name: "name"
     case .value: "value"
+    case .selected: "selected"
+    case .appearanceChoice: "data-robin-appearance-choice"
+    case .accessibilityPressed: "aria-pressed"
+    case .appearancePicker: "data-robin-appearance-picker"
+    case .languagePicker: "data-robin-language-picker"
     case .required: "required"
     case .minimumLength: "minlength"
     case .maximumLength: "maxlength"
@@ -156,9 +204,22 @@ extension RenderElement.Attribute {
     case .sandbox: "sandbox"
     case .syntaxLanguage: "data-robin-language"
     case .syntaxTheme: "data-robin-highlight-theme"
+    case .hiddenNumberStepper: "data-robin-stepper-hidden"
+    case .stateText: "data-robin-text"
+    case .stateInput: "data-robin-input"
+    case .stateHidden: "data-robin-hidden"
+    case .stateDisabled: "data-robin-disabled"
+    case .stateAction: "data-robin-action"
+    case .stateOnChange: "data-robin-change"
+    case .stateOnInput: "data-robin-edit"
+    case .stateVisible: "data-robin-visible"
+    case .hidden: "hidden"
+    case .disabled: "disabled"
+    case .checked: "checked"
+    case .anyStep: "step"
     case .syntaxHighlight: "data-robin-highlight"
     case .accessibilityHidden: "aria-hidden"
-    case .imageRole: "role"
+    case .imageRole, .listRole: "role"
     case .vectorX: "x"
     case .vectorY: "y"
     case .vectorWidth: "width"
@@ -203,19 +264,30 @@ extension RenderElement.Attribute {
     case .sourceSet(let candidates):
       candidates.sorted { ($0.width, $0.source) < ($1.width, $1.source) }
         .map { "\($0.source) \($0.width)w" }.joined(separator: ", ")
+    case .stateText, .stateInput, .stateHidden, .stateVisible, .stateDisabled, .stateAction,
+      .stateOnChange, .stateOnInput:
+      nil
+    case .hidden, .disabled, .checked: nil
+    case .anyStep: "any"
     case .syntaxLanguage(let value): value
     case .syntaxTheme(let value): value.rawValue
     case .syntaxHighlight(let value): value.rawValue
     case .buttonType(let value): value.rawValue
     case .inputType(let value): value.rawValue
     case .formMethod(let value): value.rawValue
+    case .appearanceChoice(let value): value.rawValue
+    case .accessibilityPressed(let value): value ? "true" : "false"
+    case .popover: "auto"
+    case .popoverCommand(let command): command.value
+    case .languageLink(let code): code
     case .accessibilityHidden: "true"
     case .imageRole: "img"
+    case .listRole: "list"
     case .minimumLength(let value), .maximumLength(let value): String(value)
     case .accessibilityDescribedBy(let value): value
     case .accessibilityInvalid: "true"
     case .multipartEncoding: "multipart/form-data"
-    case .open, .required: nil
+    case .open, .required, .selected, .appearancePicker, .languagePicker, .hiddenNumberStepper: nil
     }
   }
 }

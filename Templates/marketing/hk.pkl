@@ -1,0 +1,30 @@
+amends "package://github.com/jdx/hk/releases/download/v1.54.1/hk@1.54.1#/Config.pkl"
+
+min_hk_version = "1.54.1"
+
+local format = new Step { check = new Command { argv = List("mise", "run", "format-check") } }
+local lint = new Step { check = new Command { argv = List("mise", "run", "lint") } }
+local doctor = new Step { check = new Command { argv = List("mise", "run", "doctor") } }
+local test = new Step { check = new Command { argv = List("mise", "run", "test") } }
+
+hooks {
+  ["pre-commit"] {
+    steps {
+      ["format"] = format
+      ["lint"] = lint
+    }
+  }
+  ["pre-push"] {
+    steps {
+      ["test"] = test
+    }
+  }
+  ["check"] {
+    steps {
+      ["format"] = format
+      ["lint"] = lint
+      ["doctor"] = doctor
+      ["test"] = test
+    }
+  }
+}

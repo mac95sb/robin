@@ -61,6 +61,7 @@ struct AdvancedCSSModifierTests {
     let component = Text { "Versioned" }.padding(.sm)
     let compiled = try StyleCompiler.compile(
       .fragment(component.body.nodes), theme: .default, mode: .production)
-    #expect(compiled.css.hasPrefix(".r1-"))
+    #expect(compiled.css.hasPrefix("body{margin:0}"))
+    #expect(compiled.css.split(separator: "}").last?.hasPrefix(".r1-") == true)
   }
 }

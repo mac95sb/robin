@@ -11,11 +11,11 @@ struct HomePage: Page {
       Heading { "Robin" }
       Text { "Build static sites, server-rendered applications, and APIs in Swift." }
       Text {
-        "Start with a blog, dashboard, API service, or realtime chat. Compose typed pages and controllers; Robin infers how to run them."
+        "Start with a blog, marketing site, workspace, or API service. The workspace combines private notes and realtime conversations. Compose typed pages and controllers; Robin infers how to run them."
       }
       Navigation {
         Link("https://github.com/mac95sb/robin#start-a-project") { "Get started" }
-        Link("https://github.com/mac95sb/robin/blob/main/TESTING.md") { "Try the framework" }
+        Link("https://github.com/mac95sb/robin#validate-changes") { "Try the framework" }
       }
       .grid(columns: 2, gap: .md)
       Heading(.two) { "Reference and guides" }
@@ -24,7 +24,7 @@ struct HomePage: Page {
           "RobinCore", "RobinHTML", "RobinStyle", "RobinContent", "RobinForms", "RobinRouting",
           "RobinRuntime", "RobinData", "RobinCache", "RobinJobs", "RobinEmail", "RobinStorage",
           "RobinServer", "RobinAuth", "RobinBuild", "RobinTesting", "RobinTooling", "RobinPlugin",
-          "RobinLucide", "RobinPolar", "RobinOAuth", "RobinPostgres",
+          "RobinLucide", "RobinPolar", "RobinPostgres",
         ] {
           ListItem {
             Link(

@@ -19,6 +19,10 @@ public struct SyntaxHighlighter {
   public static func highlight(_ source: String, language: String? = nil) -> [Run] {
     var runs: [Run] = []
     var index = source.startIndex
+    let markup = ["html", "xml", "svg"].contains(language?.lowercased() ?? "")
+    let css = language?.lowercased() == "css"
+    var insideTag = false
+    var expectsTagName = false
     let hashComments = ["bash", "python", "ruby", "shell", "sh", "yaml", "yml"].contains(
       language?.lowercased() ?? "")
 
@@ -26,7 +30,22 @@ public struct SyntaxHighlighter {
       let start = index
       let character = source[index]
 
-      if source[index...].hasPrefix("//") || source[index...].hasPrefix("/*") {
+      if markup && source[index...].hasPrefix("<!--") {
+        index = source[index...].range(of: "-->")?.upperBound ?? source.endIndex
+        append(.comment, String(source[start..<index]), to: &runs)
+      } else if markup && character == "<" {
+        insideTag = true
+        expectsTagName = true
+        index = source.index(after: index)
+        append(nil, "<", to: &runs)
+      } else if markup && character == ">" {
+        insideTag = false
+        index = source.index(after: index)
+        append(nil, ">", to: &runs)
+      } else if markup && !insideTag {
+        index = source[index...].firstIndex(of: "<") ?? source.endIndex
+        append(nil, String(source[start..<index]), to: &runs)
+      } else if source[index...].hasPrefix("//") || source[index...].hasPrefix("/*") {
         let block = source[index...].hasPrefix("/*")
         index = source.index(index, offsetBy: 2)
         if block, let end = source[index...].range(of: "*/")?.upperBound {
@@ -60,16 +79,25 @@ public struct SyntaxHighlighter {
           index = source.index(after: index)
         }
         append(.number, String(source[start..<index]), to: &runs)
-      } else if character.isLetter || character == "_" {
+      } else if character.isLetter || character == "_" || ((markup || css) && character == "-") {
         index = source.index(after: index)
         while index < source.endIndex,
           source[index].isLetter || source[index].isNumber || source[index] == "_"
+            || ((markup || css) && source[index] == "-")
         {
           index = source.index(after: index)
         }
         let word = String(source[start..<index])
         let kind: CaseHighlight.Kind?
-        if literals.contains(word) {
+        if markup && insideTag {
+          kind = expectsTagName ? .type : .attribute
+          expectsTagName = false
+        } else if css && source[index...].drop(while: { $0.isWhitespace }).first == ":"
+          && (source[..<start].last(where: { !$0.isWhitespace }) == "{"
+            || source[..<start].last(where: { !$0.isWhitespace }) == ";")
+        {
+          kind = .property
+        } else if literals.contains(word) {
           kind = .literal
         } else if keywords.contains(word) {
           kind = .keyword
@@ -95,7 +123,7 @@ public struct SyntaxHighlighter {
     "default", "defer", "do", "else", "enum", "export", "extends", "final", "for", "from",
     "func", "function", "guard", "if", "import", "in", "interface", "let", "mutating", "new",
     "private", "protocol", "public", "repeat", "return", "static", "struct", "switch", "throw",
-    "throws", "try", "typealias", "var", "while", "yield",
+    "throws", "try", "typealias", "var", "while", "yield", "typeof", "instanceof", "delete",
   ]
 
   private static func append(_ kind: CaseHighlight.Kind?, _ text: String, to runs: inout [Run]) {

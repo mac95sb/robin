@@ -5,6 +5,17 @@ import Testing
 
 @Suite("Typed component rendering")
 struct HTMLRendererTests {
+  @Test func formattedPreviewsIndentBlocksAndPreserveCodeWhitespace() throws {
+    let root = RenderNode.fragment(
+      Stack {
+        Heading { "Example" }
+        CodeBlock { "  let count = 0\n\n" }
+      }.body.nodes)
+    let html = try HTMLRenderer.formatted(root, styles: { _ in nil })
+    #expect(
+      html == "<div>\n  <h1>Example</h1>\n  <pre><code>  let count = 0\n\n</code></pre>\n</div>")
+  }
+
   @Test func lowersControlFlowEscapesValuesAndEmitsVoidElements() throws {
     let root = RenderNode.fragment(ExamplePage(includeInput: true).body.nodes)
 

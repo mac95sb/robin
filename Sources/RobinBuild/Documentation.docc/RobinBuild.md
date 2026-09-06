@@ -60,6 +60,13 @@ Build output is available in `.robin/build`; reusable content remains in `.robin
 - ``SpeculationRule``
 - ``ScriptOrigin``
 
+### Browser enhancements
+
+- ``SitePreferencesClientModule``
+- ``TabsClientModule``
+- ``FormSubmissionClientModule``
+- <doc:Enhance-Form-Submissions>
+
 ### Deployment routing
 
 - ``DeploymentRoute``

@@ -23,6 +23,9 @@ enum StyleProperty: String, Hashable {
   case fontFamily = "font-family"
   case fontSize = "font-size"
   case fontWeight = "font-weight"
+  case lineHeight = "line-height"
+  case listStyleType = "list-style-type"
+  case letterSpacing = "letter-spacing"
   case gap
   case gridAutoFlow = "grid-auto-flow"
   case gridColumn = "grid-column"
@@ -33,6 +36,9 @@ enum StyleProperty: String, Hashable {
   case padding
   case positionAnchor = "position-anchor"
   case scrollTimelineName = "scroll-timeline-name"
+  case position
+  case inset
+  case right
   case top
   case transitionBehavior = "transition-behavior"
   case viewTimelineName = "view-timeline-name"
@@ -47,6 +53,7 @@ enum StyleProperty: String, Hashable {
   case aspectRatio = "aspect-ratio"
   case order
   case textAlign = "text-align"
+  case textDecoration = "text-decoration"
 }
 
 enum StyleValue: Equatable {

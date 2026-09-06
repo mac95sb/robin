@@ -1,4 +1,5 @@
 import RobinCore
+@_spi(Rendering) import RobinRuntime
 
 /// An element in Robin's structural render representation.
 ///
@@ -73,6 +74,10 @@ public struct RenderElement: Equatable, Sendable {
     case nav
     /// An ordered list.
     case ol
+    /// A native dropdown control.
+    case select
+    /// A choice in a native dropdown.
+    case option
     /// A paragraph.
     case p
     /// A path in an inline vector image.
@@ -123,6 +128,12 @@ public struct RenderElement: Equatable, Sendable {
 
   /// The closed set of structural attributes understood by the renderer.
   public enum Attribute: Equatable, Sendable {
+    /// Enables a native auto popover.
+    case popover
+    /// A standard popover command and target.
+    case popoverCommand(PopoverCommand)
+    /// A locale destination preserving the current page route.
+    case languageLink(String)
     /// A stable element identifier.
     case identifier(String)
     /// The behavior of a button element.
@@ -133,6 +144,16 @@ public struct RenderElement: Equatable, Sendable {
     case name(String)
     /// The form control's value.
     case value(String)
+    /// Marks the initially selected dropdown option.
+    case selected
+    /// Selects a persistent appearance preference from a button.
+    case appearanceChoice(AppearanceButton.Preference)
+    /// Whether a toggle button is currently selected.
+    case accessibilityPressed(Bool)
+    /// Binds a native dropdown to appearance preferences.
+    case appearancePicker
+    /// Binds a native dropdown to localized navigation.
+    case languagePicker
     /// Requires a value before native form submission.
     case required
     /// The minimum text length, measured in UTF-16 code units.
@@ -173,12 +194,41 @@ public struct RenderElement: Equatable, Sendable {
     case syntaxLanguage(String)
     /// The curated syntax theme selected for a code block.
     case syntaxTheme(SyntaxHighlightTheme)
+    /// Hides the number input’s native stepper while retaining numeric behavior.
+    case hiddenNumberStepper
+    /// Reactive text content.
+    case stateText(StateReference)
+    /// Two-way input value or checked binding.
+    case stateInput(StateReference)
+    /// Reactive visibility.
+    case stateHidden(StateReference)
+    /// Reactive native disabled state.
+    case stateDisabled(StateReference)
+    /// A typed browser-local mutation.
+    case stateAction(StateAction)
+    /// An action following a committed native input change.
+    case stateOnChange(StateAction)
+    /// An action following each native input edit.
+    case stateOnInput(StateAction)
+    /// Reactive visibility when the state is true.
+    case stateVisible(StateReference)
+    /// Initially hidden content.
+    case hidden
+    /// Initially disabled native control.
+    case disabled
+    /// Initially checked native checkbox.
+    case checked
+    /// Allows fractional numeric input.
+    case anyStep
+
     /// The semantic role of a highlighted source-code region.
     case syntaxHighlight(CaseHighlight.Kind)
     /// Hides decorative content from assistive technologies.
     case accessibilityHidden
     /// Marks an inline vector as an image for assistive technologies.
     case imageRole
+    /// Preserves native list semantics when visible markers are removed.
+    case listRole
     /// A vector element's horizontal origin.
     case vectorX(String)
     /// A vector element's vertical origin.
@@ -270,6 +320,8 @@ public struct RenderElement: Equatable, Sendable {
       case search
       /// A numeric input.
       case number
+      /// A Boolean checkbox.
+      case checkbox
       /// A URL input.
       case url
       /// A telephone number input, serialized as the HTML `tel` type.

@@ -1,5 +1,7 @@
 /// A curated syntax-highlighting theme selected without handwritten CSS.
 public enum SyntaxHighlightTheme: String, CaseIterable, Hashable, Sendable {
+  /// Xcode light and dark palettes that follow the site appearance preference.
+  case xcode
   /// GitHub's light syntax palette.
   case github
   /// GitHub's dark syntax palette.
@@ -14,6 +16,19 @@ public enum SyntaxHighlightTheme: String, CaseIterable, Hashable, Sendable {
   case xcodeDefaultDark = "xcode-default-dark"
 
   package var stylesheet: String {
+    if self == .xcode {
+      let root = "[data-robin-highlight-theme=\"xcode\"]"
+      let light = Self.xcodeDefault.stylesheet.replacingOccurrences(
+        of: "xcode-default", with: "xcode")
+      let dark = Self.xcodeDefaultDark.stylesheet.replacingOccurrences(
+        of: "xcode-default-dark", with: "xcode")
+      let system = dark.replacingOccurrences(
+        of: root, with: ":where(:root:not([data-robin-appearance])) " + root)
+      let explicit = dark.replacingOccurrences(
+        of: root, with: ":where(:root[data-robin-appearance=dark]) " + root)
+      return light + "@media (prefers-color-scheme:dark){\(system)}" + explicit
+        + "pre\(root){padding:24px;border-radius:20px;overflow:auto}"
+    }
     let palette: Palette =
       switch self {
       case .github:
@@ -32,7 +47,7 @@ public enum SyntaxHighlightTheme: String, CaseIterable, Hashable, Sendable {
         .init(
           "#002b36", "#839496", "#586e75", "#859900", "#2aa198", "#d33682", "#b58900", "#268bd2",
           "#6c71c4")
-      case .xcodeDefault:
+      case .xcode, .xcodeDefault:
         .init(
           "#ffffff", "#000000", "#5d6c79", "#ad3da4", "#d12f1b", "#272ad8", "#703daa", "#326d74",
           "#4b21b0")

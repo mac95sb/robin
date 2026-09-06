@@ -4,6 +4,7 @@ import RobinForms
 import RobinHTML
 import RobinRouting
 import RobinServer
+import RobinStyle
 
 struct AppController: Controller {
   let notes: NotesStore
@@ -118,21 +119,34 @@ struct AppController: Controller {
         try await notes.delete(id, ownerID: principal.id)
       }
 
-      let returnPath = request.header(.referer).flatMap { URL(string: $0)?.path } ?? "/"
-      return .redirect(to: returnPath)
+      if request.header(.accept)?.contains("application/json") == true {
+        return try .json(["saved": true])
+      }
+      return .redirect(to: notesPath(for: request))
+    }
+
+    private func notesPath(for request: Request) -> String {
+      let locale = request.header(.referer).flatMap {
+        URL(string: $0)?.path.split(separator: "/").first
+      }
+      return locale == "fr" ? "/fr/notes" : "/en/notes"
     }
 
     private func invalidFormResponse(_ form: NoteForm, request: Request) throws -> Response? {
       guard !form.validationErrors.isEmpty else { return nil }
-      if request.header(.contentType)?.hasPrefix("application/json") == true {
+      if request.header(.contentType)?.hasPrefix("application/json") == true
+        || request.header(.accept)?.contains("application/json") == true
+      {
         return try .json(["errors": form.validationErrors.map(\.message)], status: .badRequest)
       }
-      return try .html(metadata: .init(title: "Check your note"), status: .badRequest) {
+      return try .html(
+        metadata: .init(title: "Check your note"), theme: .starter, status: .badRequest
+      ) {
         Main {
           Heading { "Check your note" }
           NoteEditor(form: form, action: request.path, identifier: "content", button: "Save note")
-          Link("/") { "Back to dashboard" }
-        }
+          Link(notesPath(for: request)) { "Back to notes" }.starterLink()
+        }.starterPage()
       }
     }
   }

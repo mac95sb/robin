@@ -70,7 +70,7 @@ struct StyleCompilerTests {
     let secondResult = try StyleCompiler.compile(second, theme: theme, mode: .production)
 
     #expect(firstResult == secondResult)
-    #expect(firstResult.css.components(separatedBy: "{").count - 1 == 1)
+    #expect(firstResult.css.components(separatedBy: ".r1-").count - 1 == 1)
     #expect(firstResult.css.contains("color:oklch(0.2 0.02 250);"))
     #expect(firstResult.css.contains("padding:16px;"))
   }
@@ -125,7 +125,9 @@ struct StyleCompilerTests {
     #expect(result.css.contains("\n"))
     let base = try #require(result.css.range(of: ".r1-"))
     let responsive = try #require(result.css.range(of: "@media (min-width:960px)"))
-    let mode = try #require(result.css.range(of: "@media (prefers-color-scheme:dark)"))
+    let mode = try #require(
+      result.css.range(
+        of: "@media (prefers-color-scheme:dark)", range: base.lowerBound..<result.css.endIndex))
     #expect(base.lowerBound < responsive.lowerBound)
     #expect(responsive.lowerBound < mode.lowerBound)
   }
@@ -225,7 +227,7 @@ struct StyleCompilerTests {
 
     let result = try StyleCompiler.compile(root, theme: aliasTheme, mode: .production)
 
-    #expect(result.css.components(separatedBy: "{").count - 1 == 1)
+    #expect(result.css.components(separatedBy: ".r1-").count - 1 == 1)
     #expect(result.className(for: [foreground]) == result.className(for: [accent]))
   }
 }

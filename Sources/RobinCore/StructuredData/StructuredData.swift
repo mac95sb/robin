@@ -5,6 +5,8 @@ import Foundation
 /// Robin supplies the name, description, canonical URL, and image from ``Metadata`` so applications
 /// do not repeat those values in JSON-LD.
 public enum StructuredData: Equatable, Sendable {
+  /// A blog publication, using the shared site metadata.
+  case blog
   /// Facts about an article or blog post.
   case article(Article)
   /// The page's position in the site's navigation hierarchy.
@@ -20,6 +22,7 @@ public enum StructuredData: Equatable, Sendable {
 
   package var schemaName: String {
     switch self {
+    case .blog: "Blog"
     case .article(let article): article.kind.rawValue
     case .breadcrumbs: "BreadcrumbList"
     case .event: "Event"

@@ -29,7 +29,7 @@ public struct List: Component {
       .element(
         RenderElement(
           kind: ordered ? .ol : .ul,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
+          attributes: [.listRole] + (identifier.map { [.identifier($0)] } ?? []),
           children: content.nodes
         )
       )

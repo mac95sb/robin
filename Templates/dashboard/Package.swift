@@ -20,11 +20,13 @@ let package = Package(
       name: "__PROJECT__",
       dependencies: [
         .product(name: "RobinAuth", package: "robin"),
+        .product(name: "RobinBuild", package: "robin"),
         .product(name: "RobinContent", package: "robin"),
         .product(name: "RobinCore", package: "robin"),
         .product(name: "RobinData", package: "robin"),
         .product(name: "RobinForms", package: "robin"),
         .product(name: "RobinHTML", package: "robin"),
+        .product(name: "RobinLucide", package: "robin"),
         .product(name: "RobinRouting", package: "robin"),
         .product(name: "RobinServer", package: "robin"),
         .product(name: "RobinStyle", package: "robin"),

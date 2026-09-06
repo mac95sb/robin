@@ -18,7 +18,9 @@ extension Response {
     let root = RenderNode.fragment(content().nodes)
     let styles = try StyleCompiler.compile(root, theme: theme, mode: .development)
     let body = try HTMLRenderer.render(root, styles: styles.className(for:))
-    let document = try BuildPipeline.serverDocument(body: body, metadata: metadata, css: styles.css)
+    let document = try BuildPipeline.serverDocument(
+      body: body, metadata: metadata, css: styles.css,
+      clientState: HTMLRenderer.requiresClientState(root))
     var response = Response.html(document, status: status)
     if !styles.css.isEmpty {
       response.compiledStyleHash =

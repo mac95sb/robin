@@ -1,6 +1,54 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "postResource" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "first-post-en" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "first-post-fr" } }
+      }
+    },
+    "journalLabel" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "THE ROBIN JOURNAL" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "LE JOURNAL ROBIN" } }
+      }
+    },
+    "journalTitle" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Less noise. More signal." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Moins de bruit. Plus de sens." } }
+      }
+    },
+    "journalIntro" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Notes on building thoughtful things for the web. Written in Markdown, published with Swift." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Des réflexions pour créer un web plus soigné. Écrites en Markdown, publiées avec Swift." } }
+      }
+    },
+    "featuredPost" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "ENGINEERING / DESIGN" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "DÉVELOPPEMENT / DESIGN" } }
+      }
+    },
+    "readPost" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Read the story →" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Lire l’article →" } }
+      }
+    },
+    "backToJournal" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "← All stories" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "← Tous les articles" } }
+      }
+    },
+    "postCategory" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Engineering & design" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Développement et design" } }
+      }
+    },
     "about" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "About" } },
@@ -11,18 +59,6 @@
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Robin keeps content, metadata, styles, and builds in Swift." } },
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Robin réunit le contenu, les métadonnées, les styles et le build en Swift." } }
-      }
-    },
-    "benefits" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "What this starter demonstrates" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ce que démontre ce projet" } }
-      }
-    },
-    "footer" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Built with Robin — no raw HTML, CSS, or JavaScript." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Créé avec Robin — sans HTML, CSS ou JavaScript brut." } }
       }
     },
     "home" : {
@@ -37,34 +73,16 @@
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Articles, métadonnées, localisation et sortie statique en Swift ordinaire." } }
       }
     },
-    "localizedRoutes" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Localized canonical routes" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Routes canoniques localisées" } }
-      }
-    },
     "ordinarySwift" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "A complete page is still ordinary Swift" } },
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Une page complète reste du Swift ordinaire" } }
       }
     },
-    "structuredMetadata" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Structured data and social metadata" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Données structurées et métadonnées sociales" } }
-      }
-    },
     "title" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "The __PROJECT__ blog" } },
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le blog __PROJECT__" } }
-      }
-    },
-    "typedComponents" : {
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Typed, semantic components" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Composants typés et sémantiques" } }
       }
     }
   },

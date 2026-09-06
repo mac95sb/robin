@@ -54,7 +54,7 @@ extension ContentNode {
         }
       }.body
     case .code(let language, _, let highlights):
-      return RobinHTML.CodeBlock(highlights, language: language).body
+      return RobinHTML.CodeBlock(highlights, language: language, theme: .xcode).body
     case .table(let rows):
       return RobinHTML.Table {
         for (rowIndex, row) in rows.enumerated() {

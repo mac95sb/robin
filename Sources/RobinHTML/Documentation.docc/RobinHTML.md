@@ -30,6 +30,23 @@ RobinHTML provides the application, page, component, result-builder, and render-
 - ``Text``
 - ``Heading``
 
+### Native controls and preferences
+
+- ``Button``
+- ``Form``
+- ``Input``
+- ``Popover``
+- ``PopoverCommand``
+- ``LanguagePicker``
+- ``LanguageLink``
+- ``AppearancePicker``
+- ``AppearanceButton``
+
+### Code examples
+
+- ``CodeBlock``
+- ``SyntaxHighlightTheme``
+
 ### Rendering
 
 - ``RenderNode``

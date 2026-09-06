@@ -46,7 +46,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        template: [blog, dashboard, api-service, realtime-chat]
+        template: [blank, blog, marketing, dashboard, api-service]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

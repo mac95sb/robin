@@ -2,6 +2,8 @@
 
 This application uses Robin's Controller → Service → Model → View architecture.
 
+- Notes and conversations share `DashboardServices`, authentication, and SQLite storage. Keep notes scoped to their owner; the conversation channel is shared by signed-in accounts.
+
 - A `Route` or `APIRoute` is the controller. Add `Services`, `Models`, or `Theme` only when the application uses them.
 - Keep application composition in `App.swift`; configure Robin tooling in `robin.pkl`.
 - Keep the `main` method in `Site`; Robin owns the shared build and launch implementation.

@@ -109,14 +109,37 @@ public struct StyleCompiler {
       .sorted { $0.name < $1.name }.map(\.css)
     let viewTransitionCSS =
       viewTransitions == .enabled ? "@view-transition{navigation:auto}" : nil
-    let css = (rules + keyframes + [viewTransitionCSS].compactMap { $0 }).joined(
-      separator: separator)
+    let appearanceCSS =
+      rules.contains { $0.contains("data-robin-appearance") }
+      ? ":root{color-scheme:light dark}:root[data-robin-appearance=light]{color-scheme:light}:root[data-robin-appearance=dark]{color-scheme:dark}"
+      : nil
+    var canvasCSS = ""
+    if let background = theme.lightColors[.background] {
+      canvasCSS += ":root{background:\(serialize(background))}"
+    }
+    if let background = theme.darkColors[.background] {
+      let color = serialize(background)
+      canvasCSS +=
+        "@media (prefers-color-scheme:dark){:root:not([data-robin-appearance]){background:\(color)}}"
+      canvasCSS += ":root[data-robin-appearance=dark]{background:\(color)}"
+    }
+    let documentCSS =
+      ([
+        "body{margin:0}[hidden]{display:none!important}",
+        "input[data-robin-stepper-hidden]{appearance:textfield}input[data-robin-stepper-hidden]::-webkit-inner-spin-button,input[data-robin-stepper-hidden]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}",
+        canvasCSS,
+      ]
+      + [appearanceCSS].compactMap { $0 })
+      .joined(separator: separator) + separator
+    let rulesCSS = (rules + keyframes + [viewTransitionCSS].compactMap { $0 })
+      .joined(separator: separator)
 
     return CompiledStyles(
       assignments: ordered.flatMap { group in
         group.signatures.map { .init(signature: $0, className: group.className) }
       },
-      css: css
+      documentCSS: documentCSS,
+      rulesCSS: rulesCSS
     )
   }
 
@@ -188,7 +211,13 @@ public struct StyleCompiler {
     case .keyword(let value): return value
     case .color(let name):
       let token = ColorToken(rawValue: name)
-      let palette = condition == .dark ? theme.darkColors : theme.lightColors
+      let usesDarkColors: Bool
+      if case .expression(let expression) = condition {
+        usesDarkColors = try ConditionExpression.parse(expression).requiresDark
+      } else {
+        usesDarkColors = condition == .dark
+      }
+      let palette = usesDarkColors ? theme.darkColors : theme.lightColors
       guard let color = palette[token] else { throw ThemeError.missingColor(token) }
       return serialize(color)
     case .spacing(let name):
@@ -241,10 +270,19 @@ public struct StyleCompiler {
     case .focus:
       return .focus
     case .dark:
-      return .dark
+      return .appearance(system: .dark, light: nil, dark: .always)
     case .expression(let value):
-      let resolved = try ConditionExpression.parse(value).resolve(theme: theme)
-      return .expression(media: resolved.media, selector: resolved.selector)
+      let expression = try ConditionExpression.parse(value)
+      let resolved = try expression.resolve(theme: theme)
+      let system = ResolvedCondition.expression(media: resolved.media, selector: resolved.selector)
+      guard expression.containsDark else { return system }
+      func specialized(_ dark: Bool) throws -> ResolvedCondition? {
+        let specialized = expression.replacingDark(with: dark)
+        if case .never = specialized { return nil }
+        let resolved = try specialized.resolve(theme: theme)
+        return .expression(media: resolved.media, selector: resolved.selector)
+      }
+      return .appearance(system: system, light: try specialized(false), dark: try specialized(true))
     case .containerMinimumWidthToken(let name):
       let token = BreakpointToken(rawValue: name)
       guard let width = theme.breakpoints[token] else { throw ThemeError.missingBreakpoint(token) }
@@ -329,17 +367,13 @@ private struct ResolvedSignature {
     Dictionary(grouping: declarations, by: \.condition).map { condition, declarations in
       let space = mode == .development ? " " : ""
       let newline = mode == .development ? "\n" : ""
-      let body = declarations.map { "\($0.property.rawValue):\(space)\($0.value);" }
+      let indent = mode == .development ? "  " : ""
+      let body = declarations.map { "\(indent)\($0.property.rawValue):\(space)\($0.value);" }
         .joined(separator: newline)
-      let selector = condition.selector(className: className)
-      let rule =
-        mode == .development
-        ? "\(selector) {\n\(body)\n}"
-        : "\(selector){\(body)}"
       return ResolvedRule(
         className: className,
         condition: condition,
-        css: condition.wrap(rule)
+        css: condition.rule(className: className, body: body, mode: mode)
       )
     }
   }
@@ -358,7 +392,8 @@ private struct ResolvedDeclaration {
   var canonical: String { "\(condition.key)|\(property.rawValue):\(value)" }
 }
 
-private enum ResolvedCondition: Hashable, Comparable {
+private indirect enum ResolvedCondition: Hashable, Comparable {
+  case appearance(system: Self, light: Self?, dark: Self?)
   case always
   case minimumWidth(Int)
   case hover
@@ -370,6 +405,7 @@ private enum ResolvedCondition: Hashable, Comparable {
 
   var key: String {
     switch self {
+    case .appearance(let system, _, _): system.key
     case .always: "0"
     case .minimumWidth(let width): "1:\(width)"
     case .hover: "2:hover"
@@ -382,7 +418,9 @@ private enum ResolvedCondition: Hashable, Comparable {
   }
 
   static func < (lhs: Self, rhs: Self) -> Bool {
-    switch (lhs, rhs) {
+    if case .appearance(let system, _, _) = lhs { return system < rhs }
+    if case .appearance(let system, _, _) = rhs { return lhs < system }
+    return switch (lhs, rhs) {
     case (.always, .always), (.hover, .hover), (.focus, .focus), (.dark, .dark): false
     case (.minimumWidth(let lhsWidth), .minimumWidth(let rhsWidth)): lhsWidth < rhsWidth
     case (.expression(let lhsMedia, let lhsSelector), .expression(let rhsMedia, let rhsSelector)):
@@ -395,6 +433,7 @@ private enum ResolvedCondition: Hashable, Comparable {
 
   private var rank: Int {
     switch self {
+    case .appearance(let system, _, _): system.rank
     case .always: 0
     case .minimumWidth: 1
     case .focus: 2
@@ -415,19 +454,43 @@ private enum ResolvedCondition: Hashable, Comparable {
     }
   }
 
-  func wrap(_ rule: String) -> String {
-    switch self {
-    case .minimumWidth(let width): "@media (min-width:\(width)px){\(rule)}"
-    case .dark: "@media (prefers-color-scheme:dark){\(rule)}"
-    case .expression(let media, _): media.map { "@media \($0){\(rule)}" } ?? rule
-    case .containerMinimumWidth(let width): "@container (min-width:\(width)px){\(rule)}"
-    case .startingStyle: "@starting-style{\(rule)}"
+  func wrap(_ rule: String, mode: CSSOutputMode) -> String {
+    func block(_ header: String) -> String {
+      if mode == .production { return "\(header){\(rule)}" }
+      let indented = rule.components(separatedBy: "\n").map { "  " + $0 }.joined(separator: "\n")
+      return "\(header) {\n\(indented)\n}\n"
+    }
+    return switch self {
+    case .minimumWidth(let width): block("@media (min-width:\(width)px)")
+    case .dark: block("@media (prefers-color-scheme:dark)")
+    case .expression(let media, _): media.map { block("@media \($0)") } ?? rule
+    case .containerMinimumWidth(let width): block("@container (min-width:\(width)px)")
+    case .startingStyle: block("@starting-style")
     default: rule
     }
   }
+
+  func rule(className: String, body: String, mode: CSSOutputMode, scope: String = "") -> String {
+    if case .appearance(let system, let light, let dark) = self {
+      return system.rule(
+        className: className, body: body, mode: mode,
+        scope: ":where(:root:not([data-robin-appearance])) ")
+        + (light?.rule(
+          className: className, body: body, mode: mode,
+          scope: ":where(:root[data-robin-appearance=light]) ") ?? "")
+        + (dark?.rule(
+          className: className, body: body, mode: mode,
+          scope: ":where(:root[data-robin-appearance=dark]) ") ?? "")
+    }
+    let selector = scope + selector(className: className)
+    let rule = mode == .development ? "\(selector) {\n\(body)\n}\n" : "\(selector){\(body)}"
+    return wrap(rule, mode: mode)
+  }
+
 }
 
 private indirect enum ConditionExpression {
+  case never
   case minimum(String)
   case maximum(String)
   case between(String, String)
@@ -438,6 +501,55 @@ private indirect enum ConditionExpression {
   case not(Self)
   case dark
   case always
+
+  var containsDark: Bool {
+    switch self {
+    case .dark: true
+    case .and(let lhs, let rhs), .or(let lhs, let rhs): lhs.containsDark || rhs.containsDark
+    case .not(let value): value.containsDark
+    default: false
+    }
+  }
+
+  func replacingDark(with enabled: Bool) -> Self {
+    switch self {
+    case .dark: return enabled ? .always : .never
+    case .not(let value):
+      switch value.replacingDark(with: enabled) {
+      case .always: return .never
+      case .never: return .always
+      case let value: return .not(value)
+      }
+    case .and(let lhs, let rhs):
+      let left = lhs.replacingDark(with: enabled)
+      let right = rhs.replacingDark(with: enabled)
+      switch (left, right) {
+      case (.never, _), (_, .never): return .never
+      case (.always, _): return right
+      case (_, .always): return left
+      default: return .and(left, right)
+      }
+    case .or(let lhs, let rhs):
+      let left = lhs.replacingDark(with: enabled)
+      let right = rhs.replacingDark(with: enabled)
+      switch (left, right) {
+      case (.always, _), (_, .always): return .always
+      case (.never, _): return right
+      case (_, .never): return left
+      default: return .or(left, right)
+      }
+    default: return self
+    }
+  }
+
+  var requiresDark: Bool {
+    switch self {
+    case .dark: true
+    case .and(let lhs, let rhs): lhs.requiresDark || rhs.requiresDark
+    case .or(let lhs, let rhs): lhs.requiresDark && rhs.requiresDark
+    default: false
+    }
+  }
 
   static func parse(_ source: String) throws -> Self {
     if source == "always" { return .always }
@@ -497,6 +609,7 @@ private indirect enum ConditionExpression {
 
   func resolve(theme: Theme) throws -> (media: String?, selector: String) {
     switch self {
+    case .never: throw ThemeError.invalidCondition("Unreachable condition")
     case .always: return (nil, "")
     case .dark: return ("(prefers-color-scheme:dark)", "")
     case .minimum(let name): return ("(min-width:\(try width(name, theme: theme))px)", "")
@@ -506,7 +619,8 @@ private indirect enum ConditionExpression {
         "(min-width:\(try width(lower, theme: theme))px) and (max-width:\(try width(upper, theme: theme) - 1)px)",
         ""
       )
-    case .pseudo(let value): return (nil, ":\(value)")
+    case .pseudo(let value):
+      return (nil, ["pressed", "selected"].contains(value) ? "[aria-\(value)=true]" : ":\(value)")
     case .has(let value): return (nil, ":has(\(value))")
     case .not(let value):
       let child = try value.resolve(theme: theme)

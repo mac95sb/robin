@@ -62,7 +62,8 @@ public struct CodeBlock: Component {
       .element(
         RenderElement(
           kind: .pre,
-          attributes: identifier.map { [.identifier($0)] } ?? [],
+          attributes: (identifier.map { [.identifier($0)] } ?? [])
+            + (theme.map { [.syntaxTheme($0)] } ?? []),
           children: [
             .element(
               RenderElement(kind: .code, attributes: codeAttributes, children: content.nodes))

@@ -8,7 +8,7 @@ import NIOPosix
 /// Bridges NIO HTTP/1 messages to the transport-neutral application responder.
 ///
 /// Safety: NIO confines this handler and its mutable request buffer to one event loop.
-final class NIOHTTPHandler: ChannelInboundHandler, @unchecked Sendable {
+final class NIOHTTPHandler: ChannelInboundHandler, RemovableChannelHandler, @unchecked Sendable {
   typealias InboundIn = HTTPServerRequestPart
   typealias OutboundOut = HTTPServerResponsePart
   static let maximumPendingRequests = 16

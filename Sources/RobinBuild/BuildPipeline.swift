@@ -183,6 +183,18 @@ public struct BuildPipeline {
     let styles = stylesheetOutput.styles
     var artifacts = stylesheetOutput.artifacts
     let sharedDependencies = speculation.artifact.map { [$0.path] } ?? []
+    var stateReference: ResourceReference?
+    if roots.contains(where: HTMLRenderer.requiresClientState) {
+      let asset = try ClientStateRuntime.asset()
+      let path = fingerprintedPath(name: "state", extension: "js", bytes: asset.bytes)
+      artifacts.append(
+        try BuildArtifact(
+          kind: .staticFile, path: path, bytes: asset.bytes,
+          mediaType: asset.mediaType, integrity: ContentDigest.sha384Integrity(asset.bytes),
+          scriptOrigin: asset.scriptOrigin))
+      stateReference = ResourceReference(
+        path: path, bytes: asset.bytes, cdnBaseURL: configuration.cdnBaseURL)
+    }
 
     var scriptReference: ResourceReference?
     if let module = try application.clientNavigationRuntime {
@@ -228,12 +240,17 @@ public struct BuildPipeline {
         referencedAssetPaths(in: originalRoot, references: assets.references))
       metadata = try processedMetadata(
         metadata, assets: assets.references, referencedAssets: &referencedAssets)
+      let state = HTMLRenderer.requiresClientState(root) ? stateReference : nil
+      let stateTag = state.map { reference in
+        "<script type=\"module\" src=\"\(HTMLRenderer.escape(reference.browserURL))\" integrity=\"\(reference.integrity)\" crossorigin=\"anonymous\"></script>"
+      }
       let document = try document(
         body: body,
         metadata: metadata,
         stylesheets: stylesheetOutput.referencesByPage[pageIndex],
         script: scriptReference,
-        additionalHeadElements: assets.headElements + [speculation.headElement].compactMap { $0 }
+        additionalHeadElements: assets.headElements
+          + [speculation.headElement, stateTag].compactMap { $0 }
       )
       artifacts.append(
         try BuildArtifact(
@@ -243,6 +260,7 @@ public struct BuildPipeline {
           dependencies: sharedDependencies
             + stylesheetOutput.referencesByPage[pageIndex].map(\.path)
             + [scriptReference?.path].compactMap { $0 }
+            + [state?.path].compactMap { $0 }
             + referencedAssets.sorted()
         ))
     }
@@ -268,13 +286,16 @@ public struct BuildPipeline {
     "assets/\(name)-\(ContentDigest.sha256(bytes).prefix(12)).\(suffix)"
   }
 
-  package static func serverDocument(body: String, metadata: Metadata, css: String) throws -> String
-  {
+  package static func serverDocument(
+    body: String, metadata: Metadata, css: String, clientState: Bool = false
+  ) throws -> String {
     var referencedAssets: Set<String> = []
-    let metadata = try processedMetadata(metadata, assets: [:], referencedAssets: &referencedAssets)
+    let metadata = try processedMetadata(metadata, assets: nil, referencedAssets: &referencedAssets)
     return try document(
       body: body, metadata: metadata, stylesheets: [], script: nil,
-      additionalHeadElements: css.isEmpty ? [] : ["<style data-robin-style>\(css)</style>"])
+      additionalHeadElements: (css.isEmpty ? [] : ["<style data-robin-style>\(css)</style>"])
+        + (clientState
+          ? ["<script type=\"module\" src=\"\(ClientStateRuntime.path)\"></script>"] : []))
   }
 
   private static func document(
@@ -431,13 +452,17 @@ public struct BuildPipeline {
     for (className, pages) in pagesByClass {
       classesByPages[pages.sorted(), default: []].append(className)
     }
-    if viewTransitions == .enabled, classesByPages[everyPage] == nil {
+    if classesByPages[everyPage] == nil {
       classesByPages[everyPage] = []
     }
 
     var artifacts: [BuildArtifact] = []
     var referencesByPage = Array(repeating: [ResourceReference](), count: roots.count)
-    for pageIndexes in classesByPages.keys.sorted(by: { $0.lexicographicallyPrecedes($1) }) {
+    let chunks =
+      [everyPage]
+      + classesByPages.keys.filter { $0 != everyPage }
+      .sorted { $0.lexicographicallyPrecedes($1) }
+    for pageIndexes in chunks {
       let signatures = classesByPages[pageIndexes, default: []].sorted().compactMap {
         signatureByClass[$0]
       }
@@ -447,8 +472,9 @@ public struct BuildPipeline {
         mode: mode,
         viewTransitions: pageIndexes == everyPage ? viewTransitions : .disabled
       )
-      guard !compiled.css.isEmpty else { continue }
-      let bytes = Array(compiled.css.utf8)
+      let css = (pageIndexes == everyPage ? styles.documentCSS : "") + compiled.rulesCSS
+      guard !css.isEmpty else { continue }
+      let bytes = Array(css.utf8)
       let path = "assets/\(ContentDigest.sha256(bytes).prefix(12)).css"
       let artifact = try BuildArtifact(
         kind: .staticFile,
@@ -608,7 +634,7 @@ public struct BuildPipeline {
 
   private static func processedMetadata(
     _ source: Metadata,
-    assets: [String: ProcessedAssets.Reference],
+    assets: [String: ProcessedAssets.Reference]?,
     referencedAssets: inout Set<String>
   ) throws -> Metadata {
     var metadata = source
@@ -653,11 +679,14 @@ public struct BuildPipeline {
 
   private static func processedMetadataImage(
     _ image: Metadata.Image,
-    assets: [String: ProcessedAssets.Reference],
+    assets: [String: ProcessedAssets.Reference]?,
     referencedAssets: inout Set<String>
   ) throws -> Metadata.Image {
-    guard let reference = assets[image.url] else {
-      if image.url.hasPrefix("/") { throw BuildError.unknownAssetReference(image.url) }
+    guard let reference = assets?[image.url] else {
+      if image.url.hasPrefix("/") {
+        if assets == nil, BuildArtifact.isValid(String(image.url.dropFirst())) { return image }
+        throw BuildError.unknownAssetReference(image.url)
+      }
       try validateMetadataURL(image.url)
       return image
     }
@@ -672,14 +701,17 @@ public struct BuildPipeline {
 
   private static func processedMetadataResource(
     _ value: String,
-    assets: [String: ProcessedAssets.Reference],
+    assets: [String: ProcessedAssets.Reference]?,
     referencedAssets: inout Set<String>
   ) throws -> String {
-    if let reference = assets[value] {
+    if let reference = assets?[value] {
       referencedAssets.insert(reference.artifact.path)
       return reference.browserURL
     }
-    if value.hasPrefix("/") { throw BuildError.unknownAssetReference(value) }
+    if value.hasPrefix("/") {
+      if assets == nil, BuildArtifact.isValid(String(value.dropFirst())) { return value }
+      throw BuildError.unknownAssetReference(value)
+    }
     try validateMetadataURL(value)
     return value
   }

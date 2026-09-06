@@ -215,28 +215,28 @@ public actor ServerRuntime {
             ServerError(.internalServerError, "WebSocket session is unavailable.")
           )
         }
-        do {
-          try channel.pipeline.syncOperations.addHandler(
-            NIOWebSocketFrameAggregator(
-              minNonFinalFragmentSize: 1,
-              maxAccumulatedFrameCount: 1_024,
-              maxAccumulatedFrameSize: maximumBodyBytes
+        return channel.pipeline.removeHandler(name: "RobinHTTPHandler").flatMap {
+          do {
+            try channel.pipeline.syncOperations.addHandler(
+              NIOWebSocketFrameAggregator(
+                minNonFinalFragmentSize: 1,
+                maxAccumulatedFrameCount: 1_024,
+                maxAccumulatedFrameSize: maximumBodyBytes
+              )
             )
-          )
-          try channel.pipeline.syncOperations.addHandler(
-            NIOWebSocketHandler(session: accepted)
-          )
-          return channel.eventLoop.makeSucceededVoidFuture()
-        } catch {
-          return channel.eventLoop.makeFailedFuture(error)
+            try channel.pipeline.syncOperations.addHandler(
+              NIOWebSocketHandler(session: accepted)
+            )
+            return channel.eventLoop.makeSucceededVoidFuture()
+          } catch {
+            return channel.eventLoop.makeFailedFuture(error)
+          }
         }
       }
     )
     let upgrade: NIOHTTPServerUpgradeSendableConfiguration = (
       upgraders: [upgrader],
-      completionHandler: { context in
-        context.pipeline.removeHandler(name: "RobinHTTPHandler", promise: nil)
-      }
+      completionHandler: { _ in }
     )
     return channel.pipeline.configureHTTPServerPipeline(
       withServerUpgrade: upgrade,

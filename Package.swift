@@ -38,7 +38,6 @@ let package = Package(
     .library(name: "RobinPlugin", targets: ["RobinPlugin"]),
     .library(name: "RobinLucide", targets: ["RobinLucide"]),
     .library(name: "RobinPolar", targets: ["RobinPolar"]),
-    .library(name: "RobinOAuth", targets: ["RobinOAuth"]),
     .library(name: "RobinPostgres", targets: ["RobinPostgres"]),
     .executable(name: "robin", targets: ["RobinCLI"]),
   ],
@@ -85,7 +84,7 @@ let package = Package(
     ),
     .target(
       name: "RobinHTML",
-      dependencies: ["RobinCore"],
+      dependencies: ["RobinCore", "RobinRuntime"],
       swiftSettings: upcomingFeatures
     ),
     .target(
@@ -128,6 +127,7 @@ let package = Package(
     ),
     .target(
       name: "RobinRuntime",
+      dependencies: ["RobinMacros"],
       swiftSettings: lowLevelFeatures
     ),
     .target(
@@ -227,6 +227,7 @@ let package = Package(
     .target(
       name: "RobinBuild",
       dependencies: [
+        "RobinRuntime",
         "RobinContent",
         "RobinCore",
         "RobinHTML",
@@ -271,22 +272,6 @@ let package = Package(
         .product(name: "HTTPTypes", package: "swift-http-types"),
       ],
       path: "Sources/RobinExtensions/RobinPolar",
-      exclude: ["README.md"],
-      swiftSettings: lowLevelFeatures
-    ),
-    .target(
-      name: "RobinOAuth",
-      dependencies: [
-        "RobinAuth",
-        "RobinCore",
-        "RobinData",
-        "RobinPlugin",
-        "RobinRouting",
-        "RobinServer",
-        .product(name: "Crypto", package: "swift-crypto"),
-        .product(name: "HTTPTypes", package: "swift-http-types"),
-      ],
-      path: "Sources/RobinExtensions/RobinOAuth",
       exclude: ["README.md"],
       swiftSettings: lowLevelFeatures
     ),
@@ -341,7 +326,7 @@ let package = Package(
     ),
     .testTarget(
       name: "RobinHTMLTests",
-      dependencies: ["RobinCore", "RobinHTML"],
+      dependencies: ["RobinCore", "RobinHTML", "RobinRuntime"],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
@@ -373,6 +358,16 @@ let package = Package(
     .testTarget(
       name: "RobinRoutingTests",
       dependencies: ["RobinRouting"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinMacrosTests",
+      dependencies: [
+        "RobinMacros",
+        .product(name: "SwiftParser", package: "swift-syntax"),
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax"),
+      ],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
@@ -412,6 +407,7 @@ let package = Package(
     .testTarget(
       name: "RobinServerTests",
       dependencies: [
+        "RobinRuntime",
         "RobinBuild",
         "RobinCache",
         "RobinCore",
@@ -442,7 +438,7 @@ let package = Package(
       name: "RobinBuildTests",
       dependencies: [
         "RobinAuth", "RobinBuild", "RobinCore", "RobinHTML", "RobinStyle",
-        "RobinCache", "RobinContent", "RobinData", "RobinRouting", "RobinServer",
+        "RobinCache", "RobinContent", "RobinData", "RobinRouting", "RobinServer", "RobinRuntime",
         .product(name: "Crypto", package: "swift-crypto"),
       ],
       resources: [.copy("Fixtures")],
@@ -472,14 +468,6 @@ let package = Package(
       dependencies: [
         "RobinCore", "RobinJobs", "RobinPolar", "RobinServer",
         .product(name: "Crypto", package: "swift-crypto"),
-        .product(name: "HTTPTypes", package: "swift-http-types"),
-      ],
-      swiftSettings: upcomingFeatures
-    ),
-    .testTarget(
-      name: "RobinOAuthTests",
-      dependencies: [
-        "RobinAuth", "RobinCore", "RobinData", "RobinOAuth", "RobinServer",
         .product(name: "HTTPTypes", package: "swift-http-types"),
       ],
       swiftSettings: upcomingFeatures

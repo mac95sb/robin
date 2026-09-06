@@ -19,7 +19,7 @@ struct CodeBlockTests {
 
     #expect(
       block
-        == #"<pre><code data-robin-highlight-theme="xcode-default-dark" data-robin-language="swift"><span data-robin-highlight="keyword">let</span> answer = <span data-robin-highlight="number">42</span></code></pre>"#
+        == #"<pre data-robin-highlight-theme="xcode-default-dark"><code data-robin-highlight-theme="xcode-default-dark" data-robin-language="swift"><span data-robin-highlight="keyword">let</span> answer = <span data-robin-highlight="number">42</span></code></pre>"#
     )
   }
 
@@ -34,7 +34,20 @@ struct CodeBlockTests {
 
     #expect(
       block
-        == #"<pre><code data-robin-highlight-theme="xcode-default" data-robin-language="swift"><span data-robin-highlight="keyword">let</span> answer = <span data-robin-highlight="function">call</span>(<span data-robin-highlight="number">42</span>) <span data-robin-highlight="comment">// result</span></code></pre>"#
+        == #"<pre data-robin-highlight-theme="xcode-default"><code data-robin-highlight-theme="xcode-default" data-robin-language="swift"><span data-robin-highlight="keyword">let</span> answer = <span data-robin-highlight="function">call</span>(<span data-robin-highlight="number">42</span>) <span data-robin-highlight="comment">// result</span></code></pre>"#
     )
   }
+}
+
+@Test func markupAndCSSHighlightingPreserveFormattedSource() {
+  let html = "<!-- Example -->\n<input aria-label=\"Count\" value=\"0\">"
+  let markup = SyntaxHighlighter.highlight(html, language: "html")
+  #expect(markup.map(\.text).joined() == html)
+  #expect(markup.contains { $0.kind == .type && $0.text == "input" })
+  #expect(markup.contains { $0.kind == .attribute && $0.text == "aria-label" })
+  #expect(markup.contains { $0.kind == .comment })
+  let css = ".counter {\n  border-radius: 14px;\n}"
+  let styles = SyntaxHighlighter.highlight(css, language: "css")
+  #expect(styles.map(\.text).joined() == css)
+  #expect(styles.contains { $0.kind == .property && $0.text == "border-radius" })
 }

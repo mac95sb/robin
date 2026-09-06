@@ -8,12 +8,7 @@ import RobinLucide
 Icon(.notebookPen, accessibilityLabel: "Notes")
 ```
 
-The catalog is generated from Lucide 1.41.0. Regenerate it from an official Lucide source checkout:
-
-```sh
-python3 Scripts/generate-lucide.py path/to/lucide/icons \
-  Sources/RobinExtensions/RobinLucide/LucideIcon+Catalog.swift
-```
+The bundled catalog contains Lucide 1.41.0 icons rendered as typed SVG elements.
 
 Lucide is licensed under the ISC License. See [LICENSE](LICENSE).
 

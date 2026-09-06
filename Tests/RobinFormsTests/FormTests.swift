@@ -11,6 +11,20 @@ private struct ContactForm {
 }
 
 @Suite struct FormTests {
+  @Test func customizedControlKeepsItsLabelAndValidationFeedback() throws {
+    let form = ContactForm.decode(from: try .urlEncoded(Array("name=x".utf8)))
+    let html = try HTMLRenderer.render(
+      form.$name.input(id: "custom-name") { control in
+        Stack(id: "control-wrapper") { control }
+      })
+    #expect(html.contains("for=\"custom-name\""))
+    #expect(html.contains("id=\"control-wrapper\""))
+    #expect(html.contains("id=\"custom-name\""))
+    #expect(html.contains("aria-describedby=\"custom-name-error\""))
+    #expect(html.contains("id=\"custom-name-error\""))
+    #expect(html.contains("aria-invalid=\"true\""))
+  }
+
   @Test func decodesNativeAndJSONValuesWithSharedValidation() throws {
     let native = ContactForm.decode(from: try .urlEncoded(Array("name=Robin&age=24".utf8)))
     let json = ContactForm.decode(from: try .json(Array(#"{"name":"Robin","age":24}"#.utf8)))
@@ -46,4 +60,14 @@ private struct ContactForm {
     }
     #expect(ContactForm.decode(from: FormValues([:])).validationErrors == [.missing("name")])
   }
+}
+
+@Test func multilineFieldsPreserveContentAndNativeConstraints() throws {
+  let field = Field(wrappedValue: "First line\n<second>", "note", required: true, maximumLength: 40)
+  let content = field.input(id: "note", multiline: true) { $0 }
+  let html = try HTMLRenderer.render(.fragment(content.nodes))
+  #expect(html.contains("<textarea"))
+  #expect(html.contains("required"))
+  #expect(html.contains("maxlength=\"40\""))
+  #expect(html.contains("First line\n&lt;second&gt;</textarea>"))
 }

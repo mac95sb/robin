@@ -12,6 +12,7 @@ public actor SQLiteDatabase: Database {
     case file(path: String)
   }
 
+  /// The SQLite dialect used by every leased connection.
   public nonisolated let dialect = SQLDialect.sqlite
   private let connection: SQLiteConnection
   private let gate = ConnectionGate()
@@ -29,6 +30,13 @@ public actor SQLiteDatabase: Database {
     _ = try await connection.query("PRAGMA foreign_keys = ON")
   }
 
+  /// Leases the single connection exclusively for the duration of an operation.
+  ///
+  /// Use the supplied connection inside the closure. Calling this database's leasing,
+  /// transaction, health, or shutdown methods from that closure waits on the same lease.
+  /// Do not retain the connection after the operation returns.
+  /// - Returns: The operation's result.
+  /// - Throws: Cancellation, a closed-database error, or an error from the operation.
   public func withConnection<Result: Sendable>(
     _ operation: @Sendable (any DatabaseConnection) async throws -> Result
   ) async throws -> Result {
@@ -45,6 +53,13 @@ public actor SQLiteDatabase: Database {
     }
   }
 
+  /// Runs an operation in an exclusive `BEGIN IMMEDIATE` transaction.
+  ///
+  /// Success commits; a thrown error or cancellation before commit attempts rollback.
+  /// Use only the supplied connection inside the operation; nested database leases
+  /// and transactions are not supported. Do not retain it after the operation returns.
+  /// - Returns: The operation's result after commit.
+  /// - Throws: Cancellation, a closed-database error, or an operation or SQL error.
   public func transaction<Result: Sendable>(
     _ operation: @Sendable (any DatabaseConnection) async throws -> Result
   ) async throws -> Result {
@@ -67,6 +82,7 @@ public actor SQLiteDatabase: Database {
     }
   }
 
+  /// Waits for the connection and checks it with `SELECT 1`; closed databases return `false`.
   public func isHealthy() async -> Bool {
     do { try await gate.acquire() } catch { return false }
     let healthy: Bool
@@ -79,6 +95,10 @@ public actor SQLiteDatabase: Database {
     return healthy
   }
 
+  /// Rejects new operations, waits for the active lease, and closes the connection.
+  ///
+  /// Repeated calls return without closing the connection again.
+  /// - Throws: A connection-close error.
   public func shutdown() async throws {
     guard !closed else { return }
     closed = true

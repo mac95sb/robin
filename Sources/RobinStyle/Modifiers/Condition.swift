@@ -26,6 +26,10 @@ public indirect enum Condition: Equatable, Hashable, Sendable {
   case between(BreakpointToken, BreakpointToken)
   /// Applies while a checkable control is checked.
   case checked
+  /// Applies while an accessible toggle button is pressed.
+  case pressed
+  /// Applies while an accessible tab or option is selected.
+  case selected
   /// Applies while a disclosure or dialog is open.
   case open
   /// Applies when the element contains a descendant matching the selector.

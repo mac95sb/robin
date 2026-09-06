@@ -29,6 +29,7 @@ struct WebSocketClientModuleTests {
       path: "/api/v1/chat", formID: "form", inputID: "input", messagesID: "messages",
       statusID: "status")
     let asset = try module.asset()
+    for _ in 0..<16 { #expect(try module.asset().bytes == asset.bytes) }
     #expect(
       asset.scriptOrigin == .robinDirectCapability(.stream, selectedBy: "WebSocketClientModule"))
     let responder = try ApplicationResponder(

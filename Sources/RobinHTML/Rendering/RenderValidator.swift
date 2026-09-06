@@ -49,7 +49,7 @@ struct RenderValidator {
       }
       if insideButton
         && (element.kind == .button || element.kind == .input || element.kind == .a
-          || element.kind == .textarea)
+          || element.kind == .textarea || element.kind == .select)
       {
         diagnostics.append(.interactiveElementNestedInButton)
       }
@@ -72,10 +72,18 @@ struct RenderValidator {
 extension RenderElement.Attribute {
   fileprivate var validationName: String {
     switch self {
+    case .popover: "popover"
+    case .popoverCommand: "command"
+    case .languageLink: "data-robin-language-link"
     case .identifier: "id"
     case .buttonType, .inputType: "type"
     case .name: "name"
     case .value: "value"
+    case .selected: "selected"
+    case .appearanceChoice: "data-robin-appearance-choice"
+    case .accessibilityPressed: "aria-pressed"
+    case .appearancePicker: "data-robin-appearance-picker"
+    case .languagePicker: "data-robin-language-picker"
     case .required: "required"
     case .minimumLength: "minlength"
     case .maximumLength: "maxlength"
@@ -96,9 +104,22 @@ extension RenderElement.Attribute {
     case .sandbox: "sandbox"
     case .syntaxLanguage: "data-robin-language"
     case .syntaxTheme: "data-robin-highlight-theme"
+    case .hiddenNumberStepper: "data-robin-stepper-hidden"
+    case .stateText: "data-robin-text"
+    case .stateInput: "data-robin-input"
+    case .stateHidden: "data-robin-hidden"
+    case .stateDisabled: "data-robin-disabled"
+    case .stateAction: "data-robin-action"
+    case .stateOnChange: "data-robin-change"
+    case .stateOnInput: "data-robin-edit"
+    case .stateVisible: "data-robin-visible"
+    case .hidden: "hidden"
+    case .disabled: "disabled"
+    case .checked: "checked"
+    case .anyStep: "step"
     case .syntaxHighlight: "data-robin-highlight"
     case .accessibilityHidden: "aria-hidden"
-    case .imageRole: "role"
+    case .imageRole, .listRole: "role"
     case .vectorX: "x"
     case .vectorY: "y"
     case .vectorWidth: "width"

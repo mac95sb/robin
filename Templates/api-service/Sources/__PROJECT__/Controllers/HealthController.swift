@@ -24,7 +24,3 @@ struct HealthController: Controller {
     }
   }
 }
-
-struct Health: Encodable, Sendable {
-  let status: String
-}

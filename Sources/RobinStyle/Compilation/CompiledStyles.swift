@@ -11,7 +11,13 @@ public struct CompiledStyles: Equatable, Sendable {
   let assignments: [Assignment]
 
   /// The emitted stylesheet containing all compiled style rules.
-  public let css: String
+  public var css: String { documentCSS + rulesCSS }
+
+  /// Document-wide defaults emitted once when assembling stylesheet chunks.
+  @_spi(Rendering) public let documentCSS: String
+
+  /// Reachable component rules, keyframes, and view-transition declarations.
+  @_spi(Rendering) public let rulesCSS: String
 }
 
 @_spi(Rendering)

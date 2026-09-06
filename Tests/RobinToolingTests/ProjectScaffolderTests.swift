@@ -40,7 +40,21 @@ struct ProjectScaffolderTests {
       !FileManager.default.fileExists(
         atPath: destination.appendingPathComponent("Sources/Example/RobinMain.swift").path
       ))
-    if template == .apiService {
+    if template == .blank {
+      let sources = try FileManager.default.contentsOfDirectory(
+        atPath: destination.appendingPathComponent("Sources/Example").path)
+      #expect(
+        Set(sources) == [
+          "App.swift", "HomePage.swift", "MessageController.swift", "Message.swift",
+          "Greeting.swift",
+        ])
+      #expect(!app.contains("LocalizedPages("))
+      #expect(!app.contains("theme"))
+    } else if template == .marketing {
+      #expect(app.contains("SitePreferencesClientModule.asset()"))
+      #expect(app.contains("robin-logo.png"))
+      #expect(app.contains("documentation/robincore"))
+    } else if template == .apiService {
       #expect(!app.contains("metadata"))
       let controller = try String(
         contentsOf: destination.appendingPathComponent(
@@ -50,17 +64,19 @@ struct ProjectScaffolderTests {
       #expect(controller.contains("struct TodoController: Controller"))
       #expect(controller.contains("let route = \"todos\""))
       #expect(!controller.contains("RouteDefinition<Void>"))
-    } else {
+    } else if template != .blank {
       #expect(app.contains("LocalizedPages("))
       #expect(app.contains("bundle: .module"))
       #expect(app.contains("separator: \" — \""))
       #expect(!app.contains("openGraph:"))
-      #expect(app.contains("structuredData"))
+      if template != .blog { #expect(app.contains("structuredData")) }
       let localization = try String(
         contentsOf: destination.appendingPathComponent(
           "Sources/Example/Resources/Localizable.xcstrings"),
         encoding: .utf8)
-      #expect(localization.contains("\"sourceLanguage\" : \"en\""))
+      let catalog =
+        try JSONSerialization.jsonObject(with: Data(localization.utf8)) as? [String: Any]
+      #expect(catalog?["sourceLanguage"] as? String == "en")
       #expect(
         !FileManager.default.fileExists(
           atPath: destination.appendingPathComponent(
@@ -76,6 +92,11 @@ struct ProjectScaffolderTests {
       #expect(!controller.contains("typealias"))
     } else if template == .dashboard {
       #expect(app.contains("AppController(notes: notes)"))
+      #expect(
+        app.contains("ChatController(messages: services.messages, usernames: services.usernames)"))
+      #expect(app.contains("ChatPage()"))
+      #expect(app.contains("WebSocketClientModule("))
+      #expect(app.contains("FormSubmissionClientModule("))
       #expect(app.contains(".authSessions("))
       let controller = try String(
         contentsOf: destination.appendingPathComponent(
@@ -83,18 +104,18 @@ struct ProjectScaffolderTests {
       #expect(controller.contains("struct AppController: Controller"))
       #expect(controller.contains("RouteDefinition.path(\"system\", \"health\")"))
     } else if template == .blog {
-      let page = try String(
+      let post = try String(
         contentsOf: destination.appendingPathComponent(
-          "Sources/Example/Views/Pages/HomePage.swift"), encoding: .utf8)
-      #expect(page.contains("MarkdownContentParser.parse"))
-    } else if template == .realtimeChat {
-      #expect(app.contains("ChatController(messages: messages)"))
-      #expect(app.contains(".authSessions("))
-      let controller = try String(
-        contentsOf: destination.appendingPathComponent(
-          "Sources/Example/Controllers/ChatController.swift"), encoding: .utf8)
-      #expect(controller.contains("WebSocketSession"))
-      #expect(controller.contains("messages.append"))
+          "Sources/Example/Post.swift"), encoding: .utf8)
+      #expect(post.contains("MarkdownContentParser.parse"))
+      for locale in ["en", "fr"] {
+        let markdown = try String(
+          contentsOf: destination.appendingPathComponent(
+            "Sources/Example/Resources/first-post-\(locale).md"), encoding: .utf8)
+        #expect(markdown.hasPrefix("---\n"))
+        #expect(markdown.contains("```swift"))
+      }
+
     }
   }
 

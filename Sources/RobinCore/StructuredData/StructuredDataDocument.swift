@@ -14,7 +14,7 @@ package struct StructuredDataDocument: Encodable {
     try container.encodeIfPresent(metadata.image?.url, forKey: "image")
 
     switch data {
-    case .article:
+    case .article, .blog:
       try container.encodeIfPresent(metadata.author.map(PersonDocument.init), forKey: "author")
       try container.encodeIfPresent(metadata.publishedAt, forKey: "datePublished")
       try container.encodeIfPresent(metadata.modifiedAt, forKey: "dateModified")
