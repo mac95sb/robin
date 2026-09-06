@@ -4,6 +4,8 @@
   }
 
   @Section(title: "Create the adapter") {
+    Start a verified connection pool without exposing PostgresNIO to application repositories.
+
     @Steps {
       @Step {
         Construct ``PostgresConfiguration`` from the application's typed environment and secret values.

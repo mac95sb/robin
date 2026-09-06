@@ -4,6 +4,8 @@
   }
 
   @Section(title: "Enqueue and handle work") {
+    Schedule typed work in SQLite and execute it with a worker.
+
     @Steps {
       @Step {
         Define a `Codable & Sendable` ``Job`` with a stable name.

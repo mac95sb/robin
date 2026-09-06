@@ -12,4 +12,4 @@ let configuration = PostgresConfiguration(
 let database = PostgresDatabase(configuration: configuration)
 let repositoryContext = RepositoryContext(
   database: database,
-  tenant: .tenant("acme"))
+  tenant: .tenant(TenantContext(verified: "acme", source: .route)))

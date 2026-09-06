@@ -4,6 +4,8 @@
   }
 
   @Section(title: "Render and deliver") {
+    Build and send the framework's secure passwordless sign-in email.
+
     @Steps {
       @Step {
         Create an HTTPS message with ``MagicLinkEmail``.

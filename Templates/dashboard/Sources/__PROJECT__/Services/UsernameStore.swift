@@ -2,11 +2,11 @@ import Foundation
 import RobinCore
 import RobinData
 
-enum UsernameKey: ConfigurationKey {
+struct UsernameKey: ConfigurationKey {
   static let defaultValue: String? = nil
 }
 
-enum AuthorNamesKey: ConfigurationKey {
+struct AuthorNamesKey: ConfigurationKey {
   static let defaultValue: [String: String] = [:]
 }
 

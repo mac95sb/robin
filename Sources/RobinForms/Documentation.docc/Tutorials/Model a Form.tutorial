@@ -4,17 +4,17 @@
   }
 
   @Section(title: "Declare fields") {
+    Give form fields stable, typed names shared by rendering and request decoding.
+
     @Steps {
       @Step {
-        Apply ``FormModel()`` to a structure and declare default-valued ``Field`` properties.
-        Set stable names, labels, required values, length constraints, and custom validation.
-        Use ``FileField`` for uploads.
+        Declare the form and decode a URL-encoded submission. Call `validated()` before saving data; it throws when a constraint fails.
+
+        @Code(name: "ProfileForm.swift", file: "ProfileForm.swift")
       }
 
       @Step {
-        Render projected fields inside `RobinHTML.Form`. Decode submissions with RobinServer's
-        `request.form`, then call `validated()` before changing stored data. Redisplay invalid
-        forms with ``FormErrorSummary`` and projected fields to preserve entered text.
+        Run the example in a target depending on RobinForms and RobinHTML. The valid name is Robin. The empty submission has validation errors; render `redisplayedForm` to show those errors beside the retained field value. In a server handler, decode the actual request body rather than the sample bytes.
       }
     }
   }

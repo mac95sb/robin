@@ -4,6 +4,8 @@
   }
 
   @Section(title: "Create the page") {
+    Create a routable page, register it with an application, and rely on native document navigation.
+
     @Steps {
       @Step {
         Import RobinHTML and define a page with a root-relative path.

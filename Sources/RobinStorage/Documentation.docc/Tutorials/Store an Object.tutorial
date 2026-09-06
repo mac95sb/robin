@@ -4,6 +4,8 @@
   }
 
   @Section(title: "Store safely") {
+    Validate, stream, and retrieve a tenant-owned object.
+
     @Steps {
       @Step {
         Normalize an ``ObjectKey`` and combine it with an explicit tenant using ``ScopedObjectKey``.

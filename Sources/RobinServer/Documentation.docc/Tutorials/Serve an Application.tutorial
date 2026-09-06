@@ -4,6 +4,8 @@
   }
 
   @Section(title: "Handle requests") {
+    Run pages and controllers through one transport-neutral responder.
+
     @Steps {
       @Step {
         Group related ``Endpoint`` values in one ``Controller``.

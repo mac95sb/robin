@@ -2,7 +2,7 @@ import Foundation
 import RobinCore
 import RobinData
 
-enum MessageListKey: ConfigurationKey {
+struct MessageListKey: ConfigurationKey {
   static let defaultValue: [ChatMessage] = []
 }
 

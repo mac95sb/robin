@@ -4,17 +4,17 @@
   }
 
   @Section(title: "Keep state typed") {
+    Choose browser-local state or asynchronous Swift-side operations.
+
     @Steps {
       @Step {
-        For local UI changes, declare `@State`, bind the projected value with `$value`, and attach typed operations to buttons. See <doc:Browser-State>.
+        Add this component to a page in a Robin application. The projected `$count` binds the input and text to the same integer; actions use ordinary Swift mutations.
+
+        @Code(name: "Counter.swift", file: "Counter.swift")
       }
 
       @Step {
-        Store server-owned values in ``StateStore`` and expose selected values through ``Binding``.
-      }
-
-      @Step {
-        Represent asynchronous Swift-side operations with ``Action``. These are not browser-local ``StateAction`` operations.
+        Build and open the page in a browser. Click +10 twice to display 20, type 7 into the input to display 7, then Reset to display 0. Robin includes the shared state runtime automatically. Reloading restores 0: this is document-local UI state, not durable server data. See <doc:Browser-State> for Boolean, string, and floating-point bindings.
       }
     }
   }

@@ -4,6 +4,8 @@
   }
 
   @Section(title: "Build a safe cache key") {
+    Define every value that changes a response before storing it.
+
     @Steps {
       @Step {
         Create a ``CacheContext`` containing route parameters, selected query values, locale, visibility, and tenant.

@@ -15,4 +15,4 @@ try await Migrator(database: database).migrate([
 
 let repositoryContext = RepositoryContext(
   database: database,
-  tenant: .tenant("acme"))
+  tenant: .tenant(TenantContext(verified: "acme", source: .route)))

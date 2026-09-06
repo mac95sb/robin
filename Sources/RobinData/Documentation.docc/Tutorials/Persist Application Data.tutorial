@@ -4,6 +4,8 @@
   }
 
   @Section(title: "Use request-scoped repositories") {
+    Create a database, apply a migration, and execute a typed query.
+
     @Steps {
       @Step {
         Open ``SQLiteDatabase`` for the default local persistence path or import `RobinPostgres` for a pooled production database.

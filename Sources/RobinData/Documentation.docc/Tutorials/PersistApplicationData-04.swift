@@ -14,7 +14,7 @@ let database = try await SQLiteDatabase(
   storage: .file(path: "/var/lib/my-app/app.sqlite"))
 let repositoryContext = RepositoryContext(
   database: database,
-  tenant: .tenant("acme"))
+  tenant: .tenant(TenantContext(verified: "acme", source: .route)))
 
 let users = DatabaseQuery<User>("SELECT id, name FROM users") { row in
   guard case .integer(let id) = row["id"],

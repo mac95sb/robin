@@ -4,13 +4,17 @@
   }
 
   @Section(title: "Use typed styles") {
+    Apply typed design tokens and compile only the CSS each page reaches.
+
     @Steps {
       @Step {
-        Select values from ``Theme`` and apply grouped component modifiers.
+        Add `WelcomeCard` to a Robin application and place it inside a page body. Import RobinStyle to use the grouped modifiers.
+
+        @Code(name: "StyledCard.swift", file: "StyledCard.swift")
       }
 
       @Step {
-        Use ``Condition`` for responsive and stateful CSS without adding client state.
+        Build and preview the application with its default theme. Below the medium breakpoint the card uses small padding; at medium and wider it uses large padding. Hover the link to see its color change. These conditions compile to CSS and require no browser state or JavaScript.
       }
     }
   }

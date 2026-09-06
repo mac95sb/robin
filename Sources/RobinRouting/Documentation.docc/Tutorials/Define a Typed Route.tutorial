@@ -4,6 +4,8 @@
   }
 
   @Section(title: "Describe the path") {
+    Use one route definition for request matching and reverse URL generation.
+
     @Steps {
       @Step {
         Create a ``RouteDefinition`` from literal segments and any typed ``PathParameter`` values.

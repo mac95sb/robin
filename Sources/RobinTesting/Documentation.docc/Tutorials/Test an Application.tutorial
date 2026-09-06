@@ -4,13 +4,17 @@
   }
 
   @Section(title: "Choose the smallest test") {
+    Check routes, accessibility, snapshots, and browser behavior through Robin's public contracts.
+
     @Steps {
       @Step {
-        Start with ``RouteTestClient`` or ``AccessibilityAudit`` for deterministic local feedback.
+        Place this file in a Swift Testing test target with RobinTesting and the imported Robin modules as dependencies.
+
+        @Code(name: "ApplicationTests.swift", file: "ApplicationTests.swift")
       }
 
       @Step {
-        Use ``BrowserSession`` only for behavior that requires a real browser boundary.
+        Run `swift test --filter homeResponds` in that project. The route responds with HTTP 200 and the accessibility audit returns no findings. Neither check starts a network listener. Use browser tests separately for interactions that require a real DOM.
       }
     }
   }

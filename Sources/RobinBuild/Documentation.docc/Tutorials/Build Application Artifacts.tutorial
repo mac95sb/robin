@@ -4,14 +4,17 @@
   }
 
   @Section(title: "Run the pipeline") {
+    Produce deterministic output beneath the project's `.robin` directory.
+
     @Steps {
       @Step {
-        Create an `OutputLayout` rooted at the project directory.
+        Place this file in an executable target with RobinBuild, RobinCore, and RobinHTML dependencies. The application has a single page and no controllers, so its mode is static.
+
+        @Code(name: "BuildSite.swift", file: "BuildSite.swift")
       }
 
       @Step {
-        Pass the application and layout to ``BuildPipeline``. Robin infers the application mode from
-        its pages and controller routes.
+        Run the target from the project directory. The pipeline writes the root page and a nonempty artifact manifest beneath `.robin/build`. Serve that directory to see Hello, Robin. Keep generated files out of source control; application source remains the authority.
       }
     }
   }

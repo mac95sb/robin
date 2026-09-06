@@ -4,13 +4,17 @@
   }
 
   @Section(title: "Set project policy") {
+    Keep build and diagnostic policy separate from application behavior.
+
     @Steps {
       @Step {
-        Put application composition in `App.swift` and tool-only policy in `robin.pkl`.
+        Save this policy as `robin.pkl` at the application project root. It sets diagnostic severity and the build budget without changing routes, services, or page content.
+
+        @Code(name: "robin.pkl", file: "robin.pkl")
       }
 
       @Step {
-        Run `robin lint` for deterministic checks and `robin doctor` for environment readiness.
+        From the same directory run `robin lint`, then `robin doctor`. Fix reported configuration or environment problems before building. A valid policy uses schema version 1 and a positive budget; try changing the budget to 0 to see policy validation fail, then restore it. Keep application behavior in `App.swift`.
       }
     }
   }

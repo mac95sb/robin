@@ -2,7 +2,7 @@ import Foundation
 import RobinCore
 import RobinData
 
-enum NoteListKey: ConfigurationKey {
+struct NoteListKey: ConfigurationKey {
   static let defaultValue: [Note] = []
 }
 

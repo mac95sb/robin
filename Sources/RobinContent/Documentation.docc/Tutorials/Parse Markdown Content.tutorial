@@ -4,13 +4,17 @@
   }
 
   @Section(title: "Parse and inspect") {
+    Convert Markdown into typed content while reporting unsupported input.
+
     @Steps {
       @Step {
-        Parse source text with ``MarkdownContentParser``.
+        Add this file to an executable target depending on RobinContent and RobinHTML. Parse Markdown with an explicit embed allowlist, then render the typed result.
+
+        @Code(name: "MarkdownPage.swift", file: "MarkdownPage.swift")
       }
 
       @Step {
-        Render the resulting ``ParsedContent`` nodes and surface every ``ContentDiagnostic``.
+        Run the target. It prints a heading and paragraph containing `<strong>Markdown</strong>`. Inspect `diagnostics` before publishing; an empty array means this input needed no unsupported-content warnings.
       }
     }
   }

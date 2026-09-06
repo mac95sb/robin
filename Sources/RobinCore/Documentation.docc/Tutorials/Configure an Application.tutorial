@@ -4,13 +4,17 @@
   }
 
   @Section(title: "Declare shared values") {
+    Define shared metadata and environment-backed configuration without coupling it to a renderer.
+
     @Steps {
       @Step {
-        Create ``Metadata`` for document defaults and use ``Environment`` for typed configuration.
+        Define a typed configuration key with a default, then override it in a development environment. Keep document defaults in `Metadata`.
+
+        @Code(name: "Configuration.swift", file: "Configuration.swift")
       }
 
       @Step {
-        Wrap sensitive values in ``Secret`` so diagnostics cannot print their contents.
+        Run this file in an executable target that depends on RobinCore. The assertions confirm the scoped greeting and redacted secret description. Load real secrets from your deployment environment; never commit them or place them in page metadata.
       }
     }
   }
