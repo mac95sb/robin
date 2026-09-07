@@ -14,4 +14,20 @@ public struct ColorToken: RawRepresentable, Hashable, Sendable {
   public static let accent = Self(rawValue: "accent")
   /// The conventional border color token.
   public static let border = Self(rawValue: "border")
+  /// The elevated surface color token.
+  public static let surface = Self(rawValue: "surface")
+  /// The hover color for an elevated surface.
+  public static let surfaceHover = Self(rawValue: "surface-hover")
+  /// The card background color token.
+  public static let card = Self(rawValue: "card")
+  /// The hover color for a card.
+  public static let cardHover = Self(rawValue: "card-hover")
+  /// The subdued text or surface color token.
+  public static let muted = Self(rawValue: "muted")
+  /// The hover color for subdued content.
+  public static let mutedHover = Self(rawValue: "muted-hover")
+  /// The hover color for an accent action.
+  public static let accentHover = Self(rawValue: "accent-hover")
+  /// The foreground color placed on an accent surface.
+  public static let onAccent = Self(rawValue: "on-accent")
 }

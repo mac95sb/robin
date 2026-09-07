@@ -9,6 +9,8 @@ public struct SpacingToken: RawRepresentable, Hashable, Sendable {
   /// Creates a spacing token with a string identifier.
   public init(rawValue: String) { self.rawValue = rawValue }
 
+  /// No spacing.
+  public static let zero = Self(rawValue: "zero")
   /// The extra-small spacing step.
   public static let xs = Self(rawValue: "xs")
   /// The small spacing step.

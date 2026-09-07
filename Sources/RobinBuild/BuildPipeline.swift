@@ -86,15 +86,20 @@ public struct BuildPipeline {
     }
     try validate(configuration.runtimes, artifacts: runtimeArtifacts, mode: mode)
 
+    let explicitReferences = Set(configuration.assets.map(\.reference))
+    let resourceAssets = try BundledAssets.discover(for: application).filter {
+      !explicitReferences.contains($0.reference)
+    }
     let assets = try AssetProcessor.process(
-      configuration.assets,
+      resourceAssets + configuration.assets,
       toolchain: configuration.assetToolchain,
       cdnBaseURL: configuration.cdnBaseURL,
       layout: layout
     )
+    let pages = LocalizedPages.automatic(application)
     let speculation = try SpeculationRulesCompiler.compile(
       mode == .api ? [] : configuration.speculationRules,
-      pagePaths: Set(application.pages.pages.map(\.path)),
+      pagePaths: Set(pages.map(\.path)),
       assets: assets
     )
     var artifacts = runtimeArtifacts + assets.artifacts
@@ -102,6 +107,7 @@ public struct BuildPipeline {
     if mode != .api {
       artifacts += try pageArtifacts(
         application,
+        pages: pages,
         mode: mode,
         configuration: configuration,
         assets: assets,
@@ -151,12 +157,12 @@ public struct BuildPipeline {
 
   private static func pageArtifacts<Application: App>(
     _ application: Application,
+    pages: [any Page],
     mode: ApplicationMode,
     configuration: BuildConfiguration,
     assets: ProcessedAssets,
     speculation: CompiledSpeculationRules
   ) throws -> [BuildArtifact] {
-    let pages = application.pages.pages
     let registeredPaths = Set(pages.map(\.path))
     if let unknown = configuration.prerenderedPagePaths.first(where: {
       !registeredPaths.contains($0)

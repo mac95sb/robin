@@ -10,4 +10,10 @@ public struct TypographyToken: RawRepresentable, Hashable, Sendable {
   public static let body = Self(rawValue: "body")
   /// The conventional heading typography token.
   public static let heading = Self(rawValue: "heading")
+  /// Typography for prominent text that needs more weight than body copy.
+  public static let emphasis = Self(rawValue: "emphasis")
+  /// Typography for section and card titles.
+  public static let title = Self(rawValue: "title")
+  /// Typography for compact labels and navigation.
+  public static let label = Self(rawValue: "label")
 }

@@ -6,7 +6,8 @@ struct ThemeDefaultTests {
   @Test func defaultThemeCoversTheFullNamedTokenScale() {
     let theme = Theme.default
 
-    #expect(Set(theme.spacing.keys) == [.xs, .sm, .md, .lg, .xl, .xxl])
+    #expect(Set(theme.spacing.keys) == [.zero, .xs, .sm, .md, .lg, .xl, .xxl])
+    #expect(Set(theme.typography.keys) == [.body, .emphasis, .heading, .title, .label])
     #expect(Set(theme.radii.keys) == [.xs, .sm, .md, .lg, .xl, .full])
     #expect(Set(theme.shadows.keys) == [.sm, .md, .lg, .xl])
     #expect(Set(theme.breakpoints.keys) == [.sm, .md, .lg, .xl, .xxl])
@@ -36,7 +37,10 @@ struct ThemeDefaultTests {
   @Test func defaultThemeSuppliesEveryColorTokenInBothPalettes() {
     let theme = Theme.default
 
-    let tokens: Set<ColorToken> = [.background, .foreground, .accent, .border]
+    let tokens: Set<ColorToken> = [
+      .background, .foreground, .accent, .accentHover, .onAccent, .border,
+      .surface, .surfaceHover, .card, .cardHover, .muted, .mutedHover,
+    ]
     #expect(Set(theme.lightColors.keys) == tokens)
     #expect(Set(theme.darkColors.keys) == tokens)
   }
