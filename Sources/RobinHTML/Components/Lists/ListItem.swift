@@ -1,6 +1,8 @@
 /// A single entry within a ``List``.
 ///
 /// `ListItem` lowers to `<li>`.
+///
+/// HTML reference: [MDN: li](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/li).
 public struct ListItem: Component {
   private let identifier: String?
   private let title: String?

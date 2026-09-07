@@ -4,6 +4,8 @@
 ///
 /// Configure identity, accessibility, and submission behavior when creating the button. The
 /// label builder supplies the child components rendered inside the button element.
+///
+/// HTML reference: [MDN: button](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button).
 public struct Button: Component {
   /// The button's form behavior.
   public enum Kind: String, Sendable {

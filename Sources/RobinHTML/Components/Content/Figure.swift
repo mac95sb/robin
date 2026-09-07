@@ -1,6 +1,8 @@
 /// Self-contained content, such as an image or diagram, with an optional ``FigureCaption``.
 ///
 /// `Figure` lowers to `<figure>`.
+///
+/// HTML reference: [MDN: figure](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/figure).
 public struct Figure: Component {
   private let identifier: String?
   private let content: ComponentContent

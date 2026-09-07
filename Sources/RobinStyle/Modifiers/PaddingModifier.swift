@@ -3,6 +3,10 @@ import RobinHTML
 extension Component {
   /// Applies tokenized padding.
   ///
+  /// Padding adds space inside the border, around the content. It does not create a gap outside the element.
+  ///
+  /// CSS reference: [MDN: padding](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/padding).
+  ///
   /// - Parameters:
   ///   - spacing: The theme spacing token to resolve to a pixel value during
   ///     style compilation.

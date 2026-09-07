@@ -26,13 +26,15 @@ package struct ProjectScaffolder {
     template: ProjectTemplate,
     templatesDirectory: URL?,
     projectRoot: URL,
-    environment: [String: String] = ProcessInfo.processInfo.environment
+    environment: [String: String] = ProcessInfo.processInfo.environment,
+    executableURL: URL? = Bundle.main.executableURL
   ) throws -> URL {
     guard isValidProjectName(name) else { throw ProjectScaffolderError.invalidProjectName(name) }
     let templates = try resolveTemplatesDirectory(
       explicit: templatesDirectory,
       projectRoot: projectRoot,
-      environment: environment
+      environment: environment,
+      executableURL: executableURL
     )
     let source = templates.appendingPathComponent(template.rawValue, isDirectory: true)
     guard
@@ -56,12 +58,15 @@ package struct ProjectScaffolder {
   private static func resolveTemplatesDirectory(
     explicit: URL?,
     projectRoot: URL,
-    environment: [String: String]
+    environment: [String: String],
+    executableURL: URL?
   ) throws -> URL {
     let candidates = [
       explicit,
       environment["ROBIN_TEMPLATES"].map { URL(fileURLWithPath: $0) },
       projectRoot.appendingPathComponent("Templates", isDirectory: true),
+      executableURL?.resolvingSymlinksInPath().deletingLastPathComponent()
+        .appendingPathComponent("Templates", isDirectory: true),
       sourceCheckoutTemplates,
     ].compactMap { $0 }
     guard
@@ -72,7 +77,6 @@ package struct ProjectScaffolder {
     return directory.resolvingSymlinksInPath()
   }
 
-  // ponytail: source-based CLI distribution; bundle templates when Robin ships standalone binaries.
   private static var sourceCheckoutTemplates: URL {
     URL(fileURLWithPath: #filePath)
       .deletingLastPathComponent()

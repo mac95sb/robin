@@ -3,6 +3,8 @@
 /// `Section` lowers to `<section>`. Prefer a more specific landmark (``Article``, ``Aside``,
 /// ``Navigation``) when one applies; use `Section` for thematic groupings that don't fit those
 /// roles.
+///
+/// HTML reference: [MDN: section](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/section).
 public struct Section: Component {
   private let identifier: String?
   private let content: ComponentContent

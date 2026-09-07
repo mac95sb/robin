@@ -53,7 +53,9 @@ struct ProjectScaffolderTests {
     } else if template == .marketing {
       #expect(app.contains("SitePreferencesClientModule.asset()"))
       #expect(app.contains("robin-logo.png"))
-      #expect(app.contains("documentation/robincore"))
+      #expect(
+        app.contains("https://mac95sb.github.io/robin/reference/RobinCore/documentation/robincore/")
+      )
     } else if template == .apiService {
       #expect(!app.contains("metadata"))
       let controller = try String(
@@ -152,6 +154,24 @@ struct ProjectScaffolderTests {
     #expect(
       FileManager.default.fileExists(
         atPath: destination.appendingPathComponent("Package.swift").path))
+  }
+
+  @Test func findsTemplatesBesideTheInstalledExecutable() throws {
+    let installation = temporaryDirectory()
+    let template = installation.appendingPathComponent("Templates/blank")
+    try FileManager.default.createDirectory(at: template, withIntermediateDirectories: true)
+    try Data("bundled __PROJECT__".utf8).write(to: template.appendingPathComponent("marker.txt"))
+    let destination = try ProjectScaffolder.create(
+      name: "Installed",
+      template: .blank,
+      templatesDirectory: nil,
+      projectRoot: temporaryDirectory(),
+      environment: [:],
+      executableURL: installation.appendingPathComponent("robin")
+    )
+    #expect(
+      try String(contentsOf: destination.appendingPathComponent("marker.txt"), encoding: .utf8)
+        == "bundled Installed")
   }
 
   private var repositoryRoot: URL {

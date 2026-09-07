@@ -4,7 +4,7 @@ import Noora
 import RobinTooling
 
 @main
-struct RobinCommandLine: ParsableCommand {
+struct RobinCommandLine: AsyncParsableCommand {
   static let configuration = CommandConfiguration(
     commandName: "robin",
     abstract: "Build and operate Robin projects.",
@@ -21,19 +21,80 @@ struct RobinCommandLine: ParsableCommand {
     ]
   )
 
-  static func run(_ command: RobinCommand) throws {
-    let noora = Noora()
-    let diagnostics = try RobinCommandRunner.run(command)
-    if emitsJSON(command) {
-      let encoder = JSONEncoder()
-      encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-      FileHandle.standardOutput.write(try encoder.encode(diagnostics))
-      FileHandle.standardOutput.write(Data("\n".utf8))
+  static var terminal: Noora {
+    Noora(standardPipelines: .init(output: StandardErrorPipeline()))
+  }
+
+  static func run(_ command: RobinCommand, additionalDiagnostics: [ToolDiagnostic] = [])
+    async throws
+  {
+    let noora = RobinCommandLine.terminal
+    let json = emitsJSON(command)
+    let showsProgress: Bool
+    switch command {
+    case .initialize, .export, .doctor: showsProgress = !json && Terminal.isInteractive()
+    default: showsProgress = false
+    }
+    if !json && !showsProgress {
+      noora.info(.alert(TerminalText(stringLiteral: command.startMessage)))
+    }
+    let diagnostics: [ToolDiagnostic]
+    do {
+      if showsProgress {
+        diagnostics = try await noora.progressStep(
+          message: command.startMessage,
+          successMessage: "\(command.displayName) finished; reviewing results.",
+          errorMessage: "\(command.displayName) could not complete.", showSpinner: true
+        ) { _ in
+          try RobinCommandRunner.run(command, additionalDiagnostics: additionalDiagnostics)
+        }
+      } else {
+        diagnostics = try RobinCommandRunner.run(
+          command, additionalDiagnostics: additionalDiagnostics)
+      }
+    } catch {
+      let failure = ToolDiagnostic(
+        code: "command-failed", severity: .error,
+        message: "\(command.displayName) could not complete: \(error)",
+        remediation: "Address the reported error and run the command again.")
+      if json {
+        try writeJSON([failure])
+      } else {
+        print(failure, using: noora)
+      }
+      throw ExitCode.failure
+    }
+    if json {
+      try writeJSON(diagnostics)
     } else {
-      for diagnostic in diagnostics { print(diagnostic, using: noora) }
-      if diagnostics.isEmpty { noora.success(.alert("Robin command completed.")) }
+      let rows = diagnostics.compactMap { diagnostic -> [String]? in
+        guard let metric = diagnostic.measurement else { return nil }
+        return [
+          diagnostic.message, metric.value.formatted(.number.precision(.fractionLength(0...3))),
+          metric.unit,
+        ]
+      }
+      if !rows.isEmpty { noora.table(headers: ["Metric", "Value", "Unit"], rows: rows) }
+      for diagnostic in diagnostics where diagnostic.measurement == nil {
+        print(diagnostic, using: noora)
+      }
+      let summary = command.summary(diagnostics: diagnostics)
+      let message = TerminalText(stringLiteral: summary.message)
+      let takeaways = summary.takeaways.map { TerminalText(stringLiteral: $0) }
+      switch summary.severity {
+      case .note: noora.success(.alert(message, takeaways: takeaways))
+      case .warning: noora.warning(.alert(message, takeaway: takeaways.first))
+      case .error: noora.error(.alert(message, takeaways: takeaways))
+      }
     }
     if diagnostics.contains(where: { $0.severity == .error }) { throw ExitCode.failure }
+  }
+
+  private static func writeJSON(_ diagnostics: [ToolDiagnostic]) throws {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+    FileHandle.standardOutput.write(try encoder.encode(diagnostics))
+    FileHandle.standardOutput.write(Data("\n".utf8))
   }
 
   private static func emitsJSON(_ command: RobinCommand) -> Bool {
@@ -59,20 +120,32 @@ struct RobinCommandLine: ParsableCommand {
 
 extension ProjectTemplate: ExpressibleByArgument {}
 
-struct InitCommand: ParsableCommand {
+struct InitCommand: AsyncParsableCommand {
   static let configuration = CommandConfiguration(
     commandName: "init",
     abstract: "Create a Robin project."
   )
 
-  @Argument(help: "The project name.") var projectName: String
+  @Argument(help: "The project name. Omit for guided setup in a terminal.") var projectName: String?
   @Option(name: .shortAndLong, help: "The project template.")
   var template = ProjectTemplate.dashboard
   @Option(name: .customLong("templates"), help: "A custom templates directory.")
   var templatesDirectory: String?
 
-  mutating func run() throws {
-    try RobinCommandLine.run(
+  mutating func run() async throws {
+    if projectName == nil {
+      guard Terminal.isInteractive() else {
+        throw ValidationError("Provide a project name: robin init MySite --template blog")
+      }
+      let noora = RobinCommandLine.terminal
+      projectName = noora.textPrompt(title: "New project", prompt: "Project name")
+      let selected = noora.singleChoicePrompt(
+        title: "Template", question: "What would you like to build?",
+        options: ProjectTemplate.allCases.map(\.rawValue))
+      template = ProjectTemplate(rawValue: selected) ?? .dashboard
+    }
+    guard let projectName else { throw ValidationError("A project name is required.") }
+    try await RobinCommandLine.run(
       .initialize(
         name: projectName,
         template: template,
@@ -81,44 +154,84 @@ struct InitCommand: ParsableCommand {
   }
 }
 
-struct DevCommand: ParsableCommand {
-  static let configuration = CommandConfiguration(commandName: "dev")
-  mutating func run() throws { try RobinCommandLine.run(.dev) }
+struct DevCommand: AsyncParsableCommand {
+  static let configuration = CommandConfiguration(
+    commandName: "dev", abstract: "Build and run the development application. Press Ctrl-C to stop."
+  )
+  mutating func run() async throws { try await RobinCommandLine.run(.dev) }
 }
 
-struct BuildCommand: ParsableCommand {
-  static let configuration = CommandConfiguration(commandName: "build")
-  mutating func run() throws { try RobinCommandLine.run(.build) }
+struct BuildCommand: AsyncParsableCommand {
+  static let configuration = CommandConfiguration(
+    commandName: "build", abstract: "Build production output in .robin/build.")
+  mutating func run() async throws { try await RobinCommandLine.run(.build) }
 }
 
-struct ExportCommand: ParsableCommand {
-  static let configuration = CommandConfiguration(commandName: "export")
-  mutating func run() throws { try RobinCommandLine.run(.export) }
+struct ExportCommand: AsyncParsableCommand {
+  static let configuration = CommandConfiguration(
+    commandName: "export",
+    abstract: "Copy existing build output to .robin/export. Replaces the previous export.")
+  mutating func run() async throws { try await RobinCommandLine.run(.export) }
 }
 
-struct ServeCommand: ParsableCommand {
-  static let configuration = CommandConfiguration(commandName: "serve")
-  mutating func run() throws { try RobinCommandLine.run(.serve) }
+struct ServeCommand: AsyncParsableCommand {
+  static let configuration = CommandConfiguration(
+    commandName: "serve",
+    abstract: "Build and run the production application. Press Ctrl-C to stop.")
+  mutating func run() async throws { try await RobinCommandLine.run(.serve) }
 }
 
-struct WorkerCommand: ParsableCommand {
-  static let configuration = CommandConfiguration(commandName: "worker")
-  mutating func run() throws { try RobinCommandLine.run(.worker) }
+struct WorkerCommand: AsyncParsableCommand {
+  static let configuration = CommandConfiguration(
+    commandName: "worker",
+    abstract: "Run the application’s background worker. Press Ctrl-C to stop.")
+  mutating func run() async throws { try await RobinCommandLine.run(.worker) }
 }
 
-struct TestCommand: ParsableCommand {
-  static let configuration = CommandConfiguration(commandName: "test")
-  mutating func run() throws { try RobinCommandLine.run(.test) }
+struct TestCommand: AsyncParsableCommand {
+  static let configuration = CommandConfiguration(
+    commandName: "test", abstract: "Run the project’s Swift tests.")
+  mutating func run() async throws { try await RobinCommandLine.run(.test) }
 }
 
-struct LintCommand: ParsableCommand {
-  static let configuration = CommandConfiguration(commandName: "lint")
+extension PageSpeedAudit.Strategy: ExpressibleByArgument {}
+
+struct LintCommand: AsyncParsableCommand {
+  static let configuration = CommandConfiguration(
+    commandName: "lint",
+    abstract: "Check project conventions, formatting, and built artifact sizes.",
+    discussion:
+      "Use --url for an optional Google PageSpeed Insights audit. Set PAGESPEED_API_KEY for API quota. Errors exit with status 1; warnings follow robin.pkl policy."
+  )
+  @Flag(help: "Emit JSON diagnostics only, including numeric measurements.") var json = false
+  @Option(help: "Public HTTP(S) URL to audit with PageSpeed Insights.") var url: String?
+  @Option(help: "PageSpeed device strategy: mobile or desktop.") var strategy = PageSpeedAudit
+    .Strategy.mobile
+
+  mutating func validate() throws {
+    if let url {
+      do { _ = try PageSpeedAudit.request(url: url, strategy: strategy, key: nil) } catch {
+        throw ValidationError("--url must be an HTTP(S) URL with a host and no credentials.")
+      }
+    }
+  }
+
+  mutating func run() async throws {
+    var remote: [ToolDiagnostic] = []
+    if let url {
+      if !json {
+        RobinCommandLine.terminal.info(.alert("Auditing the public URL with PageSpeed Insights…"))
+      }
+      remote = await PageSpeedAudit.audit(url: url, strategy: strategy)
+    }
+    try await RobinCommandLine.run(.lint(json: json), additionalDiagnostics: remote)
+  }
+}
+
+struct DoctorCommand: AsyncParsableCommand {
+  static let configuration = CommandConfiguration(
+    commandName: "doctor",
+    abstract: "Check required tools, project configuration, and dependency resolution.")
   @Flag(help: "Emit JSON diagnostics.") var json = false
-  mutating func run() throws { try RobinCommandLine.run(.lint(json: json)) }
-}
-
-struct DoctorCommand: ParsableCommand {
-  static let configuration = CommandConfiguration(commandName: "doctor")
-  @Flag(help: "Emit JSON diagnostics.") var json = false
-  mutating func run() throws { try RobinCommandLine.run(.doctor(json: json)) }
+  mutating func run() async throws { try await RobinCommandLine.run(.doctor(json: json)) }
 }

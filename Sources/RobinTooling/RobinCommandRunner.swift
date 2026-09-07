@@ -3,12 +3,15 @@ import RobinCore
 
 package enum RobinCommandRunnerError: Error, Equatable, CustomStringConvertible, Sendable {
   case commandFailed(String, Int32)
+  case commandTimedOut(String)
   case buildBudgetExceeded(actualMilliseconds: Int, budgetMilliseconds: Int)
   case missingBuildOutput
   case outputEscapesRobinRoot
 
   package var description: String {
     switch self {
+    case .commandTimedOut(let command):
+      "`\(command)` timed out. Another SwiftPM process may hold the build lock; let it finish and retry."
     case .commandFailed(let command, let status):
       "`\(command)` failed with status \(status)."
     case .buildBudgetExceeded(let actual, let budget):
@@ -25,7 +28,8 @@ package struct RobinCommandRunner {
   @discardableResult
   package static func run(
     _ command: RobinCommand,
-    at projectRoot: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    at projectRoot: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
+    additionalDiagnostics: [ToolDiagnostic] = []
   ) throws -> [ToolDiagnostic] {
     switch command {
     case .initialize(let name, let template, let templatesDirectory):
@@ -78,6 +82,7 @@ package struct RobinCommandRunner {
       return []
     case .lint(let json):
       var diagnostics = ProjectLinter.lint(at: projectRoot)
+      diagnostics += BuildPerformanceAudit.audit(at: projectRoot) + additionalDiagnostics
       do {
         try execute(
           "swift",
@@ -106,7 +111,8 @@ package struct RobinCommandRunner {
             severity: .error,
             message: diagnostic.message,
             location: diagnostic.location,
-            remediation: diagnostic.remediation
+            remediation: diagnostic.remediation,
+            measurement: diagnostic.measurement
           )
         }
       }
@@ -116,7 +122,15 @@ package struct RobinCommandRunner {
       do {
         try execute(
           "swift", ["package", "show-dependencies", "--format", "json"],
-          at: projectRoot, suppressingOutput: true)
+          at: projectRoot, suppressingOutput: true, timeout: 60)
+      } catch RobinCommandRunnerError.commandTimedOut {
+        diagnostics.append(
+          .init(
+            code: "dependency-resolution-timeout", severity: .error,
+            message: "Dependency inspection did not finish within 60 seconds.",
+            remediation:
+              "Let other SwiftPM commands finish, check network access, then rerun `robin doctor`.")
+        )
       } catch RobinCommandRunnerError.commandFailed {
         diagnostics.append(
           .init(
@@ -144,7 +158,8 @@ package struct RobinCommandRunner {
     _ arguments: [String],
     at directory: URL,
     suppressingOutput: Bool = false,
-    environment: [String: String] = [:]
+    environment: [String: String] = [:],
+    timeout: TimeInterval? = nil
   ) throws {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
@@ -156,6 +171,16 @@ package struct RobinCommandRunner {
       process.standardError = FileHandle.nullDevice
     }
     try process.run()
+    if let timeout {
+      let deadline = ProcessInfo.processInfo.systemUptime + timeout
+      while process.isRunning && ProcessInfo.processInfo.systemUptime < deadline {
+        Thread.sleep(forTimeInterval: 0.1)
+      }
+      if process.isRunning {
+        process.terminate()
+        throw RobinCommandRunnerError.commandTimedOut(executable)
+      }
+    }
     process.waitUntilExit()
     guard process.terminationStatus == 0 else {
       throw RobinCommandRunnerError.commandFailed(executable, process.terminationStatus)

@@ -1,6 +1,8 @@
 /// A single image.
 ///
 /// `Image` lowers to a void `<img src alt>` element and never accepts children.
+///
+/// HTML reference: [MDN: img](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img).
 public struct Image: Component {
   /// One responsive image source and its intrinsic pixel width.
   public struct Source: Equatable, Sendable {

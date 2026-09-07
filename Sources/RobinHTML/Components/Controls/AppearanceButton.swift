@@ -1,6 +1,8 @@
 /// A button that selects a persistent appearance preference.
 ///
 /// Include RobinBuild's `SitePreferencesClientModule` asset to activate it.
+///
+/// HTML reference: [MDN: button](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button).
 public struct AppearanceButton: Component {
   /// An appearance preference.
   public enum Preference: String, Sendable {

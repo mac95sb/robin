@@ -17,7 +17,11 @@ struct ExampleGallery: Component {
       Button(accessibilityLabel: "Choose example", command: .toggle("example-picker")) {
         Text { $selected }
         Icon(.chevronDown, size: 16)
-      }.starterMenuItem().frame(width: 224).anchor(anchor)
+      }.starterMenuItem()
+        .flex(justify: .spaceBetween, align: .center, gap: .sm)
+        .frame(width: 138).border(color: .border, width: 1, radius: .sm)
+        .border(color: .border, width: 1, radius: .sm, on: .dark)
+        .anchor(anchor)
       Popover(id: "example-picker") {
         Stack {
           Button(
@@ -43,25 +47,25 @@ struct ExampleGallery: Component {
           Button(
             command: .hide("example-picker"),
             action: #action {
-              selected = "Boolean toggle"
+              selected = "Toggle"
               card = false
               counter = false
               toggle = true
               text = false
             }
-          ) { "Boolean toggle" }.starterMenuItem()
+          ) { "Toggle" }.starterMenuItem()
           Button(
             command: .hide("example-picker"),
             action: #action {
-              selected = "Text binding"
+              selected = "Binding"
               card = false
               counter = false
               toggle = false
               text = true
             }
-          ) { "Text binding" }.starterMenuItem()
+          ) { "Binding" }.starterMenuItem()
         }.grid(columns: 1, gap: .xs)
-      }.starterPopover().position(at: anchor)
+      }.starterPopover().frame(width: 120, minWidth: 0).position(at: anchor)
       CodeExample(
         id: "card", title: "A card, composed.",
         description: "Semantic HTML and reusable styles. This component needs no JavaScript.",

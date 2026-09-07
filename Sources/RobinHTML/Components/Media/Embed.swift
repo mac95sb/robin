@@ -1,6 +1,8 @@
 import Foundation
 
 /// A sandboxed, origin-allowlisted third-party document.
+///
+/// HTML reference: [MDN: iframe](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe).
 public struct Embed: Component {
   /// The capabilities granted to embedded third-party content.
   public enum Sandbox: Equatable, Sendable {

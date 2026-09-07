@@ -1,6 +1,8 @@
 /// Closing content for its nearest sectioning ancestor, such as authorship or related links.
 ///
 /// `Footer` lowers to `<footer>`.
+///
+/// HTML reference: [MDN: footer](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/footer).
 public struct Footer: Component {
   private let identifier: String?
   private let content: ComponentContent

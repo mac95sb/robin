@@ -5,6 +5,8 @@
 /// `Link` lowers to `<a href>`. Its content adapts to phrasing context the same way ``Text``
 /// does: a direct string renders as bare text, while nested ``Text`` values render as inline
 /// segments.
+///
+/// HTML reference: [MDN: a](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a).
 public struct Link: Component {
   private let destination: String
   private let identifier: String?

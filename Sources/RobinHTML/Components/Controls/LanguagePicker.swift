@@ -2,6 +2,8 @@
 ///
 /// Include RobinBuild's `SitePreferencesClientModule` asset to activate the control.
 /// Every language must have the same localized page routes.
+///
+/// HTML reference: [MDN: select](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/select).
 public struct LanguagePicker: Component {
   /// A supported locale and its native display name.
   public struct Language: Sendable {

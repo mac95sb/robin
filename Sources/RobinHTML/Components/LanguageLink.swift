@@ -1,4 +1,6 @@
 /// A language link whose route is preserved by the site preferences browser asset.
+///
+/// HTML reference: [MDN: a](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a).
 public struct LanguageLink: Component {
   private let language: LanguagePicker.Language
   private let content: ComponentContent

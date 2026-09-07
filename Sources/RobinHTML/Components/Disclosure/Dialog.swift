@@ -1,6 +1,8 @@
 /// A modal or non-modal dialog.
 ///
 /// `Dialog` lowers to `<dialog>`.
+///
+/// HTML reference: [MDN: dialog](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog).
 public struct Dialog: Component {
   private let isOpen: Bool
   private let identifier: String?

@@ -69,7 +69,7 @@ let package = Package(
   targets: [
     .executableTarget(
       name: "RobinDocumentation",
-      dependencies: ["RobinBuild", "RobinCore", "RobinHTML", "RobinStyle"],
+      dependencies: ["RobinHTML"],
       swiftSettings: upcomingFeatures
     ),
     .target(

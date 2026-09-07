@@ -5,6 +5,7 @@ swift = "6.3.3"
 pkl = "0.32.1"
 hk = "1.54.1"
 jq = "1.8.2"
+communique = "latest"
 
 [env]
 HK_MISE = "1"
@@ -59,7 +60,6 @@ fi
 python3 scripts/check-documentation.py --self-test
 python3 scripts/check-documentation.py
 swift run RobinDocumentation
-cp -R .robin/build/. .robin/site/
 (cd Templates/marketing && swift run --scratch-path .build/mise -- __PROJECT__ --github-pages)
 cp -R Templates/marketing/.robin/build/. .robin/site/
 python3 scripts/assemble-pages.py
@@ -72,3 +72,13 @@ run = "hk check --all"
 [tasks.hooks]
 description = "Explicitly install this project's Git hooks"
 run = "hk install"
+
+[tasks.release-notes]
+description = "Draft release notes for a version without publishing"
+usage = 'arg "[version]" default="HEAD" help="Version tag or HEAD for an unpublished draft"'
+env = { _.file = { path = ".env", redact = true } }
+run = 'bash scripts/release-notes.sh "$usage_version"'
+
+[tasks.release-build]
+description = "Build and package the CLI for the current release platform"
+run = "bash scripts/package-release.sh"

@@ -2,6 +2,8 @@
 ///
 /// `List` lowers to `<ol>` or `<ul>` depending on `ordered`. Its content is typically built from
 /// ``ListItem`` values, one per entry.
+///
+/// HTML reference: [MDN: ul](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ul).
 public struct List: Component {
   private let ordered: Bool
   private let identifier: String?

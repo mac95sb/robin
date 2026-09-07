@@ -7,7 +7,7 @@ import RobinStyle
 @main
 struct Site: App {
   static let documentationURL =
-    "https://mac95sb.github.io/robin/docs/"
+    "https://mac95sb.github.io/robin/reference/RobinCore/documentation/robincore/"
   static var homeURL: String {
     CommandLine.arguments.contains("--github-pages") ? "https://mac95sb.github.io/robin/" : "/"
   }

@@ -3,6 +3,8 @@
 /// A collapsible disclosure widget with a summary label and hidden detail content.
 ///
 /// `Disclosure` lowers to `<details><summary>...</summary>...</details>`.
+///
+/// HTML reference: [MDN: details](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/details).
 public struct Disclosure: Component {
   private let isOpen: Bool
   private let identifier: String?

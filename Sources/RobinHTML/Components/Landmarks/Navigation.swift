@@ -1,6 +1,8 @@
 /// A section of links for navigating the site or page.
 ///
 /// `Navigation` lowers to `<nav>`.
+///
+/// HTML reference: [MDN: nav](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/nav).
 public struct Navigation: Component {
   private let identifier: String?
   private let content: ComponentContent

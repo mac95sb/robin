@@ -1,6 +1,8 @@
 /// A table of tabular data.
 ///
 /// `Table` lowers to `<table>`. Its content is typically built from ``TableRow`` values.
+///
+/// HTML reference: [MDN: table](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/table).
 public struct Table: Component {
   private let identifier: String?
   private let content: ComponentContent

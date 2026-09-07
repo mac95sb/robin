@@ -3,6 +3,8 @@
 /// Inline text of strong importance.
 ///
 /// `Strong` lowers to `<strong>` and always renders inline, regardless of its parent context.
+///
+/// HTML reference: [MDN: strong](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/strong).
 public struct Strong: Component {
   private let identifier: String?
   private let content: ComponentContent

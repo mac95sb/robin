@@ -3,6 +3,10 @@ import RobinHTML
 extension Component {
   /// Applies a tokenized background color.
   ///
+  /// Backgrounds paint behind content and padding. They add no document semantics; meaningful images belong in an Image component with alternative text.
+  ///
+  /// CSS reference: [MDN: background](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/background).
+  ///
   /// - Parameters:
   ///   - color: The theme color token to resolve during style compilation.
   ///   - condition: The cascade condition under which the background applies.

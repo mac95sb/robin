@@ -1,11 +1,13 @@
 /// The main-axis direction of a flex container.
+///
+/// CSS reference: [MDN: flex-direction](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/flex-direction).
 public enum FlexDirection: String, Sendable {
-  /// Places items horizontally in source order.
+  /// Places items along the inline axis in source order, following the writing direction.
   case row
-  /// Places items horizontally in reverse source order.
+  /// Reverses visual order along the inline axis; document reading order stays unchanged.
   case rowReverse = "row-reverse"
-  /// Places items vertically in source order.
+  /// Places items along the block axis in source order.
   case column
-  /// Places items vertically in reverse source order.
+  /// Reverses visual order along the block axis; document reading order stays unchanged.
   case columnReverse = "column-reverse"
 }

@@ -3,6 +3,10 @@ import RobinHTML
 extension Component {
   /// Applies border color, width, radius, and line style as one conceptual modifier.
   ///
+  /// Borders surround padding and content. Corner radius rounds the border; it does not itself clip overflowing children.
+  ///
+  /// CSS reference: [MDN: border](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/border).
+  ///
   /// The color and optional radius are resolved from the theme during style
   /// compilation. A negative `width` is accepted here and emitted as zero pixels.
   ///

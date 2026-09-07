@@ -4,6 +4,8 @@
 ///
 /// `Input` represents the shared semantic input primitive. Select the accepted data kind in the
 /// initializer rather than choosing a different component type for each HTML input behavior.
+///
+/// HTML reference: [MDN: input](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input).
 public struct Input: Component {
   /// The kind of data accepted by the input.
   public enum Kind: String, Sendable {

@@ -6,6 +6,8 @@
 /// string directly for ordinary content so it renders as bare heading text, such as
 /// `<h1>Heading</h1>`. Use multiple nested ``Text`` values only when the heading intentionally
 /// contains separately identifiable or stylable inline segments.
+///
+/// HTML reference: [MDN: Heading_Elements](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/Heading_Elements).
 public struct Heading: Component {
   /// The semantic rank of a heading.
   public enum Level: Sendable {

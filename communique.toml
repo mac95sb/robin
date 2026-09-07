@@ -1,0 +1,20 @@
+context = """
+Robin is a Swift-native framework for static sites, server-rendered applications,
+and APIs. It includes typed components, deterministic CSS, browser state bindings,
+Markdown, passkeys, persistence, and reusable project templates.
+Check the current source and documentation before describing a feature as shipped.
+"""
+
+system_extra = """
+Write concise, factual notes for Swift developers. Group changes by user impact.
+Explain API changes with small before/after examples when supported by the diff.
+Call out breaking changes, migration steps, and known limitations explicitly.
+Do not claim performance gains, platform support, or provider conformance without evidence.
+Describe the requested version without claiming it has been published.
+"""
+
+[defaults]
+repo = "mac95sb/robin"
+emoji = false
+provider = "openai"
+model = "gpt-5.4-nano"

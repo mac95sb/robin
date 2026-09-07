@@ -2,6 +2,8 @@
 ///
 /// `Stack` lowers to a neutral `div`. Apply typed RobinStyle layout modifiers to control direction,
 /// spacing, flex, or grid behavior.
+///
+/// HTML reference: [MDN: div](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/div).
 public struct Stack: Component {
   private let identifier: String?
   private let content: ComponentContent

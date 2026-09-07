@@ -1,6 +1,8 @@
 /// Content tangentially related to the surrounding content, such as a sidebar or pull quote.
 ///
 /// `Aside` lowers to `<aside>`.
+///
+/// HTML reference: [MDN: aside](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/aside).
 public struct Aside: Component {
   private let identifier: String?
   private let content: ComponentContent

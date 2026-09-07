@@ -4,6 +4,8 @@
 ///
 /// `Label` lowers to `<label for>`, associating its text with the control whose `id` matches the
 /// `for` attribute.
+///
+/// HTML reference: [MDN: label](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/label).
 public struct Label: Component {
   private let target: String
   private let identifier: String?

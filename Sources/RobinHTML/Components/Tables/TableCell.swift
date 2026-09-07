@@ -3,6 +3,8 @@
 /// A data cell within a ``TableRow``.
 ///
 /// `TableCell` lowers to `<td>`.
+///
+/// HTML reference: [MDN: td](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td).
 public struct TableCell: Component {
   private let identifier: String?
   private let content: ComponentContent

@@ -4,6 +4,8 @@
 ///
 /// `InlineCode` lowers to `<code>` and always renders inline, regardless of its parent context.
 /// For multiline preformatted code, use ``CodeBlock`` instead.
+///
+/// HTML reference: [MDN: code](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/code).
 public struct InlineCode: Component {
   private let identifier: String?
   private let content: ComponentContent

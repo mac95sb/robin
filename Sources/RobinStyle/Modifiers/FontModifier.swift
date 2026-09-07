@@ -3,6 +3,10 @@ import RobinHTML
 extension Component {
   /// Applies a tokenized typography style as one conceptual modifier.
   ///
+  /// Font properties control glyph appearance. Text alignment positions inline content within its line box; it does not align the element in its parent layout.
+  ///
+  /// CSS reference: [MDN: font](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font).
+  ///
   /// The typography token supplies the font family, size, and weight. Optional
   /// color and alignment declarations are included in the same conditional style
   /// group. The token values are resolved when styles are compiled.

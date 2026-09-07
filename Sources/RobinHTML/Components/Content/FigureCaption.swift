@@ -3,6 +3,8 @@
 /// The caption for a ``Figure``.
 ///
 /// `FigureCaption` lowers to `<figcaption>`.
+///
+/// HTML reference: [MDN: figcaption](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/figcaption).
 public struct FigureCaption: Component {
   private let identifier: String?
   private let content: ComponentContent

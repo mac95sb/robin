@@ -2,6 +2,8 @@
 ///
 /// `CodeBlock` lowers to `<pre><code>...</code></pre>`. Text content is rendered verbatim,
 /// preserving whitespace and line breaks.
+///
+/// HTML reference: [MDN: pre](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/pre).
 public struct CodeBlock: Component {
   private let identifier: String?
   private let language: String?

@@ -1,4 +1,4 @@
-"""Add Robin-rendered navigation to every DocC HTML entry point in the Pages artifact."""
+"""Assemble marketing, DocC navigation, and the legacy documentation redirect."""
 
 from pathlib import Path
 import re
@@ -22,5 +22,14 @@ for path in pages:
         offset = bodies[0].end()
         path.write_text(html[:offset] + navigation + html[offset:])
 assert "Build for the web." in (site / "index.html").read_text()
-assert "Reference and guides" in (site / "docs/index.html").read_text()
-print(f"Assembled marketing, documentation index, and {len(pages)} DocC entry points.")
+destination = "/robin/reference/RobinCore/documentation/robincore/"
+assert (site / "reference/RobinCore/documentation/robincore/index.html").is_file()
+legacy = site / "docs/index.html"
+legacy.parent.mkdir(parents=True, exist_ok=True)
+legacy.write_text(
+    '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+    f'<meta http-equiv="refresh" content="0;url={destination}">'
+    '<title>Robin documentation</title></head><body>'
+    f'<a href="{destination}">Open documentation</a></body></html>\n'
+)
+print(f"Assembled marketing, documentation redirect, and {len(pages)} DocC entry points.")

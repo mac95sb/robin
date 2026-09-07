@@ -1,6 +1,8 @@
 /// A multiline plain-text form control.
 ///
 /// `TextArea` lowers to `<textarea>`, with its initial value as text content.
+///
+/// HTML reference: [MDN: textarea](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/textarea).
 public struct TextArea: Component {
   private let name: String
   private let value: String?

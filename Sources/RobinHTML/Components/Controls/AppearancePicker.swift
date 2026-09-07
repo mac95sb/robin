@@ -1,6 +1,8 @@
 /// A native dropdown for a persistent system, light, or dark appearance preference.
 ///
 /// Include RobinBuild's `SitePreferencesClientModule` asset to activate the control.
+///
+/// HTML reference: [MDN: select](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/select).
 public struct AppearancePicker: Component {
   private let label: String
   private let labels: [String]

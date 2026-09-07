@@ -1,6 +1,8 @@
 /// A section containing search or filtering controls.
 ///
 /// `Search` lowers to `<search>`.
+///
+/// HTML reference: [MDN: search](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/search).
 public struct Search: Component {
   private let identifier: String?
   private let content: ComponentContent

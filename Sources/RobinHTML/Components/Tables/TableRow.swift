@@ -2,6 +2,8 @@
 ///
 /// `TableRow` lowers to `<tr>`. Its content is typically built from ``TableHeaderCell`` and
 /// ``TableCell`` values.
+///
+/// HTML reference: [MDN: tr](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tr).
 public struct TableRow: Component {
   private let identifier: String?
   private let content: ComponentContent

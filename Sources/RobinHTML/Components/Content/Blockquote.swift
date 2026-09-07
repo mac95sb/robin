@@ -1,6 +1,8 @@
 /// An extended quotation from another source.
 ///
 /// `Blockquote` lowers to `<blockquote>`.
+///
+/// HTML reference: [MDN: blockquote](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/blockquote).
 public struct Blockquote: Component {
   private let identifier: String?
   private let content: ComponentContent

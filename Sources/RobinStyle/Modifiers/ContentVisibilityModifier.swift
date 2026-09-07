@@ -3,6 +3,10 @@ import RobinHTML
 extension Component {
   /// Applies a `content-visibility` rendering hint.
   ///
+  /// Content visibility controls whether the browser renders a subtree. Automatic rendering skips offscreen work while retaining content for browser features such as find-in-page.
+  ///
+  /// CSS reference: [MDN: content-visibility](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/content-visibility).
+  ///
   /// `.auto` lets the browser skip layout and paint work for content that's off-screen, which
   /// can significantly improve rendering performance for long pages.
   ///

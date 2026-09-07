@@ -1,6 +1,8 @@
 /// A form for collecting and submitting user input.
 ///
 /// `Form` lowers to `<form action method>`.
+///
+/// HTML reference: [MDN: form](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form).
 public struct Form: Component {
   private let action: String?
   private let method: RenderElement.Attribute.FormMethod

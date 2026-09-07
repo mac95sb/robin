@@ -2,6 +2,8 @@
 ///
 /// `Header` lowers to `<header>`. Use it for a page or section's introductory content, such as a
 /// heading group, logo, or search form.
+///
+/// HTML reference: [MDN: header](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/header).
 public struct Header: Component {
   private let identifier: String?
   private let content: ComponentContent

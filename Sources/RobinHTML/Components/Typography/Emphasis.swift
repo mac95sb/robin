@@ -3,6 +3,8 @@
 /// Inline text with stress emphasis.
 ///
 /// `Emphasis` lowers to `<em>` and always renders inline, regardless of its parent context.
+///
+/// HTML reference: [MDN: em](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/em).
 public struct Emphasis: Component {
   private let identifier: String?
   private let content: ComponentContent

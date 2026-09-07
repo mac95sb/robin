@@ -50,7 +50,8 @@ mise run check
 ```
 
 This runs formatting, compilation, tests, and DocC coverage. `mise run docs` writes the public
-site to `.robin/site`: marketing at `/robin/`, the documentation index at `/robin/docs/`,
-and DocC at `/robin/reference/`. The documentation workflow publishes them together.
+site to `.robin/site`: marketing at `/robin/` and DocC under `/robin/reference/`.
+The Docs link opens RobinCore directly; `/robin/docs/` redirects there for existing links.
+The documentation workflow publishes them together.
 PostgreSQL and object-storage integration tests need their explicit test environment switches;
 the default test run does not establish live-provider conformance.

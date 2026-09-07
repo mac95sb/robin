@@ -3,6 +3,8 @@
 /// A header cell within a ``TableRow``.
 ///
 /// `TableHeaderCell` lowers to `<th>`.
+///
+/// HTML reference: [MDN: th](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th).
 public struct TableHeaderCell: Component {
   private let identifier: String?
   private let content: ComponentContent

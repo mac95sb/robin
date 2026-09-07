@@ -1,6 +1,8 @@
 /// The document's dominant, unique content.
 ///
 /// `Main` lowers to `<main>`. A document should contain at most one `Main`.
+///
+/// HTML reference: [MDN: main](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/main).
 public struct Main: Component {
   private let identifier: String?
   private let content: ComponentContent

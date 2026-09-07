@@ -2,6 +2,8 @@
 /// comment.
 ///
 /// `Article` lowers to `<article>`.
+///
+/// HTML reference: [MDN: article](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/article).
 public struct Article: Component {
   private let identifier: String?
   private let content: ComponentContent

@@ -6,6 +6,8 @@
 /// ``Button`` adapt nested `Text` values to inline spans. A direct string expression inside a heading
 /// remains a bare text node, so ordinary heading content does not gain a redundant span. Text values
 /// are escaped when emitted as HTML.
+///
+/// HTML reference: [MDN: p](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/p).
 public struct Text: Component {
   private let identifier: String?
   private let content: ComponentContent
