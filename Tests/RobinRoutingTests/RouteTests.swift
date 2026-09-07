@@ -14,8 +14,7 @@ struct RouteTests {
   @Test func typedParameterMatchesAndReverseRoutes() {
     let route = RouteDefinition.path(
       ["users"],
-      parameter: .integer("id"),
-      metadata: .init(operationID: "showUser", summary: "Show a user")
+      parameter: .integer("id")
     )
 
     #expect(route.match("/users/42?expanded=true#profile") == 42)
@@ -25,7 +24,6 @@ struct RouteTests {
       route.canonicalURL(origin: URL(string: "https://example.com/")!, for: 42)?.absoluteString
         == "https://example.com/users/42")
     #expect(route.canonicalURL(origin: URL(string: "https://example.com/base")!, for: 42) == nil)
-    #expect(route.metadata.operationID == "showUser")
   }
 
   @Test func stringParametersAreCanonicallyEncodedAndDecoded() {
@@ -33,6 +31,14 @@ struct RouteTests {
 
     #expect(route.url(for: "hello world/Swift") == "/articles/hello%20world%2FSwift")
     #expect(route.match("/articles/hello%20world%2FSwift") == "hello world/Swift")
+  }
+
+  @Test func uuidParametersRoundTrip() {
+    let id = UUID()
+    let route = RouteDefinition.path(["todos"], parameter: .uuid("id"))
+
+    #expect(route.match(route.url(for: id)) == id)
+    #expect(route.match("/todos/not-a-uuid") == nil)
   }
 
   @Test func literalRoutesSupportRootAndStaticPaths() {

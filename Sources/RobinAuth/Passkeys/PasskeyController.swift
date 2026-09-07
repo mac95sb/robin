@@ -1,5 +1,5 @@
 import Foundation
-import RobinHTML
+import RobinCore
 import RobinRouting
 import RobinServer
 import WebAuthn
@@ -48,10 +48,6 @@ public struct PasskeyController: Controller {
           .literal($0)
         })
     }
-    var metadata: RouteMetadata {
-      .init(operationID: "auth.\(operation.rawValue)", summary: "Passkey \(operation.rawValue).")
-    }
-
     func respond(to request: Request, context: RequestContext, api: APIConfiguration) async throws
       -> Response?
     {

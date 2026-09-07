@@ -9,14 +9,15 @@ extension RobinApplication {
   /// - Parameters:
   ///   - application: The application configuration to build or serve.
   ///   - assets: Typed assets to build or serve with the application.
-  ///   - address: Listener address used by the persistent server transport.
+  ///   - address: Listener address used by the persistent server transport. Defaults to loopback
+  ///     and reads `PORT` when it is set.
   ///   - middleware: Middleware applied in array order.
   ///   - onShutdown: Releases application-owned services after the runtime stops.
   /// - Throws: A build, startup, or server runtime error.
   public static func run<Application: App>(
     _ application: Application,
     assets: [BuildAsset] = [],
-    address: ServerAddress = .init(host: "127.0.0.1", port: 8080),
+    address: ServerAddress = .environment,
     middleware: [Middleware] = [],
     onShutdown: @escaping @Sendable () async throws -> Void = {}
   ) async throws {

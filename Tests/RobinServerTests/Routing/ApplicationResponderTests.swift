@@ -22,10 +22,17 @@ struct ApplicationResponderTests {
     var body: ComponentContent { Text { greeting } }
   }
 
-  private struct Input: Codable, Sendable { let name: String }
+  private struct Input: Codable, Sendable, Equatable { let name: String }
   private struct Output: Codable, Sendable, Equatable {
     let id: Int
     let name: String
+  }
+
+  @Resource
+  struct Todo: Codable, Sendable, Equatable {
+    private(set) var id: UUID = UUID()
+    let title: String
+    private(set) var completed: Bool = false
   }
 
   private struct UserEndpoint: Endpoint {
@@ -55,7 +62,13 @@ struct ApplicationResponderTests {
   }
 
   private struct StatusController: Controller {
-    @RoutesBuilder var body: RouteList { HealthEndpoint() }
+    let prefix = "status"
+
+    @RoutesBuilder var body: RouteList {
+      RouteGroup("health") {
+        GET(version: nil) { _, _ in EmptyRequest() }
+      }
+    }
   }
 
   @Test func endpointInfersContractsAndDefaultsToGET() {
@@ -95,6 +108,81 @@ struct ApplicationResponderTests {
         == Output(id: 7, name: "Robin"))
   }
 
+  @Test func routeDefinitionsRegisterFunctionHandlers() async throws {
+    struct Site: App {
+      @RoutesBuilder var routes: RouteList {
+        RouteGroup("echo") { POST(request: Input.self) { _, input, _ in input } }
+      }
+    }
+    let responder = try ApplicationResponder(
+      Site(),
+      transportCapabilities: .persistent
+    )
+    let response = await responder.respond(
+      to: Request(
+        HTTPRequest(
+          method: .post,
+          scheme: nil,
+          authority: nil,
+          path: "/api/v1/echo",
+          headerFields: [.contentType: "application/json"]
+        ),
+        body: Array(#"{"name":"Robin"}"#.utf8)
+      )
+    )
+
+    #expect(response.head.status == .ok)
+    #expect(
+      try JSONDecoder().decode(Input.self, from: Data(try #require(response.body.bufferedBytes)))
+        == Input(name: "Robin"))
+  }
+
+  @Test func resourcePostDecodesCreateFieldsAndReturnsTheCompleteResource() async throws {
+    struct Site: App {
+      @RoutesBuilder var routes: RouteList {
+        RouteGroup("todos") { POST(Todo.self) { _, todo, _ in todo } }
+      }
+    }
+    let responder = try ApplicationResponder(Site(), transportCapabilities: .persistent)
+    let response = await responder.respond(
+      to: Request(
+        HTTPRequest(
+          method: .post,
+          scheme: nil,
+          authority: nil,
+          path: "/api/v1/todos",
+          headerFields: [.contentType: "application/json"]
+        ),
+        body: Array(#"{"title":"Ship Robin"}"#.utf8)
+      )
+    )
+
+    #expect(response.head.status == .ok)
+    let todo = try JSONDecoder().decode(
+      Todo.self, from: Data(try #require(response.body.bufferedBytes)))
+    #expect(todo.title == "Ship Robin")
+    #expect(!todo.completed)
+  }
+
+  @Test func colonParameterRoutesPassTheNamedSegmentToAHandler() async throws {
+    struct Site: App {
+      @RoutesBuilder var routes: RouteList {
+        RouteGroup("todos") { GET(":id") { id, _ in Output(id: 1, name: id) } }
+      }
+    }
+    let responder = try ApplicationResponder(Site(), transportCapabilities: .persistent)
+    let response = await responder.respond(
+      to: Request(
+        HTTPRequest(method: .get, scheme: nil, authority: nil, path: "/api/v1/todos/ship-robin")
+      )
+    )
+
+    #expect(response.head.status == .ok)
+    #expect(
+      try JSONDecoder().decode(Output.self, from: Data(try #require(response.body.bufferedBytes)))
+        == Output(id: 1, name: "ship-robin"))
+  }
+
   @Test func invalidJSONIsAClientErrorAndUnknownRoutesAreNotFound() async throws {
     let controller = InvalidJSONEndpoint()
     let responder = try ApplicationResponder(
@@ -129,7 +217,6 @@ struct ApplicationResponderTests {
   }
 
   private struct CapabilityRoute: ServerRoute {
-    let metadata = RouteMetadata()
     let pattern = RoutePattern([])
     let requiredCapabilities: TransportCapabilities = [.webSockets, .persistentFileSystem]
 
@@ -232,7 +319,7 @@ struct ApplicationResponderTests {
 
       @RoutesBuilder var routes: RouteList {
         RouteGroup("system") {
-          RouteGroup("status") { StatusController() }
+          StatusController()
         }
       }
     }

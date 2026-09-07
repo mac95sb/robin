@@ -1,9 +1,8 @@
-import RobinCore
-
-/// An empty controller-route registration.
+/// An empty application-route registration.
 public struct EmptyRoutes: Routes {
   /// The empty route collection.
   public let routes: [any ApplicationRoute] = []
-  /// Creates an empty controller-route registration.
+
+  /// Creates an empty route registration.
   public init() {}
 }

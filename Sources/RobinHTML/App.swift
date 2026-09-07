@@ -1,3 +1,4 @@
+import Foundation
 @_spi(Rendering) import RobinCore
 
 /// The single entry point for a Robin application, matching SwiftUI's `App` vocabulary.
@@ -15,6 +16,12 @@ public protocol App: Sendable {
   var metadata: Metadata { get }
   /// The application's design theme.
   var theme: any ApplicationTheme { get }
+
+  /// The SwiftPM resource bundle containing the application's content and public assets.
+  ///
+  /// Applications with a `Resources` directory return `.module`. Robin uses the bundle to
+  /// discover public image assets and, when present, `Localizable.xcstrings`.
+  var resourceBundle: Bundle? { get }
 
   /// The client-side navigation strategy for a Static Site application.
   ///
@@ -34,6 +41,8 @@ extension App {
   public var clientNavigation: ClientNavigation { .automatic }
   /// The default unconfigured application theme.
   public var theme: any ApplicationTheme { DefaultApplicationTheme() }
+  /// Applications without bundled resources do not need resource configuration.
+  public var resourceBundle: Bundle? { nil }
 }
 
 extension App where PageRegistration == EmptyPages {

@@ -196,7 +196,6 @@ struct InvocationRuntimeTests {
   }
 
   private struct CapabilityRoute: ServerRoute {
-    let metadata = RouteMetadata()
     let pattern = RoutePattern([])
     let requiredCapabilities: TransportCapabilities = [.webSockets]
 

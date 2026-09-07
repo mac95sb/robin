@@ -5,6 +5,6 @@ import SwiftSyntaxMacros
 struct RobinMacrosPlugin: CompilerPlugin {
   let providingMacros: [Macro.Type] = [
     StateActionMacro.self, FieldNameMacro.self, ColorTokenSetMacro.self, PreviewMacro.self,
-    FormModelMacro.self,
+    FormModelMacro.self, ResourceMacro.self,
   ]
 }

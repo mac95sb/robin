@@ -17,7 +17,8 @@ RobinRouting uses the same route definitions for matching, reverse routing, appl
 - ``RouteDefinition``
 - ``PathParameter``
 - ``RoutePattern``
-- ``RouteMetadata``
+- ``Resource()``
+- ``ResourceRepresentable``
 
 ### Registration
 

@@ -1,3 +1,5 @@
+import Foundation
+
 /// The network address bound by a running server.
 public struct ServerAddress: Equatable, Sendable {
   /// The bound IP address.
@@ -5,6 +7,11 @@ public struct ServerAddress: Equatable, Sendable {
 
   /// The bound TCP port.
   public let port: Int
+
+  /// The default loopback address, using `PORT` when the environment provides one.
+  public static var environment: Self {
+    .init(host: "127.0.0.1", port: Int(ProcessInfo.processInfo.environment["PORT"] ?? "") ?? 8080)
+  }
 
   /// Creates a server address.
   ///

@@ -68,7 +68,6 @@ private struct SocketHomePage: Page {
 private struct EchoSocket: APIRoute, ServerRoute {
   let method = HTTPMethod.get
   let version: Version? = nil
-  let metadata = RouteMetadata()
   let pattern = RoutePattern([.literal("socket")])
   let requiredCapabilities: TransportCapabilities = [.webSockets]
 

@@ -1,6 +1,7 @@
 import Foundation
 import HTTPTypes
 import RobinBuild
+import RobinContent
 import RobinCore
 import RobinForms
 @_spi(Rendering) import RobinHTML
@@ -65,7 +66,7 @@ public struct ApplicationResponder: Sendable {
     errorResponses: ErrorResponses = .init(),
     transportCapabilities: TransportCapabilities
   ) throws {
-    let pageRegistrations = application.pages.pages
+    let pageRegistrations = LocalizedPages.automatic(application)
     let pages: [any ServerRoute]
     if pageRegistrations.isEmpty {
       pages = []
@@ -216,7 +217,6 @@ private struct GroupedServerRoute: APIRoute, ServerRoute {
     self.version = apiRoute.version
   }
 
-  var metadata: RouteMetadata { route.metadata }
   var pattern: RoutePattern {
     RoutePattern(prefixes.map(RoutePattern.Segment.literal) + route.pattern.segments)
   }
@@ -244,7 +244,6 @@ private struct GroupedServerRoute: APIRoute, ServerRoute {
 
 private struct RegisteredPageRoute: ServerRoute {
   let path: String
-  let metadata = RouteMetadata()
   private let render: @Sendable () throws -> Response
   let requiredCapabilities: TransportCapabilities = []
 

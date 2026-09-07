@@ -1,6 +1,4 @@
-import RobinCore
-
-/// A path prefix shared by a group of controller routes.
+/// A path prefix shared by a group of application routes.
 ///
 /// Groups can contain other groups. Robin joins their prefixes in declaration order.
 ///
@@ -10,8 +8,10 @@ import RobinCore
 /// }
 /// ```
 public struct RouteGroup: ApplicationRoute {
-  package let prefix: String
-  package let routes: [any ApplicationRoute]
+  /// The path prefix applied to the group's routes.
+  public let prefix: String
+  /// The routes registered beneath ``prefix``.
+  public let routes: [any ApplicationRoute]
 
   /// Creates a route group.
   ///

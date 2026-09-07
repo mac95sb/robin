@@ -74,8 +74,6 @@ extension Endpoint {
 }
 
 extension Endpoint where RouteRepresentation == RouteDefinition<Value> {
-  /// Metadata used for conflicts and inspection.
-  public var metadata: RouteMetadata { route.metadata }
   /// The endpoint's API-root-relative route pattern.
   public var pattern: RoutePattern { route.pattern }
 
@@ -95,8 +93,6 @@ extension Endpoint where RouteRepresentation == RouteDefinition<Value> {
 extension Endpoint where RouteRepresentation == String, Value == Void {
   private var routeDefinition: RouteDefinition<Void> { .path(route) }
 
-  /// Metadata used for conflicts and inspection.
-  public var metadata: RouteMetadata { routeDefinition.metadata }
   /// The endpoint's API-root-relative route pattern.
   public var pattern: RoutePattern { routeDefinition.pattern }
 

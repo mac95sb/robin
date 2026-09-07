@@ -42,6 +42,10 @@ RobinCore contains transport- and renderer-neutral values used throughout the fr
 - ``ApplicationMode``
 - ``RobinApplication``
 - ``ApplicationRoute``
+- ``Routes``
+- ``RouteList``
+- ``RoutesBuilder``
+- ``RouteGroup``
 - ``ApplicationTheme``
 - ``Metadata``
 - ``StructuredData``

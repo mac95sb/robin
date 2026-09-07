@@ -6,20 +6,16 @@ import RobinCore
 /// A route applies the same literal segments and parameter codec in both directions, keeping
 /// accepted paths and generated URLs aligned.
 public struct RouteDefinition<Value: Sendable>: Sendable {
-  /// Descriptive route metadata available to build and API tooling.
-  public let metadata: RouteMetadata
   /// The structural pattern used for matching and route inspection.
   public let pattern: RoutePattern
   private let matchPath: @Sendable ([String]) -> Value?
   private let generatePath: @Sendable (Value) -> [String]
 
   init(
-    metadata: RouteMetadata,
     pattern: RoutePattern,
     match: @escaping @Sendable ([String]) -> Value?,
     generate: @escaping @Sendable (Value) -> [String]
   ) {
-    self.metadata = metadata
     self.pattern = pattern
     self.matchPath = match
     self.generatePath = generate
@@ -55,8 +51,6 @@ public struct RouteDefinition<Value: Sendable>: Sendable {
   /// Generates an absolute canonical URL for a route value.
   ///
   /// The origin must be an absolute HTTP or HTTPS URL without a path, query, or fragment.
-  /// This method does not consult ``RouteMetadata/isCanonical``.
-  ///
   /// - Parameters:
   ///   - origin: The absolute origin, such as `https://example.com`.
   ///   - value: The typed value to encode into the route's parameter segment.
@@ -83,19 +77,16 @@ public struct RouteDefinition<Value: Sendable>: Sendable {
   ///   - prefix: Literal segments that precede the parameter.
   ///   - parameter: The codec used to decode and encode the parameter segment.
   ///   - suffix: Literal segments that follow the parameter.
-  ///   - metadata: Descriptive metadata associated with the route.
   /// - Returns: A route that matches and generates the specified path shape.
   public static func path(
     _ prefix: [String] = [],
     parameter: PathParameter<Value>,
-    suffix: [String] = [],
-    metadata: RouteMetadata = .init()
+    suffix: [String] = []
   ) -> Self {
     let canonicalPrefix = Array(prefix.drop(while: \.isEmpty))
     let canonicalSuffix = Array(suffix.reversed().drop(while: \.isEmpty).reversed())
 
     return .init(
-      metadata: metadata,
       pattern: RoutePattern(
         canonicalPrefix.map(RoutePattern.Segment.literal)
           + [.parameter(parameter.name)]
@@ -147,18 +138,15 @@ extension RouteDefinition where Value == Void {
   ///
   /// - Parameters:
   ///   - segments: The literal segments that must match in order.
-  ///   - metadata: Descriptive metadata associated with the route.
   /// - Returns: A value-less route for the specified literal path.
   public static func path(
-    _ segments: String...,
-    metadata: RouteMetadata = .init()
+    _ segments: String...
   ) -> Self {
     let canonicalSegments = Array(
       segments.drop(while: \.isEmpty).reversed().drop(while: \.isEmpty).reversed()
     )
 
     return .init(
-      metadata: metadata,
       pattern: RoutePattern(canonicalSegments.map(RoutePattern.Segment.literal)),
       match: { $0 == canonicalSegments ? () : nil },
       generate: { canonicalSegments }

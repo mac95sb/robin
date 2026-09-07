@@ -19,8 +19,6 @@ RobinHTML provides the application, page, component, result-builder, and render-
 - ``Page``
 - ``PageGroup``
 - ``PagesBuilder``
-- ``RouteGroup``
-- ``RoutesBuilder``
 
 ### Components
 

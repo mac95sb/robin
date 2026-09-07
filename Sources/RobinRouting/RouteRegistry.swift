@@ -33,7 +33,6 @@ public struct RouteRegistry: Sendable {
     return RegisteredRoute(
       route.applicationRouteIdentifier,
       pattern: RoutePattern(prefix + versionSegment + prefixes + route.pattern.segments),
-      metadata: route.metadata,
       method: apiRoute?.method,
       version: version
     )

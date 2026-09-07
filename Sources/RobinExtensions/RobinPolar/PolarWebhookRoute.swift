@@ -12,9 +12,6 @@ public struct PolarWebhookRoute: APIRoute, ServerRoute {
   private static let timestampHeader = HTTPField.Name("webhook-timestamp")!
   private static let signatureHeader = HTTPField.Name("webhook-signature")!
 
-  /// Route metadata used for conflicts and inspection.
-  public let metadata = RouteMetadata(
-    operationID: "polarWebhook", summary: "Receive a verified Polar webhook")
   /// Route path.
   public let pattern: RoutePattern
   /// Accepted HTTP method.

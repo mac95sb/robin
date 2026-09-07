@@ -26,8 +26,6 @@ where Value: Sendable, Request: Decodable & Sendable, Response: Encodable & Send
     self.version = version
   }
 
-  /// The route metadata used by inspection and documentation tooling.
-  public var metadata: RouteMetadata { route.metadata }
   /// The endpoint's API-root-relative path pattern.
   public var pattern: RoutePattern { route.pattern }
 }

@@ -1,5 +1,6 @@
 import Crypto
 import Foundation
+import RobinCore
 import RobinData
 import RobinHTML
 import RobinServer
@@ -18,7 +19,7 @@ import Testing
     store: store, sessions: sessions)
   struct Site: App {
     let controller: PasskeyController
-    var routes: some Routes { controller }
+    @RoutesBuilder var routes: RouteList { controller }
   }
   let responder = try ApplicationResponder(
     Site(controller: PasskeyController(passkeys: passkeys, sessions: sessions)),
@@ -122,7 +123,7 @@ import Testing
     store: store, sessions: sessions)
   struct Site: App {
     let controller: PasskeyController
-    var routes: some Routes { controller }
+    @RoutesBuilder var routes: RouteList { controller }
   }
   let responder = try ApplicationResponder(
     Site(controller: PasskeyController(passkeys: passkeys, sessions: sessions)),

@@ -122,7 +122,7 @@ let package = Package(
     ),
     .target(
       name: "RobinRouting",
-      dependencies: ["RobinCore"],
+      dependencies: ["RobinCore", "RobinMacros"],
       swiftSettings: lowLevelFeatures
     ),
     .target(
@@ -180,6 +180,7 @@ let package = Package(
         "RobinForms",
         "RobinBuild",
         "RobinCache",
+        "RobinContent",
         "RobinCore",
         "RobinHTML",
         "RobinRouting",
@@ -410,6 +411,7 @@ let package = Package(
         "RobinRuntime",
         "RobinBuild",
         "RobinCache",
+        "RobinContent",
         "RobinCore",
         "RobinHTML",
         "RobinRouting",

@@ -10,7 +10,6 @@ extension RouteDefinition {
     let combinedPattern = RoutePattern(pattern.segments + nextRoute.pattern.segments)
 
     return RouteDefinition<(Value, Next)>(
-      metadata: metadata,
       pattern: combinedPattern,
       match: { components in
         guard components.count == combinedPattern.segments.count else { return nil }

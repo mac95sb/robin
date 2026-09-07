@@ -1,3 +1,5 @@
+import Foundation
+
 /// A typed path-segment codec used for route matching and reverse routing.
 ///
 /// Decoding receives one percent-decoded path segment and can reject it by returning `nil`.
@@ -56,5 +58,15 @@ extension PathParameter where Value == Int {
   /// - Returns: A base-10 integer parameter codec.
   public static func integer(_ name: String) -> Self {
     .init(name: name, decode: Int.init, encode: String.init)
+  }
+}
+
+extension PathParameter where Value == UUID {
+  /// Creates a path parameter that converts UUID segments.
+  ///
+  /// - Parameter name: The parameter name used by route metadata and diagnostics.
+  /// - Returns: A UUID parameter codec using the standard textual representation.
+  public static func uuid(_ name: String) -> Self {
+    .init(name: name, decode: UUID.init(uuidString:), encode: \.uuidString)
   }
 }

@@ -51,8 +51,7 @@ struct AdvancedRoutingTests {
   }
 
   @Test func apiProtocolRegistryScopesVersions() throws {
-    let definition = RouteDefinition<Void>.path(
-      "users", metadata: .init(operationID: "listUsers", summary: "List users"))
+    let definition = RouteDefinition<Void>.path("users")
     let endpoint = APIEndpoint<Void, Request, Response>(
       definition, method: .get, version: try Version(2, status: .deprecated))
     let registry = try RouteRegistry([endpoint])
