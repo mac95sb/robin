@@ -19,11 +19,18 @@ struct ProjectScaffolderTests {
       FileManager.default.fileExists(atPath: destination.appendingPathComponent(".gitignore").path))
     #expect(
       FileManager.default.fileExists(atPath: destination.appendingPathComponent("AGENTS.md").path))
+    #expect(
+      FileManager.default.fileExists(
+        atPath: destination.appendingPathComponent(".github/workflows/documentation.yml").path))
+    let mise = try String(
+      contentsOf: destination.appendingPathComponent("mise.toml"), encoding: .utf8)
+    #expect(mise.contains("[tasks.docs]"))
     let package = try String(
       contentsOf: destination.appendingPathComponent("Package.swift"), encoding: .utf8)
     #expect(package.contains("name: \"Example\""))
     #expect(!package.contains("__PROJECT__"))
     #expect(package.contains("https://github.com/mac95sb/robin.git"))
+    #expect(package.contains("https://github.com/swiftlang/swift-docc-plugin.git"))
     #expect(!package.contains(#".package(name: "robin", path: "../..")"#))
     #expect(
       !FileManager.default.fileExists(atPath: destination.appendingPathComponent(".build").path))
@@ -34,20 +41,25 @@ struct ProjectScaffolderTests {
       contentsOf: destination.appendingPathComponent("Sources/Example/App.swift"), encoding: .utf8)
     #expect(!app.contains("applicationMode"))
     #expect(app.contains("@main"))
-    #expect(app.contains("struct Site: App"))
-    #expect(app.contains("RobinApplication.run("))
+    #expect(app.contains(template == .apiService ? "struct API: App" : "struct Site: App"))
+    #expect(app.contains("RobinApplication"))
+    #expect(app.contains(".run("))
     #expect(
       !FileManager.default.fileExists(
         atPath: destination.appendingPathComponent("Sources/Example/RobinMain.swift").path
       ))
     if template == .blank {
-      let sources = try FileManager.default.contentsOfDirectory(
-        atPath: destination.appendingPathComponent("Sources/Example").path)
-      #expect(
-        Set(sources) == [
-          "App.swift", "HomePage.swift", "MessageController.swift", "Message.swift",
-          "Greeting.swift",
-        ])
+      let sourceRoot = destination.appendingPathComponent("Sources/Example")
+      for path in [
+        "App.swift",
+        "Views/Components/Greeting.swift",
+        "Controllers/MessageController.swift",
+        "Models/Message.swift",
+        "Views/Pages/HomePage.swift",
+      ] {
+        #expect(
+          FileManager.default.fileExists(atPath: sourceRoot.appendingPathComponent(path).path))
+      }
       #expect(!app.contains("LocalizedPages("))
       #expect(!app.contains("theme"))
     } else if template == .marketing {
@@ -61,14 +73,13 @@ struct ProjectScaffolderTests {
       let controller = try String(
         contentsOf: destination.appendingPathComponent(
           "Sources/Example/Controllers/TodoController.swift"), encoding: .utf8)
-      #expect(controller.contains("RouteDefinition.path"))
-      #expect(!controller.contains("RouteDefinition<Int>"))
-      #expect(controller.contains("struct TodoController: Controller"))
-      #expect(controller.contains("let route = \"todos\""))
-      #expect(!controller.contains("RouteDefinition<Void>"))
+      #expect(controller.contains("RouteGroup(\"todos\")"))
+      #expect(controller.contains("actor TodoController: Controller"))
+      #expect(controller.contains("GET { _, _ in await self.list() }"))
+      #expect(controller.contains("GET(\":id\")"))
+      #expect(controller.contains("POST(Todo.self)"))
     } else if template != .blank {
-      #expect(app.contains("LocalizedPages("))
-      #expect(app.contains("bundle: .module"))
+      #expect(!app.contains("LocalizedPages("))
       #expect(app.contains("separator: \" — \""))
       #expect(!app.contains("openGraph:"))
       if template != .blog { #expect(app.contains("structuredData")) }
@@ -86,11 +97,12 @@ struct ProjectScaffolderTests {
           ).path))
     }
     if template == .apiService {
-      #expect(app.contains("RouteGroup("))
+      #expect(!app.contains("RouteGroup("))
       let controller = try String(
         contentsOf: destination.appendingPathComponent(
           "Sources/Example/Controllers/HealthController.swift"), encoding: .utf8)
-      #expect(controller.contains("let route = \"health\""))
+      #expect(controller.contains("let prefix = \"system\""))
+      #expect(controller.contains("GET(version: nil, use: health)"))
       #expect(!controller.contains("typealias"))
     } else if template == .dashboard {
       #expect(app.contains("AppController(notes: notes)"))
@@ -104,16 +116,16 @@ struct ProjectScaffolderTests {
         contentsOf: destination.appendingPathComponent(
           "Sources/Example/Controllers/AppController.swift"), encoding: .utf8)
       #expect(controller.contains("struct AppController: Controller"))
-      #expect(controller.contains("RouteDefinition.path(\"system\", \"health\")"))
+      #expect(controller.contains("RouteGroup(\"system\")"))
     } else if template == .blog {
       let post = try String(
         contentsOf: destination.appendingPathComponent(
-          "Sources/Example/Post.swift"), encoding: .utf8)
+          "Sources/Example/Models/Post.swift"), encoding: .utf8)
       #expect(post.contains("MarkdownContentParser.parse"))
       for locale in ["en", "fr"] {
         let markdown = try String(
           contentsOf: destination.appendingPathComponent(
-            "Sources/Example/Resources/first-post-\(locale).md"), encoding: .utf8)
+            "Sources/Example/Resources/posts/first-post-\(locale).md"), encoding: .utf8)
         #expect(markdown.hasPrefix("---\n"))
         #expect(markdown.contains("```swift"))
       }

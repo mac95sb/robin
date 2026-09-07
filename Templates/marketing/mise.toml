@@ -9,7 +9,7 @@ hk = "1.54.1"
 run = "swift run --scratch-path .build/mise"
 
 [tasks.build]
-run = "swift run --scratch-path .build/mise -c release"
+run = "swift run --scratch-path .build/mise -c release __PROJECT__ --github-pages"
 
 [tasks.test]
 run = "swift test --scratch-path .build/mise"
@@ -25,6 +25,22 @@ run = "swift run --scratch-path .build/mise robin lint"
 
 [tasks.doctor]
 run = "swift run --scratch-path .build/mise robin doctor"
+
+[tasks.docs]
+description = "Generate the DocC documentation site"
+usage = 'arg "[base_path]" default="__PROJECT__" help="GitHub Pages base path"'
+run = '''
+mkdir -p .robin
+rm -rf .robin/docs
+swift package --allow-writing-to-directory .robin/docs generate-documentation --target __PROJECT__ --output-path .robin/docs --transform-for-static-hosting --hosting-base-path "$usage_base_path" --warnings-as-errors
+'''
+
+[tasks.docs-preview]
+description = "Preview the DocC documentation site locally"
+run = '''
+echo "Preview: http://[::1]:8080/documentation/__PROJECT__ (press Ctrl-C to stop)"
+exec swift package --disable-sandbox preview-documentation --target __PROJECT__
+'''
 
 [tasks.check]
 depends = ["format-check", "lint", "doctor", "test"]

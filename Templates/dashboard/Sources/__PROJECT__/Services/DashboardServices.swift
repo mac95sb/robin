@@ -2,6 +2,7 @@ import Foundation
 import RobinAuth
 import RobinData
 
+/// Owns the storage, authentication, and realtime services for the workspace.
 struct DashboardServices: Sendable {
   private let database: SQLiteDatabase
   let storage: any KeyValueStore

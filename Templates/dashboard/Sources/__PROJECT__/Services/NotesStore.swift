@@ -2,10 +2,12 @@ import Foundation
 import RobinCore
 import RobinData
 
+/// Stores notes for the current request.
 struct NoteListKey: ConfigurationKey {
   static let defaultValue: [Note] = []
 }
 
+/// Persists the authenticated person’s private notes.
 actor NotesStore {
   private let storage: any KeyValueStore
 

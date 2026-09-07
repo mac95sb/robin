@@ -2,18 +2,6 @@ import RobinCore
 import RobinHTML
 import RobinStyle
 
-extension ColorToken {
-  static let surface = Self(rawValue: "surface")
-  static let muted = Self(rawValue: "muted")
-  static let onAccent = Self(rawValue: "on-accent")
-}
-
-extension TypographyToken {
-  static let emphasis = Self(rawValue: "emphasis")
-  static let title = Self(rawValue: "title")
-  static let label = Self(rawValue: "label")
-}
-
 extension Theme {
   // Change the accent hue here; every page and control uses the same semantic tokens.
   static let starter = Theme(
@@ -43,90 +31,7 @@ extension Theme {
       .title: Typography(family: "system-ui", size: 28, weight: 600),
       .label: Typography(family: "system-ui", size: 13, weight: 500),
     ],
-    spacing: Theme.default.spacing.merging([.zero: 0]) { _, value in value },
+    spacing: Theme.default.spacing,
     radii: Theme.default.radii.merging([.sm: 10, .md: 14, .lg: 20, .xl: 24]) { _, value in value },
     breakpoints: Theme.default.breakpoints)
-}
-
-extension SpacingToken {
-  static let zero = Self(rawValue: "zero")
-}
-
-extension Component {
-  func starterPage() -> some Component {
-    Stack {
-      self.grid(columns: 1, gap: .xxl)
-        .frame(maxWidth: 1080).flexItem(grow: 1)
-    }
-    .flex(justify: .center)
-    .padding(.lg).padding(.xxl, on: .md)
-    .font(.body, color: .foreground, lineHeight: 26)
-    .font(.body, color: .foreground, lineHeight: 26, on: .dark)
-    .background(color: .background).background(color: .background, on: .dark)
-  }
-
-  func starterLink() -> some Component {
-    self.font(.label, color: .muted, decoration: TextDecoration.none)
-      .font(.label, color: .muted, on: .dark)
-  }
-
-  func starterPanel() -> some Component {
-    self.padding(.lg).padding(.xl, on: .md)
-      .background(color: .surface).background(color: .surface, on: .dark)
-      .border(color: .border, width: 0, radius: .xl)
-  }
-
-  func starterPopover() -> some Component {
-    self.popoverPosition(gap: 8).padding(.sm).frame(minWidth: 144)
-      .background(color: .surface).background(color: .surface, on: .dark)
-      .border(color: .border, radius: .md).border(color: .border, radius: .md, on: .dark)
-  }
-
-  func starterMenuItem() -> some Component {
-    self.flex(align: .center, gap: .sm).padding(.sm)
-      .font(.label, color: .foreground, decoration: TextDecoration.none)
-      .font(.label, color: .foreground, on: .dark)
-      .background(color: .surface).background(color: .surface, on: .dark)
-      .border(color: .border, width: 0, radius: .sm)
-      .font(.label, color: .accent, on: .pressed)
-      .font(.label, color: .accent, on: .dark && .pressed)
-      .background(color: .background, on: .hover || .focus)
-      .background(color: .background, on: .dark && (.hover || .focus))
-  }
-
-  func starterPicker() -> some Component {
-    self.flex(justify: .center, align: .center)
-      .frame(width: 44, height: 44).padding(.zero)
-      .font(.label, color: .foreground)
-      .font(.label, color: .foreground, on: .dark)
-      .background(color: .surface).background(color: .surface, on: .dark)
-      .border(color: .border, radius: .md).border(color: .border, radius: .md, on: .dark)
-  }
-
-  func starterRule() -> some Component {
-    self.frame(height: 1)
-      .background(color: .border).background(color: .border, on: .dark)
-  }
-
-  func starterTitle() -> some Component {
-    self.margin(.zero).font(.title, lineHeight: 36, letterSpacing: -1)
-  }
-
-  func starterButton() -> some Component {
-    self.font(.label, color: .onAccent, lineHeight: 20)
-      .font(.label, color: .onAccent, lineHeight: 20, on: .dark)
-      .padding(.sm)
-      .background(color: .accent).background(color: .accent, on: .dark)
-      .border(color: .accent, radius: .sm).border(color: .accent, radius: .sm, on: .dark)
-      .border(color: .foreground, radius: .sm, on: .focus)
-  }
-
-  func starterSecondaryButton() -> some Component {
-    self.font(.label, color: .foreground, lineHeight: 20)
-      .font(.label, color: .foreground, lineHeight: 20, on: .dark)
-      .padding(.sm)
-      .background(color: .surface).background(color: .surface, on: .dark)
-      .border(color: .border, radius: .sm).border(color: .border, radius: .sm, on: .dark)
-      .border(color: .accent, radius: .sm, on: .focus)
-  }
 }

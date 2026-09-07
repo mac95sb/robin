@@ -1,59 +1,60 @@
 import Foundation
-import RobinHTML
+import RobinCore
 import RobinRouting
 import RobinServer
 
-struct TodoController: Controller {
-  let todos: TodoService
+/// Serves the template's in-memory todo API.
+///
+/// The store is deliberately local to this controller. Replace it with durable storage when
+/// todos must survive a process restart or be shared across instances.
+actor TodoController: Controller {
+  private static let maximumTitleBytes = 200
+  /// Groups todo endpoints under `/api/v1/catalog`.
+  let prefix = "catalog"
+  private var todos: [Todo] = []
 
-  @RoutesBuilder var body: RouteList {
-    ListTodos(todos: todos)
-    ShowTodo(todos: todos)
-    CreateTodo(todos: todos)
-  }
-
-  private struct ListTodos: Endpoint {
-    let route = "todos"
-    let todos: TodoService
-
-    func handle(_: Void, request _: EmptyRequest, context _: RequestContext) -> [Todo] {
-      todos.all()
+  /// Registers list, lookup, and creation endpoints for todos.
+  nonisolated var body: RouteList {
+    RouteGroup("todos") {
+      GET { _, _ in await self.list() }
+      GET(":id") { id, _ in try await self.show(id) }
+      POST(Todo.self) { _, todo, _ in try await self.create(todo) }
     }
   }
 
-  private struct ShowTodo: Endpoint {
-    let route = RouteDefinition.path(
-      ["todos"],
-      parameter: .integer("id"),
-      metadata: .init(
-        operationID: "todo.show",
-        summary: "Returns one todo."))
-    let todos: TodoService
+  /// Returns every todo in creation order.
+  func list() -> [Todo] { todos }
 
-    func handle(_ id: Int, request _: EmptyRequest, context _: RequestContext) throws -> Todo {
-      guard let todo = todos.todo(id: id) else {
-        throw ServerError(.notFound, "Todo not found.")
-      }
-      return todo
+  /// Returns the todo identified by a route path value.
+  ///
+  /// - Parameter value: The UUID path value following `/todos/`.
+  /// - Returns: The matching todo.
+  /// - Throws: `ServerError` with a bad-request status for an invalid UUID or a not-found
+  ///   status when no todo matches it.
+  func show(_ value: String) throws -> Todo {
+    guard let id = UUID(uuidString: value) else {
+      throw ServerError(.badRequest, "Todo ID must be a UUID.")
     }
+    guard let todo = todos.first(where: { $0.id == id }) else {
+      throw ServerError(.notFound, "Todo not found.")
+    }
+    return todo
   }
 
-  private struct CreateTodo: Endpoint {
-    let route = "todos"
-    let method: HTTPMethod = .post
-    let todos: TodoService
-
-    func handle(
-      _: Void,
-      request: NewTodo,
-      context _: RequestContext
-    ) throws -> Todo {
-      let title = request.title.trimmingCharacters(in: .whitespacesAndNewlines)
-      guard !title.isEmpty else { throw ServerError(.badRequest, "A title is required.") }
-      guard let todo = todos.create(title: title) else {
-        throw ServerError(.badRequest, "A title must be at most 200 UTF-8 bytes.")
-      }
-      return todo
+  /// Validates and stores a new todo.
+  ///
+  /// - Parameter todo: The resource synthesized from the request's required create fields.
+  /// - Returns: The stored todo with its server-generated values.
+  /// - Throws: `ServerError` with a bad-request status when the title is blank or exceeds
+  ///   200 UTF-8 bytes.
+  func create(_ todo: Todo) throws -> Todo {
+    let title = todo.title.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !title.isEmpty else { throw ServerError(.badRequest, "A title is required.") }
+    guard title.utf8.count <= Self.maximumTitleBytes else {
+      throw ServerError(.badRequest, "A title must be at most 200 UTF-8 bytes.")
     }
+    let todo = Todo(title: title)
+    todos.append(todo)
+    return todo
   }
 }

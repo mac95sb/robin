@@ -1,12 +1,14 @@
 import Foundation
 import RobinBuild
-import RobinContent
 import RobinCore
 import RobinHTML
 import RobinStyle
 
+/// A localized Markdown blog with static output.
 @main
 struct Site: App {
+  var resourceBundle: Bundle? { .module }
+
   var theme: any ApplicationTheme { Theme.starter }
 
   var metadata: Metadata {
@@ -15,37 +17,25 @@ struct Site: App {
       separator: " — ",
       description: "A localized blog built with Robin.",
       image: .init(
-        url: "https://example.com/social-card.png",
-        alternativeText: "__PROJECT__ product preview",
+        url: "/social-card.jpg",
+        alternativeText: "__PROJECT__ journal preview",
         width: 1200,
         height: 630,
-        mediaType: "image/png"),
+        mediaType: "image/jpeg"),
       author: .init("__PROJECT__ Team", url: "https://example.com/en/about"),
       publisher: .init("__PROJECT__"),
       icons: [.init(url: "/favicon.png", mediaType: "image/png")])
   }
 
   @PagesBuilder var pages: PageList {
-    LocalizedPages(
-      bundle: .module,
-      baseURL: URL(string: "https://example.com")!
-    ) {
-      HomePage()
-      PostPage()
-      AboutPage()
-    }
+    HomePage()
+    PostPage()
+    AboutPage()
   }
 
   static func main() throws {
     try RobinApplication.run(
       Self(),
-      assets: [
-        try BuildAsset(
-          reference: "/favicon.png", path: "assets/favicon.png",
-          bytes: Array(
-            try Data(contentsOf: Bundle.module.url(forResource: "favicon", withExtension: "png")!)),
-          mediaType: "image/png"),
-        try SitePreferencesClientModule.asset(),
-      ])
+      assets: [try SitePreferencesClientModule.asset()])
   }
 }

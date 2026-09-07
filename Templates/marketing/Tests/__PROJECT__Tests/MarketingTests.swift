@@ -14,7 +14,8 @@ import Testing
     ("CounterDemo", CounterDemo.source), ("WelcomeCard", WelcomeCard.source),
     ("ToggleDemo", ToggleDemo.source), ("TextDemo", TextDemo.source),
   ] {
-    let file = template.appendingPathComponent("Sources/__PROJECT__/Examples/\(name).swift")
+    let file = template.appendingPathComponent(
+      "Sources/__PROJECT__/Views/Components/Examples/\(name).swift")
     let source = try String(contentsOf: file, encoding: .utf8)
     let implementation = try #require(source.range(of: "  static let source ="))
     #expect(displayed == String(source[..<implementation.lowerBound]) + "}")

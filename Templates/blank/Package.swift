@@ -13,7 +13,8 @@ let package = Package(
   name: "__PROJECT__",
   platforms: [.macOS(.v14)],
   dependencies: [
-    .package(name: "robin", path: "../..")
+    .package(name: "robin", path: "../.."),
+    .package(url: "https://github.com/swiftlang/swift-docc-plugin.git", from: "1.5.0"),
   ],
   targets: [
     .executableTarget(
@@ -24,6 +25,7 @@ let package = Package(
         .product(name: "RobinRouting", package: "robin"),
         .product(name: "RobinServer", package: "robin"),
       ],
+      resources: [.process("Resources")],
       swiftSettings: swiftSettings
     ),
     .testTarget(

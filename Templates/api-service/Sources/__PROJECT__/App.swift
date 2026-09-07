@@ -1,26 +1,22 @@
-import Foundation
 import RobinCore
 import RobinHTML
 import RobinServer
 
+/// An API service with readiness and todo endpoints.
 @main
-struct Site: App {
-  private let todos = TodoService()
-
+struct API: App {
+  /// Registers the service's controllers.
   @RoutesBuilder var routes: RouteList {
-    RouteGroup("system") {
-      HealthController()
-    }
-    RouteGroup("catalog") {
-      TodoController(todos: todos)
-    }
+    HealthController()
+    TodoController()
   }
 
+  /// Starts the API server with the template's baseline security policy.
   static func main() async throws {
     try await RobinApplication.run(
       Self(),
-      address: .init(
-        host: "127.0.0.1", port: Int(ProcessInfo.processInfo.environment["PORT"] ?? "8080") ?? 8080),
-      middleware: [.security(.init(requestsPerMinute: 120))])
+      middleware: [
+        .security(.init(requestsPerMinute: 120))
+      ])
   }
 }

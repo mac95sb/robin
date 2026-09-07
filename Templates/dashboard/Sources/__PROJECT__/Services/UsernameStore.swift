@@ -2,14 +2,17 @@ import Foundation
 import RobinCore
 import RobinData
 
+/// Stores the current person’s username.
 struct UsernameKey: ConfigurationKey {
   static let defaultValue: String? = nil
 }
 
+/// Stores display names for conversation authors.
 struct AuthorNamesKey: ConfigurationKey {
   static let defaultValue: [String: String] = [:]
 }
 
+/// Persists unique display names for authenticated people.
 struct UsernameStore: Sendable {
   let storage: any KeyValueStore
 
@@ -43,6 +46,7 @@ struct UsernameStore: Sendable {
   }
 }
 
+/// Describes an invalid or unavailable username.
 enum UsernameError: Error {
   case invalid, taken
 

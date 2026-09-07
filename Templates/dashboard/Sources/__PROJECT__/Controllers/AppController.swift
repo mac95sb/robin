@@ -6,11 +6,12 @@ import RobinRouting
 import RobinServer
 import RobinStyle
 
+/// Serves account, health, and authenticated note endpoints.
 struct AppController: Controller {
   let notes: NotesStore
 
   @RoutesBuilder var body: RouteList {
-    HealthEndpoint()
+    RouteGroup("system") { GET(version: nil, use: health) }
     AccountEndpoint()
     ListNotes(notes: notes)
     NoteMutation(.create, notes: notes)
@@ -29,14 +30,7 @@ struct AppController: Controller {
     }
   }
 
-  private struct HealthEndpoint: Endpoint {
-    let route = RouteDefinition.path("system", "health")
-    let version: Version? = nil
-
-    func handle(_: Void, request _: EmptyRequest, context _: RequestContext) -> Health {
-      Health(status: "ok")
-    }
-  }
+  private func health(_: Void, context _: RequestContext) -> Health { Health(status: "ok") }
 
   private struct ListNotes: Endpoint {
     let route = "notes"
@@ -62,10 +56,6 @@ struct AppController: Controller {
     init(_ operation: Operation, notes: NotesStore) {
       self.operation = operation
       self.notes = notes
-    }
-
-    var metadata: RouteMetadata {
-      .init(operationID: "notes.\(operation)", summary: "\(operation) a note.")
     }
 
     var pattern: RoutePattern {
@@ -142,17 +132,20 @@ struct AppController: Controller {
       return try .html(
         metadata: .init(title: "Check your note"), theme: .starter, status: .badRequest
       ) {
-        Main {
-          Heading { "Check your note" }
-          NoteEditor(form: form, action: request.path, identifier: "content", button: "Save note")
-          Link(notesPath(for: request)) { "Back to notes" }.starterLink()
-        }.starterPage()
+        DashboardPageLayout {
+          Main {
+            Heading { "Check your note" }
+            NoteEditor(form: form, action: request.path, identifier: "content", button: "Save note")
+            DashboardLabel { Link(notesPath(for: request)) { "Back to notes" } }
+          }
+        }
       }
     }
   }
 }
 
-private struct Health: Encodable, Sendable {
+/// The response returned by the unauthenticated readiness endpoint.
+struct Health: Encodable, Sendable {
   let status: String
 }
 

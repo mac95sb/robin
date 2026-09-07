@@ -1,22 +1,32 @@
 import Foundation
 import RobinAuth
 import RobinBuild
-import RobinContent
 import RobinCore
 import RobinData
 import RobinHTML
 import RobinServer
 import RobinStyle
 
+/// A localized workspace with authenticated notes and realtime conversations.
 @main
 struct Site: App {
+  var resourceBundle: Bundle? { .module }
+
   var theme: any ApplicationTheme { Theme.starter }
 
-  static let port = Int(ProcessInfo.processInfo.environment["PORT"] ?? "8080") ?? 8080
+  static let port = ServerAddress.environment.port
   static let origin = URL(string: "http://localhost:\(port)")!
   static let allowedOrigins: Set<String> = [origin.absoluteString]
   private let notes: NotesStore
   private let services: DashboardServices
+
+  var middleware: [Middleware] {
+    [
+      .security(.init(allowedOrigins: Self.allowedOrigins, requestsPerMinute: 120)),
+      .authSessions(services.sessions, store: services.authentication),
+      pageServices,
+    ]
+  }
 
   init(services: DashboardServices) {
     self.services = services
@@ -29,8 +39,11 @@ struct Site: App {
       separator: " — ",
       description: "A localized server-rendered Robin application.",
       image: .init(
-        url: "https://example.com/social-card.png",
-        alternativeText: "__PROJECT__ dashboard preview"),
+        url: "/social-card.jpg",
+        alternativeText: "__PROJECT__ dashboard preview",
+        width: 1200,
+        height: 630,
+        mediaType: "image/jpeg"),
       author: .init("__PROJECT__ Team"),
       publisher: .init("__PROJECT__"),
       icons: [.init(url: "/favicon.png", mediaType: "image/png")],
@@ -40,20 +53,15 @@ struct Site: App {
   }
 
   @PagesBuilder var pages: PageList {
-    LocalizedPages(
-      bundle: .module,
-      baseURL: URL(string: "https://example.com")!
-    ) {
-      DashboardPage()
-      NotesPage()
-      ChatPage()
-    }
+    DashboardPage()
+    NotesPage()
+    ChatPage()
   }
 
   @RoutesBuilder var routes: RouteList {
     AppController(notes: notes)
     ChatController(messages: services.messages, usernames: services.usernames)
-    UsernameController(usernames: services.usernames)
+    ProfileController(usernames: services.usernames)
     PasskeyController(passkeys: services.passkeys, sessions: services.sessions)
   }
 
@@ -100,11 +108,6 @@ struct Site: App {
     try await RobinApplication.run(
       site,
       assets: [
-        try BuildAsset(
-          reference: "/favicon.png", path: "assets/favicon.png",
-          bytes: Array(
-            try Data(contentsOf: Bundle.module.url(forResource: "favicon", withExtension: "png")!)),
-          mediaType: "image/png"),
         try SitePreferencesClientModule.asset(), try passkeyClient.asset(),
         try FormSubmissionClientModule(regionID: "notes", actionPrefix: "/api/v1/notes").asset(),
         try WebSocketClientModule(
@@ -112,12 +115,7 @@ struct Site: App {
           messagesID: "chat-messages", statusID: "chat-status", messageFormat: .json
         ).asset(),
       ],
-      address: .init(host: "127.0.0.1", port: port),
-      middleware: [
-        .security(.init(allowedOrigins: allowedOrigins, requestsPerMinute: 120)),
-        .authSessions(services.sessions, store: services.authentication),
-        site.pageServices,
-      ],
+      middleware: site.middleware,
       onShutdown: services.shutdown)
   }
 }

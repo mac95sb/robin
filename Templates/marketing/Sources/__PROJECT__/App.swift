@@ -4,8 +4,11 @@ import RobinCore
 import RobinHTML
 import RobinStyle
 
+/// A marketing site that demonstrates Robin’s component, styling, and browser APIs.
 @main
 struct Site: App {
+  var resourceBundle: Bundle? { .module }
+
   static let documentationURL =
     "https://mac95sb.github.io/robin/reference/RobinCore/documentation/robincore/"
   static var homeURL: String {
@@ -18,17 +21,18 @@ struct Site: App {
     Metadata(
       site: "Robin", separator: " — ",
       description: "Build thoughtful websites and full-stack applications in Swift.",
+      image: .init(
+        url: "/social-card.jpg",
+        alternativeText: "Robin framework preview",
+        width: 1200,
+        height: 630,
+        mediaType: "image/jpeg"),
       icons: [.init(url: "/robin-logo.png", mediaType: "image/png")])
   }
   var pages: some Pages { HomePage() }
 
   static func main() throws {
     let assets = [
-      try BuildAsset(
-        reference: "/robin-logo.png", path: "assets/robin-logo.png",
-        bytes: Array(
-          Data(contentsOf: Bundle.module.url(forResource: "robin-logo", withExtension: "png")!)),
-        mediaType: "image/png"),
       try SitePreferencesClientModule.asset(),
       try TabsClientModule(navigationID: "card-files", label: "Card source files").asset(),
       try TabsClientModule(navigationID: "counter-files", label: "Counter source files").asset(),

@@ -53,5 +53,9 @@ This runs formatting, compilation, tests, and DocC coverage. `mise run docs` wri
 site to `.robin/site`: marketing at `/robin/` and DocC under `/robin/reference/`.
 The Docs link opens RobinCore directly; `/robin/docs/` redirects there for existing links.
 The documentation workflow publishes them together.
+
+Write DocC comments for public APIs, pages, and reusable components. The generated projects
+include the same `mise run docs` task and a GitHub Pages workflow, so API reference and page or
+component documentation stay next to their Swift source.
 PostgreSQL and object-storage integration tests need their explicit test environment switches;
 the default test run does not establish live-provider conformance.

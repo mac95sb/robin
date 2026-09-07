@@ -1,8 +1,10 @@
 import Foundation
+import RobinCore
 import RobinHTML
 import RobinRouting
 import RobinServer
 
+/// Serves authenticated message history and realtime chat connections.
 struct ChatController: Controller {
   let messages: MessageStore
   let usernames: UsernameStore
@@ -31,7 +33,6 @@ struct ChatController: Controller {
     let usernames: UsernameStore
     let method = HTTPMethod.get
     let version: Version? = .default
-    let metadata = RouteMetadata(operationID: "chat.connect", summary: "Joins the chat.")
     let pattern = RoutePattern([.literal("chat")])
     let requiredCapabilities: TransportCapabilities = [.webSockets, .processLocalState]
 

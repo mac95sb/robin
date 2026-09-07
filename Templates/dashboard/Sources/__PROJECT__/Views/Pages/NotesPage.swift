@@ -5,6 +5,7 @@ import RobinLucide
 import RobinServer
 import RobinStyle
 
+/// Shows and edits the authenticated person’s private notes.
 struct NotesPage: Page {
   let path = "/notes"
   @RequestValue(SignedInKey.self) private var signedIn: Bool
@@ -15,11 +16,11 @@ struct NotesPage: Page {
   }
 
   var body: ComponentContent {
-    Stack {
+    DashboardPageLayout {
       SiteHeader()
       Main {
         Stack {
-          Text { "WORKSPACE / NOTES" }.margin(.zero).starterLink()
+          DashboardLabel { Text { "WORKSPACE / NOTES" }.margin(.zero) }
           Heading { t("notes") }
             .margin(.zero).font(.title, lineHeight: 38, letterSpacing: -1)
             .font(.title, lineHeight: 38, letterSpacing: -1, on: .md)
@@ -36,39 +37,45 @@ struct NotesPage: Page {
             Stack {
               Stack {
                 Icon(.lockKeyhole, size: 16)
-                Text { t("privateCollection") }.margin(.zero).starterLink()
+                DashboardLabel { Text { t("privateCollection") }.margin(.zero) }
               }.flex(align: .center, gap: .sm)
               Stack {
-                Text { "\(notes.count) saved" }.margin(.zero).starterLink()
+                DashboardLabel { Text { "\(notes.count) saved" }.margin(.zero) }
                 Form(action: "/api/v1/auth/logout") {
-                  Button(.submit) { "Sign out" }.starterSecondaryButton()
+                  SecondaryButton { Button(.submit) { "Sign out" } }
                 }
               }.flex(wrap: .wrap, align: .center, gap: .md)
             }.flex(wrap: .wrap, justify: .spaceBetween, align: .center, gap: .md)
-            Section {
-              Stack {
-                Icon(.squarePen, size: 20)
-                Heading(.two) { t("captureIdea") }.margin(.zero).font(.emphasis)
-              }.flex(align: .center, gap: .sm)
-              NoteEditor(
-                form: NoteForm(), action: "/api/v1/notes", identifier: "content",
-                button: t("addNote"))
-            }.grid(columns: 1, gap: .md).starterPanel()
+            DashboardPanel {
+              Section {
+                Stack {
+                  Icon(.squarePen, size: 20)
+                  Heading(.two) { t("captureIdea") }.margin(.zero).font(.emphasis)
+                }.flex(align: .center, gap: .sm)
+                NoteEditor(
+                  form: NoteForm(), action: "/api/v1/notes", identifier: "content",
+                  button: t("addNote"))
+              }.grid(columns: 1, gap: .md)
+            }
             Stack {
               for note in notes {
-                Article {
-                  Stack {
-                    Text { "NOTE / \(note.id)" }.margin(.zero).starterLink()
-                    Form(action: "/api/v1/notes/\(note.id)/delete") {
-                      Button(.submit, accessibilityLabel: t("deleteNote")) {
-                        Icon(.trash, size: 16)
-                      }.starterSecondaryButton()
-                    }
-                  }.flex(justify: .spaceBetween, align: .center, gap: .sm)
-                  NoteEditor(
-                    form: NoteForm(content: note.content), action: "/api/v1/notes/\(note.id)",
-                    identifier: "note-\(note.id)", button: t("saveNote"))
-                }.grid(columns: 1, gap: .md).starterPanel().frame(minWidth: 0)
+                DashboardPanel {
+                  Article {
+                    Stack {
+                      DashboardLabel { Text { "NOTE / \(note.id)" }.margin(.zero) }
+                      Form(action: "/api/v1/notes/\(note.id)/delete") {
+                        SecondaryButton {
+                          Button(.submit, accessibilityLabel: t("deleteNote")) {
+                            Icon(.trash, size: 16)
+                          }
+                        }
+                      }
+                    }.flex(justify: .spaceBetween, align: .center, gap: .sm)
+                    NoteEditor(
+                      form: NoteForm(content: note.content), action: "/api/v1/notes/\(note.id)",
+                      identifier: "note-\(note.id)", button: t("saveNote"))
+                  }.grid(columns: 1, gap: .md)
+                }.frame(minWidth: 0)
               }
             }.grid(columns: 1, gap: .md).grid(columns: 2, gap: .md, on: .md)
           }.grid(columns: 1, gap: .lg).frame(minWidth: 0)
@@ -76,6 +83,6 @@ struct NotesPage: Page {
 
       }.grid(columns: 1, gap: .lg)
       SiteFooter()
-    }.starterPage()
+    }
   }
 }

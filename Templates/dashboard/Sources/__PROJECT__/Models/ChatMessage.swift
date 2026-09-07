@@ -1,5 +1,6 @@
 import Foundation
 
+/// A message shown in the shared conversation.
 struct ChatMessage: Codable, Equatable, Sendable {
   let id: UUID
   let authorID: String

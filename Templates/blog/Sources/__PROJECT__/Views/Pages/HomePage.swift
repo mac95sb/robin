@@ -3,6 +3,7 @@ import RobinCore
 import RobinHTML
 import RobinStyle
 
+/// Lists the blog’s featured Markdown post.
 struct HomePage: Page {
   let path = "/"
 
@@ -11,11 +12,11 @@ struct HomePage: Page {
   }
 
   var body: ComponentContent {
-    Stack {
+    BlogPage {
       SiteHeader()
       Main {
         Section {
-          Text { t("journalLabel") }.margin(.zero).starterLink()
+          SiteLabel { Text { t("journalLabel") }.margin(.zero) }
           Heading { t("journalTitle") }
             .margin(.zero).font(.title, lineHeight: 38, letterSpacing: -1)
             .font(.heading, lineHeight: 70, letterSpacing: -2, on: .md)
@@ -25,18 +26,18 @@ struct HomePage: Page {
             .font(.body, color: .muted, lineHeight: 28, on: .dark)
         }.grid(columns: 1, gap: .lg).padding(.lg)
 
-        Stack {}.starterRule()
+        SiteRule()
 
         Link(localizedPath("/posts/a-quieter-web")) {
           Stack {
             Stack {
-              Text { t("featuredPost") }.margin(.zero).starterLink()
-              Text { Post.publicationDate }.margin(.zero).starterLink()
+              SiteLabel { Text { t("featuredPost") }.margin(.zero) }
+              SiteLabel { Text { Post.publicationDate }.margin(.zero) }
             }.flex(wrap: .wrap, justify: .spaceBetween, gap: .md)
-            Heading(.two) { Post.current.frontMatter.title ?? "" }.starterTitle()
+            PageTitle { Heading(.two) { Post.current.frontMatter.title ?? "" } }
             Text { Post.current.frontMatter.summary ?? "" }
               .margin(.zero).frame(maxWidth: 640)
-            Text { t("readPost") }.starterLink()
+            SiteLabel { Text { t("readPost") } }
           }.grid(columns: 1, gap: .lg)
         }
         .padding(.lg)
@@ -47,6 +48,6 @@ struct HomePage: Page {
         .background(color: .cardHover, on: .dark && (.hover || .focus))
       }.grid(columns: 1, gap: .xxl)
       SiteFooter()
-    }.starterPage()
+    }
   }
 }

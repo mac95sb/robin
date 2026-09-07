@@ -2,10 +2,12 @@ import Foundation
 import RobinCore
 import RobinData
 
+/// Stores messages for the current request.
 struct MessageListKey: ConfigurationKey {
   static let defaultValue: [ChatMessage] = []
 }
 
+/// Persists the shared message history and publishes realtime updates.
 actor MessageStore {
   static let maximumMessageBytes = 4_096
   static let maximumMessages = 100
@@ -60,4 +62,5 @@ actor MessageStore {
   }
 }
 
+/// Describes invalid chat message input.
 enum MessageStoreError: Error { case emptyMessage, messageTooLarge }
