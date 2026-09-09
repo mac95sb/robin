@@ -36,6 +36,7 @@ let package = Package(
     .library(name: "RobinTesting", targets: ["RobinTesting"]),
     .library(name: "RobinTooling", targets: ["RobinTooling"]),
     .library(name: "RobinPlugin", targets: ["RobinPlugin"]),
+    .library(name: "RobinTheme", targets: ["RobinTheme"]),
     .library(name: "RobinLucide", targets: ["RobinLucide"]),
     .library(name: "RobinPolar", targets: ["RobinPolar"]),
     .library(name: "RobinPostgres", targets: ["RobinPostgres"]),
@@ -255,6 +256,13 @@ let package = Package(
       swiftSettings: lowLevelFeatures
     ),
     .target(
+      name: "RobinTheme",
+      dependencies: ["RobinHTML", "RobinStyle"],
+      path: "Sources/RobinExtensions/RobinTheme",
+      exclude: ["README.md"],
+      swiftSettings: upcomingFeatures
+    ),
+    .target(
       name: "RobinLucide",
       dependencies: ["RobinHTML"],
       path: "Sources/RobinExtensions/RobinLucide",
@@ -458,6 +466,11 @@ let package = Package(
     .testTarget(
       name: "RobinPluginTests",
       dependencies: ["RobinPlugin"],
+      swiftSettings: upcomingFeatures
+    ),
+    .testTarget(
+      name: "RobinThemeTests",
+      dependencies: ["RobinHTML", "RobinStyle", "RobinTheme"],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(
