@@ -14,11 +14,13 @@ struct AccountPanel: Component {
         Stack {
           PrimaryButton { Button(id: "register") { "Create account" } }
           SecondaryButton { Button(id: "login") { "Sign in with a passkey" } }
-        }.flex(wrap: .wrap, gap: .sm)
+        }
+        .flex(wrap: .wrap, gap: .sm)
         DashboardLabel {
           Text { "Secure sign-in with your device. No password to remember." }.margin(.zero)
         }
-      }.grid(columns: 1, gap: .md)
+      }
+      .grid(columns: 1, gap: .md)
     }
   }
 }

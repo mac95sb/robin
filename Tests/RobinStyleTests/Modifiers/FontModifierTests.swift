@@ -5,7 +5,7 @@ import Testing
 @Test func typographySpacingPreservesNegativeTrackingAndResponsiveLeading() throws {
   let heading = Heading { "A quieter web" }
     .font(.heading, lineHeight: 40, letterSpacing: -1)
-    .font(.heading, lineHeight: 64, letterSpacing: -2, on: .md)
+    .font(lineHeight: 64, letterSpacing: -2, on: .md)
   let styles = try StyleCompiler.compile(
     .fragment(heading.body.nodes), theme: .default, mode: .production)
   #expect(styles.css.contains("letter-spacing:-1px"))
@@ -18,7 +18,7 @@ import Testing
 @Test func linkDecorationSupportsPlainLinksAndHoverUnderlines() throws {
   let link = Link("/posts/example") { "Example" }
     .font(.body, decoration: TextDecoration.none)
-    .font(.body, decoration: .underline, on: .hover)
+    .font(decoration: .underline, on: .hover)
   let styles = try StyleCompiler.compile(
     .fragment(link.body.nodes), theme: .default, mode: .production)
   #expect(styles.css.contains("text-decoration:none"))

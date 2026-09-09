@@ -2,15 +2,55 @@ import RobinHTML
 import RobinRuntime
 import Testing
 
-@Test func popoversUseNativeCommandsAndEscapeTheirTargets() throws {
-  let button = try HTMLRenderer.render(Button(command: .toggle("options")) { "Options" })
-  #expect(button.contains("command=\"toggle-popover\""))
-  #expect(button.contains("commandfor=\"options\""))
-  let popover = try HTMLRenderer.render(Popover(id: "options") { "Choices" })
-  #expect(popover == "<div id=\"options\" popover=\"auto\">Choices</div>")
+@Test func popoversGenerateNativeRelationships() throws {
+  let rendered = try HTMLRenderer.render(
+    Popover {
+      Button { "Options" }
+    } content: {
+      Stack {
+        Button(command: .dismiss) { "Done" }
+      }
+    })
+
+  #expect(
+    rendered
+      == "<button command=\"toggle-popover\" commandfor=\"robin-popover-p0\" type=\"button\">Options</button><div id=\"robin-popover-p0\" popover=\"auto\"><button command=\"hide-popover\" commandfor=\"robin-popover-p0\" type=\"button\">Done</button></div>"
+  )
+}
+
+@Test func dismissCommandsCanAccompanyStateActions() throws {
   @State var choice = "Card"
-  let selection = try HTMLRenderer.render(
-    Button(command: .hide("options"), action: #action { choice = "Counter" }) { "Counter" })
-  #expect(selection.contains("command=\"hide-popover\""))
-  #expect(selection.contains("data-robin-action="))
+  let rendered = try HTMLRenderer.render(
+    Popover {
+      Button { "Options" }
+    } content: {
+      Stack {
+        Button(command: .dismiss, action: #action { choice = "Counter" }) { "Counter" }
+      }
+    })
+
+  #expect(rendered.contains("command=\"hide-popover\""))
+  #expect(rendered.contains("commandfor=\"robin-popover-p0\""))
+  #expect(rendered.contains("data-robin-action="))
+}
+
+@Test func popoverIdentifiersFollowRenderOrder() throws {
+  let rendered = try HTMLRenderer.render(
+    Stack {
+      Popover {
+        Button { "First" }
+      } content: {
+        Stack { "One" }
+      }
+      Popover {
+        Button { "Second" }
+      } content: {
+        Stack { "Two" }
+      }
+    })
+
+  #expect(rendered.contains("commandfor=\"robin-popover-p0\""))
+  #expect(rendered.contains("id=\"robin-popover-p0\""))
+  #expect(rendered.contains("commandfor=\"robin-popover-p1\""))
+  #expect(rendered.contains("id=\"robin-popover-p1\""))
 }

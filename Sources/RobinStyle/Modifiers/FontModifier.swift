@@ -7,12 +7,12 @@ extension Component {
   ///
   /// CSS reference: [MDN: font](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font).
   ///
-  /// The typography token supplies the font family, size, and weight. Optional
-  /// color and alignment declarations are included in the same conditional style
-  /// group. The token values are resolved when styles are compiled.
+  /// When supplied, the typography token sets the font family, size, and weight.
+  /// Omit it from later calls to override only properties such as color or line
+  /// height. The token values are resolved when styles are compiled.
   ///
   /// - Parameters:
-  ///   - typography: The theme typography token that supplies family, size, and weight.
+  ///   - typography: An optional theme typography token that supplies family, size, and weight.
   ///   - color: An optional theme color token for the text color.
   ///   - decoration: An optional text decoration; omitted values preserve the existing style.
   ///   - align: An optional logical alignment emitted through the style declaration.
@@ -22,7 +22,7 @@ extension Component {
   /// - Returns: A component that appends the typography declarations to each
   ///   top-level rendered element.
   public func font(
-    _ typography: TypographyToken,
+    _ typography: TypographyToken? = nil,
     color: ColorToken? = nil,
     decoration: TextDecoration? = nil,
     align: TextAlignment? = nil,
@@ -30,11 +30,14 @@ extension Component {
     letterSpacing: Int? = nil,
     on condition: Condition = .always
   ) -> some Component {
-    var declarations = [
-      styled(.fontFamily, .fontFamily(typography.rawValue), on: condition),
-      styled(.fontSize, .fontSize(typography.rawValue), on: condition),
-      styled(.fontWeight, .fontWeightToken(typography.rawValue), on: condition),
-    ]
+    var declarations =
+      typography.map {
+        [
+          styled(.fontFamily, .fontFamily($0.rawValue), on: condition),
+          styled(.fontSize, .fontSize($0.rawValue), on: condition),
+          styled(.fontWeight, .fontWeightToken($0.rawValue), on: condition),
+        ]
+      } ?? []
     if let color {
       declarations.append(styled(.color, .color(color.rawValue), on: condition))
     }

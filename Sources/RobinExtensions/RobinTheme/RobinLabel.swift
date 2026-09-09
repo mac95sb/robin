@@ -13,6 +13,6 @@ public struct RobinLabel: Component {
   /// The styled label content.
   public var body: ComponentContent {
     content.font(.label, color: .muted, decoration: TextDecoration.none)
-      .font(.label, color: .muted, on: .dark)
+      .font(color: .muted, on: .dark)
   }
 }

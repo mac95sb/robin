@@ -1,9 +1,10 @@
 import Foundation
 
 package enum RobinCommand: Equatable, Sendable {
-  case initialize(name: String, template: ProjectTemplate, templatesDirectory: URL?)
+  case initialize(
+    name: String, template: ProjectTemplate, siteURL: String?, templatesDirectory: URL?)
   case dev
-  case build
+  case build(optimizesAssets: Bool)
   case export
   case serve
   case worker

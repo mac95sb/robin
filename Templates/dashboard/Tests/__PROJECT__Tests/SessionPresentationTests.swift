@@ -17,13 +17,16 @@ import Testing
       .authSessions(services.sessions, store: services.authentication),
       site.pageServices,
     ],
-    transportCapabilities: .persistent)
+    transportCapabilities: .persistent
+  )
 
   for signedIn in [false, true] {
     let headers: HTTPFields = signedIn ? [.cookie: "robin-session=\(token.value)"] : [:]
     let overview = await responder.respond(
       to: Request(
-        .init(method: .get, scheme: nil, authority: nil, path: "/en", headerFields: headers)))
+        .init(method: .get, scheme: nil, authority: nil, path: "/en", headerFields: headers)
+      )
+    )
     #expect(overview.head.status == .ok)
     let overviewHTML = String(decoding: overview.body.bufferedBytes ?? [], as: UTF8.self)
     #expect(!overviewHTML.contains("id=\"login\""))
@@ -33,7 +36,9 @@ import Testing
     #expect(overviewHTML.contains("href=\"/en/conversations\""))
     let response = await responder.respond(
       to: Request(
-        .init(method: .get, scheme: nil, authority: nil, path: "/en/notes", headerFields: headers)))
+        .init(method: .get, scheme: nil, authority: nil, path: "/en/notes", headerFields: headers)
+      )
+    )
     #expect(response.head.status == .ok)
     let html = String(decoding: response.body.bufferedBytes ?? [], as: UTF8.self)
     #expect(html.contains("/api/v1/auth/logout") == signedIn)

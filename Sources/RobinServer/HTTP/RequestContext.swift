@@ -13,6 +13,8 @@ private struct JobContextKey: ServiceContextKey { typealias Value = RequestConte
 
 private struct ServicesContextKey: ServiceContextKey { typealias Value = ConfigurationValues }
 
+private struct RequestContextKey: ServiceContextKey { typealias Value = Request }
+
 /// Read-only values scoped to one request.
 public struct RequestContext: Sendable {
   /// An authenticated application identity.
@@ -60,6 +62,8 @@ public struct RequestContext: Sendable {
   public let deadline: ContinuousClock.Instant?
   /// Typed request-scoped services inherited by actions, jobs, previews, and tests.
   public let services: ConfigurationValues
+  /// The request currently being handled, when an HTTP transport is available.
+  public let request: Request?
   /// Cross-cutting request values propagated through structured child tasks.
   public let serviceContext: ServiceContext
 
@@ -73,6 +77,7 @@ public struct RequestContext: Sendable {
     clientAddress: String? = nil,
     deadline: ContinuousClock.Instant? = nil,
     services: ConfigurationValues = .init(),
+    request: Request? = nil,
     serviceContext: ServiceContext = .topLevel
   ) {
     self.requestID = requestID
@@ -83,6 +88,7 @@ public struct RequestContext: Sendable {
     self.clientAddress = clientAddress
     self.deadline = deadline
     self.services = services
+    self.request = request
     var propagated = serviceContext
     propagated[RequestIDContextKey.self] = requestID
     propagated[TenantContextKey.self] = tenant
@@ -90,11 +96,31 @@ public struct RequestContext: Sendable {
     propagated[PrincipalContextKey.self] = principal
     propagated[JobContextKey.self] = job
     propagated[ServicesContextKey.self] = services
+    if let request { propagated[RequestContextKey.self] = request }
     self.serviceContext = propagated
   }
 
   package static var currentServices: ConfigurationValues {
     ServiceContext.current?[ServicesContextKey.self] ?? .init()
+  }
+
+  package static var currentRequest: Request? {
+    ServiceContext.current?[RequestContextKey.self]
+  }
+
+  package func responding(to request: Request) -> Self {
+    Self(
+      requestID: requestID,
+      tenant: tenant,
+      sessionID: sessionID,
+      principal: principal,
+      job: job,
+      clientAddress: clientAddress,
+      deadline: deadline,
+      services: services,
+      request: request,
+      serviceContext: serviceContext
+    )
   }
 
   package func replacing(
@@ -112,6 +138,7 @@ public struct RequestContext: Sendable {
       clientAddress: clientAddress,
       deadline: deadline,
       services: services ?? self.services,
+      request: request,
       serviceContext: serviceContext
     )
   }

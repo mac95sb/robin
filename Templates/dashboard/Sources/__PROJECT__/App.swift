@@ -4,15 +4,20 @@ import RobinBuild
 import RobinCore
 import RobinData
 import RobinHTML
+import RobinRuntime
 import RobinServer
 import RobinStyle
+import RobinTheme
+
+struct Preferences: AppearancePreferences {
+  var appearance: AppearanceButton.Preference = .system
+}
 
 /// A localized workspace with authenticated notes and realtime conversations.
 @main
 struct Site: App {
-  var resourceBundle: Bundle? { .module }
-
-  var theme: any ApplicationTheme { Theme.starter }
+  static let preferences = Local("preferences", default: Preferences())
+  var theme: any ApplicationTheme { Theme.robin }
 
   static let port = ServerAddress.environment.port
   static let origin = URL(string: "http://localhost:\(port)")!
@@ -43,13 +48,15 @@ struct Site: App {
         alternativeText: "__PROJECT__ dashboard preview",
         width: 1200,
         height: 630,
-        mediaType: "image/jpeg"),
+        mediaType: "image/jpeg"
+      ),
       author: .init("__PROJECT__ Team"),
       publisher: .init("__PROJECT__"),
       icons: [.init(url: "/favicon.png", mediaType: "image/png")],
       structuredData: [
         .softwareApplication(.init(operatingSystem: "Any", category: "BusinessApplication"))
-      ])
+      ]
+    )
   }
 
   @PagesBuilder var pages: PageList {
@@ -83,39 +90,54 @@ struct Site: App {
         .setting(AuthorNamesKey.self, to: names)
         .setting(
           MessageListKey.self,
-          to: context.principal == nil || !conversations ? [] : try await services.messages.all())
+          to: context.principal == nil || !conversations ? [] : try await services.messages.all()
+        )
     }
   }
 
   static func main() async throws {
-    let directory = FileManager.default.urls(
-      for: .applicationSupportDirectory,
-      in: .userDomainMask
-    )[0].appendingPathComponent("__PROJECT__", isDirectory: true)
+    let directory =
+      FileManager.default
+      .urls(
+        for: .applicationSupportDirectory,
+        in: .userDomainMask
+      )[0]
+      .appendingPathComponent("__PROJECT__", isDirectory: true)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     let services = try await DashboardServices(
-      storage: .file(path: directory.appendingPathComponent("dashboard.sqlite").path))
+      storage: .file(path: directory.appendingPathComponent("dashboard.sqlite").path)
+    )
     let site = Self(services: services)
 
     let passkeyClient = try PasskeyClientModule(
       registration: .init(
-        buttonID: "register", beginURL: "/api/v1/auth/register/begin",
-        finishURL: "/api/v1/auth/register/finish"),
+        buttonID: "register",
+        beginURL: "/api/v1/auth/register/begin",
+        finishURL: "/api/v1/auth/register/finish"
+      ),
       authentication: .init(
-        buttonID: "login", beginURL: "/api/v1/auth/login/begin",
-        finishURL: "/api/v1/auth/login/finish"),
-      reloadOnCompletion: true)
+        buttonID: "login",
+        beginURL: "/api/v1/auth/login/begin",
+        finishURL: "/api/v1/auth/login/finish"
+      ),
+      reloadOnCompletion: true
+    )
     try await RobinApplication.run(
       site,
       assets: [
-        try SitePreferencesClientModule.asset(), try passkeyClient.asset(),
-        try FormSubmissionClientModule(regionID: "notes", actionPrefix: "/api/v1/notes").asset(),
+        try passkeyClient.asset(),
         try WebSocketClientModule(
-          path: "/api/v1/chat", formID: "chat-form", inputID: "chat-input",
-          messagesID: "chat-messages", statusID: "chat-status", messageFormat: .json
-        ).asset(),
+          path: "/api/v1/chat",
+          formID: "chat-form",
+          inputID: "chat-input",
+          messagesID: "chat-messages",
+          statusID: "chat-status",
+          messageFormat: .json
+        )
+        .asset(),
       ],
       middleware: site.middleware,
-      onShutdown: services.shutdown)
+      onShutdown: services.shutdown
+    )
   }
 }

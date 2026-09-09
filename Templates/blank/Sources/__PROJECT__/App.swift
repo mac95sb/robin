@@ -2,11 +2,13 @@ import Foundation
 import RobinCore
 import RobinHTML
 import RobinServer
+import RobinStyle
+import RobinTheme
 
 /// A minimal Robin application that serves one page and one message endpoint.
 @main
 struct Site: App {
-  var resourceBundle: Bundle? { .module }
+  var theme: any ApplicationTheme { Theme.robin }
 
   /// Metadata inherited by every rendered HTML page.
   var metadata: Metadata {
@@ -18,7 +20,9 @@ struct Site: App {
         alternativeText: "__PROJECT__ application preview",
         width: 1200,
         height: 630,
-        mediaType: "image/jpeg"))
+        mediaType: "image/jpeg"
+      )
+    )
   }
 
   /// Registers the HTML pages served by the application.

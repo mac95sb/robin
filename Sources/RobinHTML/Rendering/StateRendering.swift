@@ -32,7 +32,9 @@ extension HTMLRenderer {
     _ attribute: RenderElement.Attribute, identifiers: [String: String]
   ) throws -> String? {
     func descriptor(_ reference: StateReference) -> [String] {
-      [identifiers[reference.token]!, reference.kind.rawValue, reference.initial]
+      var value = [identifiers[reference.token]!, reference.kind.rawValue, reference.initial]
+      if let localKey = reference.localKey { value.append(localKey) }
+      return value
     }
     func expression(_ node: StateExpressionNode) -> [Any] {
       switch node {
@@ -83,6 +85,7 @@ extension RenderElement.Attribute {
     case .stateText(let reference), .stateInput(let reference), .stateHidden(let reference),
       .stateVisible(let reference), .stateDisabled(let reference):
       [reference]
+    case .appearanceState(let reference): [reference]
     default: []
     }
   }

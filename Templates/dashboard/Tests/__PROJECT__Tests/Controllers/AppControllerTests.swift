@@ -21,7 +21,8 @@ func notesCanBeCreatedUpdatedAndDeleted(enhanced: Bool) async throws {
       .security(.init(allowedOrigins: Site.allowedOrigins)),
       .authSessions(services.sessions, store: services.authentication),
     ],
-    transportCapabilities: .persistent)
+    transportCapabilities: .persistent
+  )
   let contentType = "application/x-www-form-urlencoded"
   let authenticated: HTTPFields = [
     .cookie: "robin-session=\(token.value)", .origin: Site.origin.absoluteString,
@@ -37,17 +38,26 @@ func notesCanBeCreatedUpdatedAndDeleted(enhanced: Bool) async throws {
         scheme: nil,
         authority: nil,
         path: "/api/v1/notes",
-        headerFields: formHeaders),
-      body: Array("content=Ship+Robin".utf8)))
+        headerFields: formHeaders
+      ),
+      body: Array("content=Ship+Robin".utf8)
+    )
+  )
   #expect(created.head.status == (enhanced ? .ok : .seeOther))
   if !enhanced { #expect(created.head.headerFields[.location] == "/en/notes") }
 
   let invalid = await responder.respond(
     to: Request(
       .init(
-        method: .post, scheme: nil, authority: nil, path: "/api/v1/notes", headerFields: formHeaders
+        method: .post,
+        scheme: nil,
+        authority: nil,
+        path: "/api/v1/notes",
+        headerFields: formHeaders
       ),
-      body: Array("content=+++".utf8)))
+      body: Array("content=+++".utf8)
+    )
+  )
   #expect(invalid.head.status == .badRequest)
   let invalidHTML = String(decoding: invalid.body.bufferedBytes ?? [], as: UTF8.self)
   #expect(invalidHTML.contains("aria-invalid=\"true\"") == !enhanced)
@@ -57,9 +67,15 @@ func notesCanBeCreatedUpdatedAndDeleted(enhanced: Bool) async throws {
   let malformed = await responder.respond(
     to: Request(
       .init(
-        method: .post, scheme: nil, authority: nil, path: "/api/v1/notes", headerFields: formHeaders
+        method: .post,
+        scheme: nil,
+        authority: nil,
+        path: "/api/v1/notes",
+        headerFields: formHeaders
       ),
-      body: Array("content=one&content=two".utf8)))
+      body: Array("content=one&content=two".utf8)
+    )
+  )
   #expect(malformed.head.status == .badRequest)
 
   let updated = await responder.respond(
@@ -69,35 +85,59 @@ func notesCanBeCreatedUpdatedAndDeleted(enhanced: Bool) async throws {
         scheme: nil,
         authority: nil,
         path: "/api/v1/notes/2",
-        headerFields: formHeaders),
-      body: Array("content=Ship+Robin+today".utf8)))
+        headerFields: formHeaders
+      ),
+      body: Array("content=Ship+Robin+today".utf8)
+    )
+  )
   #expect(updated.head.status == (enhanced ? .ok : .seeOther))
 
   let listed = await responder.respond(
     to: Request(
       .init(
-        method: .get, scheme: nil, authority: nil, path: "/api/v1/notes",
-        headerFields: authenticated)))
+        method: .get,
+        scheme: nil,
+        authority: nil,
+        path: "/api/v1/notes",
+        headerFields: authenticated
+      )
+    )
+  )
   #expect(
-    String(bytes: listed.body.bufferedBytes ?? [], encoding: .utf8)?.contains("today") == true)
+    String(bytes: listed.body.bufferedBytes ?? [], encoding: .utf8)?.contains("today") == true
+  )
 
   let deleted = await responder.respond(
     to: Request(
       .init(
-        method: .post, scheme: nil, authority: nil, path: "/api/v1/notes/2/delete",
-        headerFields: formHeaders)))
+        method: .post,
+        scheme: nil,
+        authority: nil,
+        path: "/api/v1/notes/2/delete",
+        headerFields: formHeaders
+      )
+    )
+  )
   #expect(deleted.head.status == (enhanced ? .ok : .seeOther))
 
   let empty = await responder.respond(
     to: Request(
       .init(
-        method: .get, scheme: nil, authority: nil, path: "/api/v1/notes",
-        headerFields: authenticated)))
+        method: .get,
+        scheme: nil,
+        authority: nil,
+        path: "/api/v1/notes",
+        headerFields: authenticated
+      )
+    )
+  )
   #expect(
-    String(bytes: empty.body.bufferedBytes ?? [], encoding: .utf8)?.contains("today") == false)
+    String(bytes: empty.body.bufferedBytes ?? [], encoding: .utf8)?.contains("today") == false
+  )
 
   let anonymous = await responder.respond(
-    to: Request(.init(method: .get, scheme: nil, authority: nil, path: "/api/v1/notes")))
+    to: Request(.init(method: .get, scheme: nil, authority: nil, path: "/api/v1/notes"))
+  )
   #expect(anonymous.head.status == .unauthorized)
   try await services.shutdown()
 }
@@ -110,10 +150,12 @@ func notesCanBeCreatedUpdatedAndDeleted(enhanced: Bool) async throws {
   let responder = try ApplicationResponder(
     Site(services: services),
     middleware: [.authSessions(services.sessions, store: services.authentication)],
-    transportCapabilities: .persistent)
+    transportCapabilities: .persistent
+  )
 
   let anonymous = await responder.respond(
-    to: Request(.init(method: .get, scheme: nil, authority: nil, path: "/api/v1/account")))
+    to: Request(.init(method: .get, scheme: nil, authority: nil, path: "/api/v1/account"))
+  )
   #expect(anonymous.head.status == .unauthorized)
 
   let authenticated = await responder.respond(
@@ -123,7 +165,10 @@ func notesCanBeCreatedUpdatedAndDeleted(enhanced: Bool) async throws {
         scheme: nil,
         authority: nil,
         path: "/api/v1/account",
-        headerFields: [.cookie: "robin-session=\(token.value)"])))
+        headerFields: [.cookie: "robin-session=\(token.value)"]
+      )
+    )
+  )
   #expect(authenticated.head.status == .ok)
   try await services.shutdown()
 }

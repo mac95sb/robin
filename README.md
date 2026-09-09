@@ -38,6 +38,16 @@ Generated projects reference this repository's `main` branch during release prep
 released semantic version in your package dependency when adopting a stable release. The CLI
 currently runs from source and needs the checkout's `Templates` directory, or `--templates`.
 
+The marketing template requires its canonical public URL so generated navigation, documentation
+links, and static asset references work on any host, including GitHub Pages project sites:
+
+```sh
+mise exec -- swift run robin init MySite --template marketing --site-url https://example.com
+```
+
+Use the complete GitHub Pages project URL (for example,
+`https://account.github.io/MySite`) when that is the deployment target.
+
 For the dashboard, use **localhost**, matching the passkey relying-party configuration.
 Set the production HTTPS origin, relying-party ID, and security allowlist together before deployment.
 The starter databases live in the application's support directory, outside generated `.robin` output.

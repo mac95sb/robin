@@ -1,5 +1,6 @@
 import RobinCore
 import RobinHTML
+import RobinTheme
 
 /// The starter page at the application root.
 struct HomePage: Page {
@@ -11,6 +12,6 @@ struct HomePage: Page {
 
   /// Renders the starter greeting.
   var body: ComponentContent {
-    Greeting(message: Message(text: "Hello, world!"))
+    RobinPage { Text { "Hello, world!" } }
   }
 }

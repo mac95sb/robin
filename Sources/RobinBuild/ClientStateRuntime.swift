@@ -25,24 +25,31 @@ import Foundation
       document[installed] = true;
       const states = new Map();
       let body = document.body;
-      const targets = ["text", "input", "hidden", "visible", "disabled"];
+      const targets = ["text", "input", "hidden", "visible", "disabled", "appearance"];
       const valid = (kind, value) => kind === "string" ? typeof value === "string"
         : kind === "boolean" ? typeof value === "boolean"
+        : kind === "json" ? value !== undefined
         : typeof value === "number" && Number.isFinite(value)
           && (kind !== "integer" || Number.isSafeInteger(value));
       function currentDocument() {
         if (body !== document.body) { body = document.body; states.clear(); }
       }
       function resolve(parts, store) {
-        const [id, kind, initialJSON] = parts;
-        if (typeof id !== "string" || !["string", "boolean", "integer", "number"].includes(kind)) throw Error("Invalid state");
+        const [id, kind, initialJSON, localKey] = parts;
+        if (typeof id !== "string" || !["string", "boolean", "integer", "number", "json"].includes(kind)) throw Error("Invalid state");
+        if (localKey !== undefined && (typeof localKey !== "string" || !localKey)) throw Error("Invalid local state");
         const initial = JSON.parse(initialJSON);
         if (!valid(kind, initial)) throw Error("Invalid initial value");
-        if (!store.has(id)) store.set(id, { kind, initial, value: initial });
+        if (!store.has(id)) {
+          let value = initial;
+          if (localKey) try { const saved = JSON.parse(localStorage.getItem(localKey)); if (valid(kind, saved)) value = saved; } catch {}
+          store.set(id, { kind, initial, value, localKey });
+        }
         const state = store.get(id);
-        if (state.kind !== kind) throw Error("Incompatible state");
+        if (state.kind !== kind || state.localKey !== localKey) throw Error("Incompatible state");
         return { id, state };
       }
+      function persist(state) { if (state.localKey) try { localStorage.setItem(state.localKey, JSON.stringify(state.value)); } catch {} }
       function read(element, target) {
         currentDocument();
         const raw = element.getAttribute(`data-robin-${target}`);
@@ -80,7 +87,9 @@ import Foundation
             changed.add(id);
           }
         } catch { return; }
-        for (const id of changed) states.set(id, pending.get(id));
+        for (const id of changed) {
+          const state = pending.get(id); states.set(id, state); persist(state);
+        }
         for (const id of changed) publish(id);
       }
       function paint(element, target, value) {
@@ -91,6 +100,13 @@ import Foundation
         if (target === "input") {
           if (element.type === "checkbox") element.checked = value;
           else if (element.value !== String(value)) element.value = String(value);
+        }
+        if (target === "appearance") {
+          const preference = value?.appearance;
+          if (!["system", "light", "dark"].includes(preference)) return;
+          if (preference === "system") delete document.documentElement.dataset.robinAppearance;
+          else document.documentElement.dataset.robinAppearance = preference;
+          document.querySelectorAll("[data-robin-appearance-choice]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.robinAppearanceChoice === preference)));
         }
       }
       // ponytail: scan bound elements per update; index subscriptions if large pages need it.
@@ -141,6 +157,7 @@ import Foundation
             : state.kind === "string" ? element.value : element.valueAsNumber;
           if (!valid(state.kind, value)) return;
           state.value = value;
+          persist(state);
           publish(id, element);
         }
         run(element, event.type === "input" ? "edit" : "change");
@@ -154,6 +171,7 @@ import Foundation
             const binding = read(element, "input");
             if (!binding) continue;
             binding.state.value = binding.state.initial;
+            persist(binding.state);
             publish(binding.id);
           }
         });

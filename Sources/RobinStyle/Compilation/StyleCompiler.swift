@@ -48,13 +48,31 @@ public struct StyleCompiler {
     viewTransitions: ViewTransitionNavigation = .disabled
   ) throws -> CompiledStyles {
     let signatures = try collect(from: root, hasContainmentAncestor: false)
-    return try compile(
+    let compiled = try compile(
       signatures: signatures,
       theme: theme,
       mode: mode,
       animations: animations,
       viewTransitions: viewTransitions
     )
+    guard containsTabs(root) else { return compiled }
+    let separator = mode == .development ? "\n" : ""
+    return CompiledStyles(
+      assignments: compiled.assignments,
+      documentCSS: compiled.documentCSS
+        + "[data-robin-tabs]>input[type=radio]{position:absolute;inline-size:1px;block-size:1px;clip-path:inset(50%)}[data-robin-tabs]>[data-robin-tab-panel]{display:none}[data-robin-tabs]>input[type=radio]:checked+label+[data-robin-tab-panel]{display:block}"
+        + separator,
+      rulesCSS: compiled.rulesCSS)
+  }
+
+  private static func containsTabs(_ node: RobinHTML.RenderNode) -> Bool {
+    switch node.renderingStorage {
+    case .text: false
+    case .fragment(let children): children.contains(where: containsTabs)
+    case .element(let element):
+      element.attributes.contains { if case .tabs = $0 { true } else { false } }
+        || element.children.contains(where: containsTabs)
+    }
   }
 
   /// Compiles style signatures already validated while traversing Render IR.

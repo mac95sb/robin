@@ -25,6 +25,7 @@ extension RobinApplication {
     do {
       if ProcessInfo.processInfo.environment["ROBIN_BUILD"] == "1" {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let optimizesAssets = ProcessInfo.processInfo.environment["ROBIN_NO_OPTIM"] != "1"
         let executable = URL(fileURLWithPath: CommandLine.arguments[0])
         let artifact = try BuildArtifact(
           kind: .executable,
@@ -41,8 +42,10 @@ extension RobinApplication {
         _ = try await BuildPipeline.build(
           application,
           configuration: .init(
+            cssOutputMode: optimizesAssets ? .production : .development,
             runtimeArtifacts: [artifact],
             assets: assets,
+            optimizesAssets: optimizesAssets,
             runtimes: [
               try DeploymentRuntime(
                 .persistentHTTP,

@@ -22,13 +22,15 @@ struct DashboardPage: Page {
           Text { t("overviewIntro") }
             .margin(.zero).frame(maxWidth: 560)
             .font(.body, color: .muted, lineHeight: 28)
-            .font(.body, color: .muted, lineHeight: 28, on: .dark)
+            .font(color: .muted, on: .dark)
           Stack {
             DashboardLabel { Text { t("serverRenderedPages") }.margin(.zero) }
             DashboardLabel { Text { t("typedRoutes") }.margin(.zero) }
             DashboardLabel { Text { t("sharedMetadata") }.margin(.zero) }
-          }.flex(wrap: .wrap, gap: .lg)
-        }.grid(columns: 1, gap: .lg).padding(.lg)
+          }
+          .flex(wrap: .wrap, gap: .lg)
+        }
+        .grid(columns: 1, gap: .lg).padding(.lg)
 
         Stack {
           DashboardPanel {
@@ -36,22 +38,26 @@ struct DashboardPage: Page {
               DashboardTitle { Heading(.two) { t("notes") } }
               Text { t("notesIntro") }.margin(.zero)
               DashboardLabel { Text { t("openNotes") }.margin(.zero) }
-            }.grid(columns: 1, gap: .lg)
+            }
+            .grid(columns: 1, gap: .lg)
           }
           .font(.body, color: .foreground, decoration: TextDecoration.none)
-          .font(.body, color: .foreground, on: .dark)
+          .font(color: .foreground, on: .dark)
           DashboardPanel {
             Link(localizedPath("/conversations")) {
               DashboardTitle { Heading(.two) { t("conversations") } }
               Text { t("conversationsOverview") }.margin(.zero)
               DashboardLabel { Text { t("openConversations") }.margin(.zero) }
-            }.grid(columns: 1, gap: .lg)
+            }
+            .grid(columns: 1, gap: .lg)
           }
           .font(.body, color: .foreground, decoration: TextDecoration.none)
-          .font(.body, color: .foreground, on: .dark)
-        }.grid(columns: 1, gap: .lg).grid(columns: 2, gap: .lg, on: .md)
+          .font(color: .foreground, on: .dark)
+        }
+        .grid(columns: 1, gap: .lg).grid(columns: 2, gap: .lg, on: .md)
 
-      }.grid(columns: 1, gap: .xxl)
+      }
+      .grid(columns: 1, gap: .xxl)
       SiteFooter()
     }
   }

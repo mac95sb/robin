@@ -119,7 +119,8 @@ public struct ApplicationResponder: Sendable {
     to request: Request,
     context: RequestContext? = nil
   ) async -> Response {
-    let context = context ?? RequestContext(requestID: UUID().uuidString.lowercased())
+    let context = (context ?? RequestContext(requestID: UUID().uuidString.lowercased()))
+      .responding(to: request)
     return await ServiceContext.withValue(context.serviceContext) {
       await withSpan(
         "HTTP \(request.method.rawValue)", context: context.serviceContext, ofKind: .server

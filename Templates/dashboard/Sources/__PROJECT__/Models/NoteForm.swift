@@ -5,7 +5,10 @@ import RobinForms
 /// Validates the content submitted when creating or editing a note.
 struct NoteForm {
   @Field(
-    "content", label: "Note", required: true, maximumLength: 4_096,
+    "content",
+    label: "Note",
+    required: true,
+    maximumLength: 4_096,
     validate: { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Write a note." : nil }
   )
   var content = ""

@@ -9,7 +9,8 @@ import Testing
   try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
   defer { try? FileManager.default.removeItem(at: directory) }
   let storage = SQLiteDatabase.Storage.file(
-    path: directory.appendingPathComponent("db.sqlite").path)
+    path: directory.appendingPathComponent("db.sqlite").path
+  )
 
   let first = try await DashboardServices(storage: storage)
   try await NotesStore(first.storage).create("Persistent note", ownerID: "demo")
@@ -17,9 +18,11 @@ import Testing
 
   let second = try await DashboardServices(storage: storage)
   #expect(
-    try await NotesStore(second.storage).all(ownerID: "demo").contains {
-      $0.content == "Persistent note"
-    })
+    try await NotesStore(second.storage).all(ownerID: "demo")
+      .contains {
+        $0.content == "Persistent note"
+      }
+  )
   try await second.shutdown()
 }
 

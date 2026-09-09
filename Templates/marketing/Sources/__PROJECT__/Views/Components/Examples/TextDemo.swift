@@ -11,7 +11,7 @@ struct TextDemo: Component {
       Label(for: "demo-name") { "Your name" }.font(.emphasis)
       Input(name: "name", value: $name, id: "demo-name", accessibilityLabel: "Your name")
         .padding(.md).font(.body, color: .foreground)
-        .font(.body, color: .foreground, on: .dark)
+        .font(color: .foreground, on: .dark)
         .background(color: .surface).background(color: .surface, on: .dark)
         .border(color: .border, radius: .md).border(color: .border, radius: .md, on: .dark)
         .border(color: .accent, radius: .md, on: .hover || .focus)
@@ -21,7 +21,8 @@ struct TextDemo: Component {
         $name
         "!"
       }
-    }.grid(columns: 1, gap: .md)
+    }
+    .grid(columns: 1, gap: .md)
   }
   static let source = """
     import RobinHTML
@@ -37,7 +38,7 @@ struct TextDemo: Component {
           Label(for: "demo-name") { "Your name" }.font(.emphasis)
           Input(name: "name", value: $name, id: "demo-name", accessibilityLabel: "Your name")
             .padding(.md).font(.body, color: .foreground)
-            .font(.body, color: .foreground, on: .dark)
+            .font(color: .foreground, on: .dark)
             .background(color: .surface).background(color: .surface, on: .dark)
             .border(color: .border, radius: .md).border(color: .border, radius: .md, on: .dark)
             .border(color: .accent, radius: .md, on: .hover || .focus)

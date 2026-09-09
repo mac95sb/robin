@@ -14,42 +14,50 @@ struct CounterDemo: Component {
           .flex(justify: .center, align: .center)
           .frame(width: 44, height: 44).padding(.zero)
           .font(.label, color: .foreground)
-          .font(.label, color: .foreground, on: .dark)
+          .font(color: .foreground, on: .dark)
           .background(color: .surface).background(color: .surface, on: .dark)
           .border(color: .border, radius: .md).border(color: .border, radius: .md, on: .dark)
           .background(color: .cardHover, on: .hover || .focus)
           .background(color: .cardHover, on: .dark && (.hover || .focus))
         Input(
-          name: "count", value: $count, showsStepper: false, id: "demo-count",
+          name: "count",
+          value: $count,
+          showsStepper: false,
+          id: "demo-count",
           accessibilityLabel: "Count"
         )
-        .frame(width: 64, height: 44).padding(.zero).font(
-          .title, color: .foreground, align: .center
+        .frame(width: 64, height: 44).padding(.zero)
+        .font(
+          .title,
+          color: .foreground,
+          align: .center
         )
-        .font(.title, color: .foreground, on: .dark)
+        .font(color: .foreground, on: .dark)
         .background(color: .cardHover).background(color: .cardHover, on: .dark)
         .border(color: .border, width: 0, radius: .md)
         Button(accessibilityLabel: "Increase count", action: #action { count += 1 }) { "+" }
           .flex(justify: .center, align: .center)
           .frame(width: 44, height: 44).padding(.zero)
           .font(.label, color: .foreground)
-          .font(.label, color: .foreground, on: .dark)
+          .font(color: .foreground, on: .dark)
           .background(color: .surface).background(color: .surface, on: .dark)
           .border(color: .border, radius: .md).border(color: .border, radius: .md, on: .dark)
           .background(color: .cardHover, on: .hover || .focus)
           .background(color: .cardHover, on: .dark && (.hover || .focus))
-      }.flex(justify: .center, align: .center, gap: .sm)
+      }
+      .flex(justify: .center, align: .center, gap: .sm)
       Button(action: #action { count = 0 }) { "Reset counter" }.flex(align: .center, gap: .sm)
         .padding(.sm)
         .font(.label, color: .foreground, decoration: TextDecoration.none)
-        .font(.label, color: .foreground, on: .dark)
+        .font(color: .foreground, on: .dark)
         .background(color: .surface).background(color: .surface, on: .dark)
         .border(color: .border, width: 0, radius: .sm)
-        .font(.label, color: .accent, on: .pressed)
-        .font(.label, color: .accent, on: .dark && .pressed)
+        .font(color: .accent, on: .pressed)
+        .font(color: .accent, on: .dark && .pressed)
         .background(color: .cardHover, on: .hover || .focus)
         .background(color: .cardHover, on: .dark && (.hover || .focus))
-    }.flex(direction: .column, align: .center, gap: .md)
+    }
+    .flex(direction: .column, align: .center, gap: .md)
   }
   static let source = """
     import RobinHTML
@@ -68,7 +76,7 @@ struct CounterDemo: Component {
               .flex(justify: .center, align: .center)
               .frame(width: 44, height: 44).padding(.zero)
               .font(.label, color: .foreground)
-              .font(.label, color: .foreground, on: .dark)
+              .font(color: .foreground, on: .dark)
               .background(color: .surface).background(color: .surface, on: .dark)
               .border(color: .border, radius: .md).border(color: .border, radius: .md, on: .dark)
               .background(color: .cardHover, on: .hover || .focus)
@@ -80,14 +88,14 @@ struct CounterDemo: Component {
             .frame(width: 64, height: 44).padding(.zero).font(
               .title, color: .foreground, align: .center
             )
-            .font(.title, color: .foreground, on: .dark)
+            .font(color: .foreground, on: .dark)
             .background(color: .cardHover).background(color: .cardHover, on: .dark)
             .border(color: .border, width: 0, radius: .md)
             Button(accessibilityLabel: "Increase count", action: #action { count += 1 }) { "+" }
               .flex(justify: .center, align: .center)
               .frame(width: 44, height: 44).padding(.zero)
               .font(.label, color: .foreground)
-              .font(.label, color: .foreground, on: .dark)
+              .font(color: .foreground, on: .dark)
               .background(color: .surface).background(color: .surface, on: .dark)
               .border(color: .border, radius: .md).border(color: .border, radius: .md, on: .dark)
               .background(color: .cardHover, on: .hover || .focus)
@@ -96,11 +104,11 @@ struct CounterDemo: Component {
           Button(action: #action { count = 0 }) { "Reset counter" }.flex(align: .center, gap: .sm)
             .padding(.sm)
             .font(.label, color: .foreground, decoration: TextDecoration.none)
-            .font(.label, color: .foreground, on: .dark)
+            .font(color: .foreground, on: .dark)
             .background(color: .surface).background(color: .surface, on: .dark)
             .border(color: .border, width: 0, radius: .sm)
-            .font(.label, color: .accent, on: .pressed)
-            .font(.label, color: .accent, on: .dark && .pressed)
+            .font(color: .accent, on: .pressed)
+            .font(color: .accent, on: .dark && .pressed)
             .background(color: .cardHover, on: .hover || .focus)
             .background(color: .cardHover, on: .dark && (.hover || .focus))
         }.flex(direction: .column, align: .center, gap: .md)

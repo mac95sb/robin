@@ -8,4 +8,6 @@ public enum StateValueKind: String, Codable, Sendable {
   case number
   /// A Unicode string.
   case string
+  /// A JSON value persisted as a single local state value.
+  case json
 }

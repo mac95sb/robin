@@ -52,6 +52,17 @@ private func tokenDeclaration(
 
 @Suite("Deterministic CSS compilation")
 struct StyleCompilerTests {
+  @Test func tabsUseNativeCheckedCSS() throws {
+    let tabs = Tabs {
+      Tab("Swift") { Text { "Source" } }
+      Tab("HTML") { Text { "Markup" } }
+    }
+    let root = RobinHTML.RenderNode.fragment(tabs.body.nodes)
+    let result = try StyleCompiler.compile(root, theme: theme, mode: .production)
+
+    #expect(result.documentCSS.contains("input[type=radio]:checked+label+[data-robin-tab-panel]"))
+  }
+
   @Test func resolvesTokensDeduplicatesAndIsIndependentOfTraversalOrder() throws {
     let styles = [
       tokenDeclaration(PropertyKey.color, ColorToken.foreground.rawValue),

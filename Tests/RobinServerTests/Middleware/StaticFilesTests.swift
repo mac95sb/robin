@@ -6,6 +6,17 @@ import Testing
 
 @Suite("Static files")
 struct StaticFilesTests {
+  @Test func startsAStaticSiteListener() async throws {
+    let root = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let server = try await ServerRuntime.start(staticFilesAt: root, port: 0)
+    #expect(await server.localAddress?.port != nil)
+    try await server.shutdown()
+  }
+
   @Test func servesContainedFilesAndRejectsTraversal() async throws {
     let temporary = FileManager.default.temporaryDirectory
       .appendingPathComponent(UUID().uuidString, isDirectory: true)

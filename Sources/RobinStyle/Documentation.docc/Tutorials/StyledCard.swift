@@ -8,7 +8,7 @@ struct WelcomeCard: Component {
       Text { "Resize the window to change the padding." }
       Link("/about") { "About this site" }
         .font(.body, color: .accent)
-        .font(.body, color: .foreground, on: .hover)
+        .font(color: .foreground, on: .hover)
     }
     .grid(columns: 1, gap: .md)
     .padding(.sm)

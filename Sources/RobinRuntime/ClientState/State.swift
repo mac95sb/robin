@@ -25,7 +25,8 @@ public struct State<Value: StateValue>: Sendable {
     let value = wrappedValue
     return StateBinding(
       reference: StateReference(
-        token: storage.token, kind: Value.stateKind, initial: stateJSON(value)),
+        token: storage.token, kind: Value.stateKind, initial: stateJSON(value),
+        localKey: storage.localKey),
       initialValue: value)
   }
 
@@ -33,14 +34,23 @@ public struct State<Value: StateValue>: Sendable {
   /// - Parameter wrappedValue: A finite number, exact JavaScript integer, Boolean, or string.
   public init(wrappedValue: Value) {
     _ = stateJSON(wrappedValue)
-    storage = Storage(value: wrappedValue)
+    storage = Storage(value: wrappedValue, localKey: nil)
+  }
+
+  init(wrappedValue: Value, localKey: String?) {
+    _ = stateJSON(wrappedValue)
+    storage = Storage(value: wrappedValue, localKey: localKey)
   }
 
   // The lock protects the only mutable field; identity never changes.
   private final class Storage: @unchecked Sendable {
     let lock = NSLock()
     let token = UUID().uuidString
+    let localKey: String?
     var value: Value
-    init(value: Value) { self.value = value }
+    init(value: Value, localKey: String?) {
+      self.value = value
+      self.localKey = localKey
+    }
   }
 }

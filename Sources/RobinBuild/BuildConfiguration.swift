@@ -18,6 +18,8 @@ public struct BuildConfiguration: Sendable {
   public var remoteAssets: [RemoteAsset]
   /// Checksum-pinned external asset tools.
   public var assetToolchain: AssetToolchain
+  /// Whether declared asset transforms run during this build.
+  public var optimizesAssets: Bool
   /// An optional base URL used for generated asset references.
   public var cdnBaseURL: URL?
   /// Typed route candidates for declarative prefetching and prerendering.
@@ -43,6 +45,7 @@ public struct BuildConfiguration: Sendable {
   ///   - assets: Typed local assets to process.
   ///   - remoteAssets: Typed remote assets fetched during an asynchronous build.
   ///   - assetToolchain: Checksum-pinned external asset tools.
+  ///   - optimizesAssets: Whether declared asset transforms run.
   ///   - cdnBaseURL: An optional base URL for generated asset references.
   ///   - speculationRules: Typed route candidates for browser speculation.
   ///   - deploymentRoutes: Provider-neutral routes to encode.
@@ -58,6 +61,7 @@ public struct BuildConfiguration: Sendable {
     assets: [BuildAsset] = [],
     remoteAssets: [RemoteAsset] = [],
     assetToolchain: AssetToolchain = .init(),
+    optimizesAssets: Bool = true,
     cdnBaseURL: URL? = nil,
     speculationRules: [SpeculationRule] = [],
     deploymentRoutes: [DeploymentRoute] = [],
@@ -73,6 +77,7 @@ public struct BuildConfiguration: Sendable {
     self.assets = assets
     self.remoteAssets = remoteAssets
     self.assetToolchain = assetToolchain
+    self.optimizesAssets = optimizesAssets
     self.cdnBaseURL = cdnBaseURL
     self.speculationRules = speculationRules
     self.deploymentRoutes = deploymentRoutes

@@ -28,7 +28,11 @@ struct CommandLineParserTests {
 
   @Test func parsesEveryCommandAndMachineReadableDiagnostics() throws {
     #expect(try RobinCommandLine.parseAsRoot(["dev"]) is DevCommand)
-    #expect(try RobinCommandLine.parseAsRoot(["build"]) is BuildCommand)
+    let build = try #require(try RobinCommandLine.parseAsRoot(["build"]) as? BuildCommand)
+    #expect(!build.noOptim)
+    let unoptimizedBuild = try #require(
+      try RobinCommandLine.parseAsRoot(["build", "--no-optim"]) as? BuildCommand)
+    #expect(unoptimizedBuild.noOptim)
     #expect(try RobinCommandLine.parseAsRoot(["export"]) is ExportCommand)
     #expect(try RobinCommandLine.parseAsRoot(["serve"]) is ServeCommand)
     #expect(try RobinCommandLine.parseAsRoot(["worker"]) is WorkerCommand)

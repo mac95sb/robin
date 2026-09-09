@@ -1,5 +1,5 @@
 import Foundation
-import RobinHTML
+@_spi(Rendering) import RobinHTML
 
 /// Discovers public image and font resources packaged with an application target.
 enum BundledAssets {
@@ -15,9 +15,9 @@ enum BundledAssets {
     "woff2": "font/woff2",
   ]
 
-  static func discover<Application: App>(for application: Application) throws -> [BuildAsset] {
+  static func discover<Application: App>(for _: Application.Type) throws -> [BuildAsset] {
     var assets: [String: BuildAsset] = [:]
-    for bundle in [application.resourceBundle].compactMap({ $0 }) {
+    for bundle in [applicationResourceBundle(for: Application.self)].compactMap({ $0 }) {
       guard let resourceURL = bundle.resourceURL,
         let files = try? FileManager.default.contentsOfDirectory(
           at: resourceURL, includingPropertiesForKeys: [.isRegularFileKey])

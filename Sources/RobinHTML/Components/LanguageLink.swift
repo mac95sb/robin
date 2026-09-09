@@ -1,4 +1,4 @@
-/// A language link whose route is preserved by the site preferences browser asset.
+/// A link to a locale root.
 ///
 /// HTML reference: [MDN: a](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a).
 public struct LanguageLink: Component {
@@ -14,7 +14,7 @@ public struct LanguageLink: Component {
     self.content = content()
   }
 
-  /// The locale-root fallback link, enhanced to the current route by the preferences asset.
+  /// The locale-root link.
   public var body: ComponentContent {
     .node(
       .element(

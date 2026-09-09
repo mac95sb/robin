@@ -57,7 +57,9 @@ import Testing
     middleware: [
       .security(.init(allowedOrigins: Site.allowedOrigins)),
       .authSessions(services.sessions, store: services.authentication), site.pageServices,
-    ], transportCapabilities: .persistent)
+    ],
+    transportCapabilities: .persistent
+  )
   let headers: HTTPFields = [
     .cookie: "robin-session=\(token.value)", .origin: Site.origin.absoluteString,
     .contentType: "application/x-www-form-urlencoded", .referer: Site.origin.absoluteString + "/en",
@@ -65,28 +67,54 @@ import Testing
   let initial = await responder.respond(
     to: Request(
       .init(
-        method: .get, scheme: nil, authority: nil, path: "/en/conversations", headerFields: headers)
-    ))
+        method: .get,
+        scheme: nil,
+        authority: nil,
+        path: "/en/conversations",
+        headerFields: headers
+      )
+    )
+  )
   let initialHTML = String(decoding: initial.body.bufferedBytes ?? [], as: UTF8.self)
   #expect(initialHTML.contains("Choose your username"))
   #expect(!initialHTML.contains("id=\"chat-form\""))
   let denied = await responder.respond(
     to: Request(
       .init(
-        method: .get, scheme: nil, authority: nil, path: "/api/v1/chat", headerFields: headers)))
+        method: .get,
+        scheme: nil,
+        authority: nil,
+        path: "/api/v1/chat",
+        headerFields: headers
+      )
+    )
+  )
   #expect(denied.head.status == .forbidden)
 
   let saved = await responder.respond(
     to: Request(
       .init(
-        method: .post, scheme: nil, authority: nil, path: "/api/v1/username", headerFields: headers),
-      body: Array("username=Alice".utf8)))
+        method: .post,
+        scheme: nil,
+        authority: nil,
+        path: "/api/v1/username",
+        headerFields: headers
+      ),
+      body: Array("username=Alice".utf8)
+    )
+  )
   #expect(saved.head.status == .seeOther)
   let page = await responder.respond(
     to: Request(
       .init(
-        method: .get, scheme: nil, authority: nil, path: "/en/conversations", headerFields: headers)
-    ))
+        method: .get,
+        scheme: nil,
+        authority: nil,
+        path: "/en/conversations",
+        headerFields: headers
+      )
+    )
+  )
   let html = String(decoding: page.body.bufferedBytes ?? [], as: UTF8.self)
   #expect(html.contains("@alice: Earlier message"))
   let stored = try #require(try await messages.all().first)
@@ -98,18 +126,31 @@ import Testing
   let conflict = await responder.respond(
     to: Request(
       .init(
-        method: .post, scheme: nil, authority: nil, path: "/api/v1/username", headerFields: headers),
-      body: Array("username=BOB".utf8)))
+        method: .post,
+        scheme: nil,
+        authority: nil,
+        path: "/api/v1/username",
+        headerFields: headers
+      ),
+      body: Array("username=BOB".utf8)
+    )
+  )
   #expect(conflict.head.status == .conflict)
   #expect(try await services.usernames.all()[account.id] == "alice")
   let anonymous = await responder.respond(
     to: Request(
       .init(
-        method: .post, scheme: nil, authority: nil, path: "/api/v1/username",
+        method: .post,
+        scheme: nil,
+        authority: nil,
+        path: "/api/v1/username",
         headerFields: [
           .origin: Site.origin.absoluteString, .contentType: "application/x-www-form-urlencoded",
-        ]),
-      body: Array("username=someone".utf8)))
+        ]
+      ),
+      body: Array("username=someone".utf8)
+    )
+  )
   #expect(anonymous.head.status == .unauthorized)
   try await services.shutdown()
 }
@@ -123,10 +164,12 @@ import Testing
   let messages = services.messages
   let site = Site(services: services)
   let server = try await ServerRuntime.start(
-    site, port: 0,
+    site,
+    port: 0,
     middleware: [
       .authSessions(services.sessions, store: services.authentication), site.pageServices,
-    ])
+    ]
+  )
   let configuration = URLSessionConfiguration.ephemeral
   configuration.timeoutIntervalForRequest = 5
   configuration.timeoutIntervalForResource = 10
@@ -143,8 +186,11 @@ import Testing
       try await socket.send(.string("Hello"))
       let received = try await socket.receive()
       if case .string(let text) = received {
-        let payload = try JSONDecoder().decode(
-          WebSocketClientModule.Message.self, from: Data(text.utf8))
+        let payload = try JSONDecoder()
+          .decode(
+            WebSocketClientModule.Message.self,
+            from: Data(text.utf8)
+          )
         #expect(payload.text == "@\(name): Hello")
         let stored = try #require(try await messages.all().last)
         #expect(payload.title == stored.timestamp)

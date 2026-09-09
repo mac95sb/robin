@@ -14,7 +14,10 @@ public struct HTMLRenderer {
     styles: @escaping @Sendable ([StyleDeclaration]) -> String?
   ) throws -> String {
     if let diagnostic = validate(root).first { throw diagnostic }
-    return try serialize(root, styles: styles, stateIDs: stateIdentifiers(in: root), indentation: 0)
+    return try serialize(
+      root, styles: styles, stateIDs: stateIdentifiers(in: root), tabIDs: tabIdentifiers(in: root),
+      popoverIDs: popoverIdentifiers(in: root),
+      indentation: 0)
   }
   /// Validates and renders a resolved component tree without style declarations.
   ///
@@ -99,24 +102,35 @@ public struct HTMLRenderer {
   ) throws -> String {
     let diagnostics = validate(root)
     if let first = diagnostics.first { throw first }
-    return try serialize(root, styles: styleResolver, stateIDs: stateIdentifiers(in: root))
+    return try serialize(
+      root,
+      styles: styleResolver,
+      stateIDs: stateIdentifiers(in: root),
+      tabIDs: tabIdentifiers(in: root),
+      popoverIDs: popoverIdentifiers(in: root))
   }
 
   private static func serialize(
     _ node: RenderNode,
     styles: (@Sendable ([StyleDeclaration]) -> String?)?,
     stateIDs: [String: String],
+    tabIDs: [String: String],
+    popoverIDs: [String: String],
     indentation: Int? = nil
   ) throws -> String {
     switch node.renderingStorage {
     case .text(let text): escape(text)
     case .fragment(let children):
       try children.map {
-        try serialize($0, styles: styles, stateIDs: stateIDs, indentation: indentation)
+        try serialize(
+          $0, styles: styles, stateIDs: stateIDs, tabIDs: tabIDs, popoverIDs: popoverIDs,
+          indentation: indentation)
       }
       .joined(separator: indentation == nil ? "" : "\n")
     case .element(let element):
-      try serialize(element, styles: styles, stateIDs: stateIDs, indentation: indentation)
+      try serialize(
+        element, styles: styles, stateIDs: stateIDs, tabIDs: tabIDs, popoverIDs: popoverIDs,
+        indentation: indentation)
     }
   }
 
@@ -124,21 +138,25 @@ public struct HTMLRenderer {
     _ element: RenderElement,
     styles: (@Sendable ([StyleDeclaration]) -> String?)?,
     stateIDs: [String: String],
+    tabIDs: [String: String],
+    popoverIDs: [String: String],
     indentation: Int? = nil
   ) throws -> String {
-    var attributes: [(name: String, value: String?)] = try element.attributes.map {
-      ($0.name, try stateAttributeValue($0, identifiers: stateIDs) ?? $0.value)
+    var attributes: [(name: String, value: String?)] = try element.attributes.flatMap { attribute in
+      if let attributes = tabAttributeValues(attribute, identifiers: tabIDs) { return attributes }
+      if let attributes = popoverAttributeValues(attribute, identifiers: popoverIDs) {
+        return attributes
+      }
+      let value = try stateAttributeValue(attribute, identifiers: stateIDs) ?? attribute.value
+      return [
+        (attribute.name, value)
+      ]
     }
     if !element.styles.isEmpty {
       guard let className = styles?(element.styles) else {
         throw RenderDiagnostic.unresolvedStyleDeclarations(element: element.kind)
       }
       attributes.append(("class", className))
-    }
-    for attribute in element.attributes {
-      if case .popoverCommand(let command) = attribute {
-        attributes.append((name: "commandfor", value: command.target))
-      }
     }
     let serializedAttributes = attributes.sorted {
       ($0.name, $0.value ?? "") < ($1.name, $1.value ?? "")
@@ -156,16 +174,98 @@ public struct HTMLRenderer {
       )
     {
       let children = try element.children.map {
-        try serialize($0, styles: styles, stateIDs: stateIDs, indentation: indentation + 1)
+        try serialize(
+          $0, styles: styles, stateIDs: stateIDs, tabIDs: tabIDs, popoverIDs: popoverIDs,
+          indentation: indentation + 1)
       }.joined(separator: "\n")
       return
         "\(padding)<\(element.kind.rawValue)\(serializedAttributes)>\n\(children)\n\(padding)</\(element.kind.rawValue)>"
     }
     let children = try element.children.map {
-      try serialize($0, styles: styles, stateIDs: stateIDs)
+      try serialize(
+        $0, styles: styles, stateIDs: stateIDs, tabIDs: tabIDs, popoverIDs: popoverIDs)
     }.joined()
     return
       "\(padding)<\(element.kind.rawValue)\(serializedAttributes)>\(children)</\(element.kind.rawValue)>"
+  }
+
+  private static func tabIdentifiers(in root: RenderNode) -> [String: String] {
+    var identifiers: [String: String] = [:]
+    func walk(_ node: RenderNode) {
+      switch node.renderingStorage {
+      case .text: break
+      case .fragment(let children): children.forEach(walk)
+      case .element(let element):
+        for attribute in element.attributes {
+          switch attribute {
+          case .tabs(let token), .tabControl(let token, _), .tabLabel(let token, _):
+            if identifiers[token] == nil { identifiers[token] = "t\(identifiers.count)" }
+          default: break
+          }
+        }
+        element.children.forEach(walk)
+      }
+    }
+    walk(root)
+    return identifiers
+  }
+
+  private static func tabAttributeValues(
+    _ attribute: RenderElement.Attribute, identifiers: [String: String]
+  ) -> [(name: String, value: String?)]? {
+    switch attribute {
+    case .tabs:
+      return [("data-robin-tabs", nil)]
+    case .tabPanel:
+      return [("data-robin-tab-panel", nil)]
+    case .tabControl(let token, let index):
+      let identifier = "robin-tab-\(identifiers[token]!)-\(index)"
+      return [("id", identifier), ("name", "robin-tabs-\(identifiers[token]!)")]
+    case .tabLabel(let token, let index):
+      return [("for", "robin-tab-\(identifiers[token]!)-\(index)")]
+    default:
+      return nil
+    }
+  }
+
+  private static func popoverIdentifiers(in root: RenderNode) -> [String: String] {
+    var identifiers: [String: String] = [:]
+    func walk(_ node: RenderNode) {
+      switch node.renderingStorage {
+      case .text: break
+      case .fragment(let children): children.forEach(walk)
+      case .element(let element):
+        for attribute in element.attributes {
+          switch attribute {
+          case .popoverTrigger(let token), .popoverContent(let token),
+            .popoverDismiss(let token):
+            if identifiers[token] == nil { identifiers[token] = "p\(identifiers.count)" }
+          default: break
+          }
+        }
+        element.children.forEach(walk)
+      }
+    }
+    walk(root)
+    return identifiers
+  }
+
+  private static func popoverAttributeValues(
+    _ attribute: RenderElement.Attribute, identifiers: [String: String]
+  ) -> [(name: String, value: String?)]? {
+    switch attribute {
+    case .popoverTrigger(let token):
+      return [
+        ("command", "toggle-popover"), ("commandfor", "robin-popover-\(identifiers[token]!)"),
+      ]
+    case .popoverContent(let token):
+      return [("id", "robin-popover-\(identifiers[token]!)"), ("popover", "auto")]
+    case .popoverDismiss(let token):
+      return [
+        ("command", "hide-popover"), ("commandfor", "robin-popover-\(identifiers[token]!)"),
+      ]
+    default: return nil
+    }
   }
 }
 
@@ -183,6 +283,7 @@ extension RenderElement.Attribute {
     case .appearanceChoice: "data-robin-appearance-choice"
     case .accessibilityPressed: "aria-pressed"
     case .appearancePicker: "data-robin-appearance-picker"
+    case .appearanceState: "data-robin-appearance"
     case .languagePicker: "data-robin-language-picker"
     case .required: "required"
     case .minimumLength: "minlength"
@@ -213,6 +314,9 @@ extension RenderElement.Attribute {
     case .stateOnChange: "data-robin-change"
     case .stateOnInput: "data-robin-edit"
     case .stateVisible: "data-robin-visible"
+    case .tabs, .tabControl, .tabLabel, .tabPanel, .popoverTrigger, .popoverContent,
+      .popoverDismiss:
+      preconditionFailure("Generated attributes expand during rendering.")
     case .hidden: "hidden"
     case .disabled: "disabled"
     case .checked: "checked"
@@ -267,6 +371,10 @@ extension RenderElement.Attribute {
     case .stateText, .stateInput, .stateHidden, .stateVisible, .stateDisabled, .stateAction,
       .stateOnChange, .stateOnInput:
       nil
+    case .appearanceState: nil
+    case .tabs, .tabControl, .tabLabel, .tabPanel, .popoverTrigger, .popoverContent,
+      .popoverDismiss:
+      preconditionFailure("Generated attributes expand during rendering.")
     case .hidden, .disabled, .checked: nil
     case .anyStep: "any"
     case .syntaxLanguage(let value): value

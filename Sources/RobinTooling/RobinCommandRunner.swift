@@ -1,5 +1,7 @@
 import Foundation
+import RobinBuild
 import RobinCore
+import RobinServer
 
 package enum RobinCommandRunnerError: Error, Equatable, CustomStringConvertible, Sendable {
   case commandFailed(String, Int32)
@@ -32,23 +34,30 @@ package struct RobinCommandRunner {
     additionalDiagnostics: [ToolDiagnostic] = []
   ) throws -> [ToolDiagnostic] {
     switch command {
-    case .initialize(let name, let template, let templatesDirectory):
+    case .initialize(let name, let template, let siteURL, let templatesDirectory):
       _ = try ProjectScaffolder.create(
         name: name,
         template: template,
+        siteURL: siteURL,
         templatesDirectory: templatesDirectory,
         projectRoot: projectRoot
       )
       return []
     case .dev:
-      try execute("swift", ["run"], at: projectRoot)
+      try execute(
+        "mise", ["exec", "--", "swift", "run", "--scratch-path", ".build/mise"],
+        at: projectRoot)
       return []
-    case .build:
+    case .build(let optimizesAssets):
       let policy = try ToolPolicyLoader.load(at: projectRoot)
       let start = DispatchTime.now().uptimeNanoseconds
       try execute(
         "swift", ["run", "-c", "release"],
-        at: projectRoot, environment: ["ROBIN_BUILD": "1"])
+        at: projectRoot,
+        environment: [
+          "ROBIN_BUILD": "1",
+          "ROBIN_NO_OPTIM": optimizesAssets ? "0" : "1",
+        ])
       if let budget = policy?.buildBudgetMilliseconds {
         try validateBuildDuration(
           milliseconds: Int((DispatchTime.now().uptimeNanoseconds - start) / 1_000_000),
@@ -151,6 +160,27 @@ package struct RobinCommandRunner {
         budgetMilliseconds: budget
       )
     }
+  }
+
+  package static func serveStaticBuildIfPresent(
+    at projectRoot: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+  ) async throws {
+    let root = OutputLayout(projectRoot: projectRoot).path(for: .build)
+    let metadata = root.appendingPathComponent("deployment.json")
+    guard
+      let data = try? Data(contentsOf: metadata),
+      let deployment = try? JSONDecoder().decode(Deployment.self, from: data),
+      deployment.mode == "static"
+    else { return }
+    let runtime = try await ServerRuntime.start(staticFilesAt: root)
+    if let address = await runtime.localAddress {
+      print("Serving http://\(address.host):\(address.port) (press Ctrl-C to stop)")
+    }
+    try await runtime.run()
+  }
+
+  private struct Deployment: Decodable {
+    let mode: String
   }
 
   private static func execute(

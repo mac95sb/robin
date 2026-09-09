@@ -31,6 +31,7 @@ let package = Package(
         .product(name: "RobinRouting", package: "robin"),
         .product(name: "RobinServer", package: "robin"),
         .product(name: "RobinStyle", package: "robin"),
+        .product(name: "RobinTheme", package: "robin"),
       ],
       resources: [.process("Resources")],
       swiftSettings: swiftSettings

@@ -16,7 +16,10 @@ actor NotesStore {
   func all(ownerID: String, at now: Date = Date()) async throws -> [Note] {
     guard
       let data = try await storage.value(
-        forKey: ownerID, namespace: "dashboard.notes", at: now)
+        forKey: ownerID,
+        namespace: "dashboard.notes",
+        at: now
+      )
     else { return [Note(id: 1, content: "Build something useful with Robin.")] }
     return try JSONDecoder().decode([Note].self, from: data)
   }
@@ -44,8 +47,7 @@ actor NotesStore {
     }
   }
 
-  private func modify(ownerID: String, at now: Date, _ change: (inout [Note]) -> Void) async throws
-  {
+  private func modify(ownerID: String, at now: Date, _ change: (inout [Note]) -> Void) async throws {
     // ponytail: one encoded list suits a starter; use a Repository when note volume needs queries.
     while true {
       try Task.checkCancellation()
@@ -55,9 +57,12 @@ actor NotesStore {
         ?? [Note(id: 1, content: "Build something useful with Robin.")]
       change(&notes)
       if try await storage.put(
-        JSONEncoder().encode(notes), forKey: ownerID, namespace: "dashboard.notes", expiresAt: nil,
-        condition: previous.map { .ifEqual($0) } ?? .ifAbsent)
-      {
+        JSONEncoder().encode(notes),
+        forKey: ownerID,
+        namespace: "dashboard.notes",
+        expiresAt: nil,
+        condition: previous.map { .ifEqual($0) } ?? .ifAbsent
+      ) {
         return
       }
     }

@@ -132,6 +132,12 @@ public struct RenderElement: Equatable, Sendable {
     case popover
     /// A standard popover command and target.
     case popoverCommand(PopoverCommand)
+    /// A generated popover invoker scoped by the renderer.
+    case popoverTrigger(String)
+    /// Generated native popover content scoped by the renderer.
+    case popoverContent(String)
+    /// A generated command that dismisses its enclosing popover.
+    case popoverDismiss(String)
     /// A locale destination preserving the current page route.
     case languageLink(String)
     /// A stable element identifier.
@@ -152,6 +158,8 @@ public struct RenderElement: Equatable, Sendable {
     case accessibilityPressed(Bool)
     /// Binds a native dropdown to appearance preferences.
     case appearancePicker
+    /// Applies a persisted appearance preference from local state.
+    case appearanceState(StateReference)
     /// Binds a native dropdown to localized navigation.
     case languagePicker
     /// Requires a value before native form submission.
@@ -210,6 +218,14 @@ public struct RenderElement: Equatable, Sendable {
     case stateOnChange(StateAction)
     /// An action following each native input edit.
     case stateOnInput(StateAction)
+    /// A native tab group whose generated controls are scoped by the renderer.
+    case tabs(String)
+    /// A generated native tab control.
+    case tabControl(String, Int)
+    /// A generated label for a native tab control.
+    case tabLabel(String, Int)
+    /// A panel controlled by a native tab control.
+    case tabPanel
     /// Reactive visibility when the state is true.
     case stateVisible(StateReference)
     /// Initially hidden content.
@@ -322,6 +338,8 @@ public struct RenderElement: Equatable, Sendable {
       case number
       /// A Boolean checkbox.
       case checkbox
+      /// An exclusive native choice within a named group.
+      case radio
       /// A URL input.
       case url
       /// A telephone number input, serialized as the HTML `tel` type.

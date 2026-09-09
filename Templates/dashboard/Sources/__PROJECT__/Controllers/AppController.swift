@@ -5,6 +5,7 @@ import RobinHTML
 import RobinRouting
 import RobinServer
 import RobinStyle
+import RobinTheme
 
 /// Serves account, health, and authenticated note endpoints.
 struct AppController: Controller {
@@ -116,9 +117,10 @@ struct AppController: Controller {
     }
 
     private func notesPath(for request: Request) -> String {
-      let locale = request.header(.referer).flatMap {
-        URL(string: $0)?.path.split(separator: "/").first
-      }
+      let locale = request.header(.referer)
+        .flatMap {
+          URL(string: $0)?.path.split(separator: "/").first
+        }
       return locale == "fr" ? "/fr/notes" : "/en/notes"
     }
 
@@ -130,7 +132,9 @@ struct AppController: Controller {
         return try .json(["errors": form.validationErrors.map(\.message)], status: .badRequest)
       }
       return try .html(
-        metadata: .init(title: "Check your note"), theme: .starter, status: .badRequest
+        metadata: .init(title: "Check your note"),
+        theme: .robin,
+        status: .badRequest
       ) {
         DashboardPageLayout {
           Main {

@@ -87,12 +87,13 @@ public struct BuildPipeline {
     try validate(configuration.runtimes, artifacts: runtimeArtifacts, mode: mode)
 
     let explicitReferences = Set(configuration.assets.map(\.reference))
-    let resourceAssets = try BundledAssets.discover(for: application).filter {
+    let resourceAssets = try BundledAssets.discover(for: Application.self).filter {
       !explicitReferences.contains($0.reference)
     }
     let assets = try AssetProcessor.process(
       resourceAssets + configuration.assets,
       toolchain: configuration.assetToolchain,
+      optimizesAssets: configuration.optimizesAssets,
       cdnBaseURL: configuration.cdnBaseURL,
       layout: layout
     )
@@ -318,7 +319,7 @@ public struct BuildPipeline {
     let language = HTMLRenderer.escape(metadata.language ?? "en")
     let direction = LocalizationFormatter(locale: metadata.language ?? "en").direction.rawValue
     var head =
-      "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+      "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"generator\" content=\"Robin\">"
     if let title = metadata.composedTitle {
       head += "<title>\(HTMLRenderer.escape(title))</title>"
     }

@@ -1,6 +1,6 @@
 import Foundation
 import RobinCore
-import RobinHTML
+@_spi(Rendering) import RobinHTML
 
 /// Registers pages once for every supported locale.
 ///
@@ -91,7 +91,7 @@ extension LocalizedPages {
   /// application's SwiftPM resource bundle supplies the supported locales and the context used by
   /// ``t(_:)``.
   public static func automatic<Application: App>(_ application: Application) -> [any Page] {
-    guard let bundle = application.resourceBundle,
+    guard let bundle = applicationResourceBundle(for: Application.self),
       let catalog = LocalizationCatalog(xcstringsIn: bundle), !catalog.locales.isEmpty
     else {
       return application.pages.pages

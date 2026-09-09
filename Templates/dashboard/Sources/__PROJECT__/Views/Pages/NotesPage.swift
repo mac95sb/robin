@@ -23,12 +23,12 @@ struct NotesPage: Page {
           DashboardLabel { Text { "WORKSPACE / NOTES" }.margin(.zero) }
           Heading { t("notes") }
             .margin(.zero).font(.title, lineHeight: 38, letterSpacing: -1)
-            .font(.title, lineHeight: 38, letterSpacing: -1, on: .md)
           Text { t("notesIntro") }
             .margin(.zero).frame(maxWidth: 560)
             .font(.body, color: .muted, lineHeight: 28)
-            .font(.body, color: .muted, lineHeight: 28, on: .dark)
-        }.grid(columns: 1, gap: .sm)
+            .font(color: .muted, on: .dark)
+        }
+        .grid(columns: 1, gap: .sm)
 
         if !signedIn {
           AccountPanel()
@@ -38,24 +38,32 @@ struct NotesPage: Page {
               Stack {
                 Icon(.lockKeyhole, size: 16)
                 DashboardLabel { Text { t("privateCollection") }.margin(.zero) }
-              }.flex(align: .center, gap: .sm)
+              }
+              .flex(align: .center, gap: .sm)
               Stack {
                 DashboardLabel { Text { "\(notes.count) saved" }.margin(.zero) }
                 Form(action: "/api/v1/auth/logout") {
                   SecondaryButton { Button(.submit) { "Sign out" } }
                 }
-              }.flex(wrap: .wrap, align: .center, gap: .md)
-            }.flex(wrap: .wrap, justify: .spaceBetween, align: .center, gap: .md)
+              }
+              .flex(wrap: .wrap, align: .center, gap: .md)
+            }
+            .flex(wrap: .wrap, justify: .spaceBetween, align: .center, gap: .md)
             DashboardPanel {
               Section {
                 Stack {
                   Icon(.squarePen, size: 20)
                   Heading(.two) { t("captureIdea") }.margin(.zero).font(.emphasis)
-                }.flex(align: .center, gap: .sm)
+                }
+                .flex(align: .center, gap: .sm)
                 NoteEditor(
-                  form: NoteForm(), action: "/api/v1/notes", identifier: "content",
-                  button: t("addNote"))
-              }.grid(columns: 1, gap: .md)
+                  form: NoteForm(),
+                  action: "/api/v1/notes",
+                  identifier: "content",
+                  button: t("addNote")
+                )
+              }
+              .grid(columns: 1, gap: .md)
             }
             Stack {
               for note in notes {
@@ -70,18 +78,27 @@ struct NotesPage: Page {
                           }
                         }
                       }
-                    }.flex(justify: .spaceBetween, align: .center, gap: .sm)
+                    }
+                    .flex(justify: .spaceBetween, align: .center, gap: .sm)
                     NoteEditor(
-                      form: NoteForm(content: note.content), action: "/api/v1/notes/\(note.id)",
-                      identifier: "note-\(note.id)", button: t("saveNote"))
-                  }.grid(columns: 1, gap: .md)
-                }.frame(minWidth: 0)
+                      form: NoteForm(content: note.content),
+                      action: "/api/v1/notes/\(note.id)",
+                      identifier: "note-\(note.id)",
+                      button: t("saveNote")
+                    )
+                  }
+                  .grid(columns: 1, gap: .md)
+                }
+                .frame(minWidth: 0)
               }
-            }.grid(columns: 1, gap: .md).grid(columns: 2, gap: .md, on: .md)
-          }.grid(columns: 1, gap: .lg).frame(minWidth: 0)
+            }
+            .grid(columns: 1, gap: .md).grid(columns: 2, gap: .md, on: .md)
+          }
+          .grid(columns: 1, gap: .lg).frame(minWidth: 0)
         }
 
-      }.grid(columns: 1, gap: .lg)
+      }
+      .grid(columns: 1, gap: .lg)
       SiteFooter()
     }
   }

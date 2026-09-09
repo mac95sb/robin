@@ -70,4 +70,20 @@ struct StateBindingsTests {
     #expect(html.contains("step=\"any\""))
     #expect(html.contains("type=\"checkbox\""))
   }
+
+  @Test func localBindingsIncludeTheirPersistenceKey() throws {
+    @Local("example.appearance") var appearance = "system"
+    let html = try HTMLRenderer.render(Button(action: $appearance.set("dark")) { "Dark" })
+
+    #expect(html.contains("example.appearance"))
+  }
+
+  @Test func applicationOwnedLocalValuesExposeBindings() throws {
+    struct Preferences: Codable, Sendable { var appearance = "system" }
+    let preferences = Local("preferences", default: Preferences())
+    let html = try HTMLRenderer.render(
+      Button(action: preferences.binding.set(.init(appearance: "dark"))) { "Dark" })
+
+    #expect(html.contains("preferences"))
+  }
 }

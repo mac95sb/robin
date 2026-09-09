@@ -13,11 +13,11 @@ struct MenuItem: Component {
   var body: ComponentContent {
     content.flex(align: .center, gap: .sm).padding(.sm)
       .font(.label, color: .foreground, decoration: TextDecoration.none)
-      .font(.label, color: .foreground, on: .dark)
+      .font(color: .foreground, on: .dark)
       .background(color: .surface).background(color: .surface, on: .dark)
       .border(color: .border, width: 0, radius: .sm)
-      .font(.label, color: .accent, on: .pressed)
-      .font(.label, color: .accent, on: .dark && .pressed)
+      .font(color: .accent, on: .pressed)
+      .font(color: .accent, on: .dark && .pressed)
       .background(color: .background, on: .hover || .focus)
       .background(color: .background, on: .dark && (.hover || .focus))
   }

@@ -25,9 +25,13 @@ struct DashboardServices: Sendable {
     self.sessions = sessions
     self.passkeys = PasskeyService(
       configuration: try PasskeyConfiguration(
-        relyingPartyID: "localhost", relyingPartyName: "__PROJECT__",
-        origin: Site.origin),
-      store: authentication, sessions: sessions)
+        relyingPartyID: "localhost",
+        relyingPartyName: "__PROJECT__",
+        origin: Site.origin
+      ),
+      store: authentication,
+      sessions: sessions
+    )
   }
 
   func shutdown() async throws { try await database.shutdown() }

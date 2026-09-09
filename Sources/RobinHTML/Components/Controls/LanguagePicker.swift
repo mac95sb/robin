@@ -1,6 +1,5 @@
 /// A native dropdown that switches the leading locale segment of the current page URL.
 ///
-/// Include RobinBuild's `SitePreferencesClientModule` asset to activate the control.
 /// Every language must have the same localized page routes.
 ///
 /// HTML reference: [MDN: select](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/select).

@@ -20,8 +20,10 @@ struct CommandOutputTests {
   }
 
   @Test func creationAndExportDescribeActualWork() {
-    let created = RobinCommand.initialize(name: "MySite", template: .blog, templatesDirectory: nil)
-      .summary(diagnostics: [])
+    let created = RobinCommand.initialize(
+      name: "MySite", template: .blog, siteURL: nil, templatesDirectory: nil
+    )
+    .summary(diagnostics: [])
     #expect(created.takeaways.contains("cd MySite"))
     #expect(created.takeaways.contains("robin dev"))
     #expect(created.message.contains("blog"))

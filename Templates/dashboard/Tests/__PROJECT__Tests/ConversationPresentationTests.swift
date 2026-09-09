@@ -18,15 +18,22 @@ import Testing
       .authSessions(services.sessions, store: services.authentication),
       site.pageServices,
     ],
-    transportCapabilities: .persistent)
+    transportCapabilities: .persistent
+  )
 
   for signedIn in [false, true] {
     let headers: HTTPFields = signedIn ? [.cookie: "robin-session=\(token.value)"] : [:]
     let response = await responder.respond(
       to: Request(
         .init(
-          method: .get, scheme: nil, authority: nil, path: "/en/conversations",
-          headerFields: headers)))
+          method: .get,
+          scheme: nil,
+          authority: nil,
+          path: "/en/conversations",
+          headerFields: headers
+        )
+      )
+    )
     #expect(response.head.status == .ok)
     let html = String(decoding: response.body.bufferedBytes ?? [], as: UTF8.self)
     #expect(html.contains("/api/v1/auth/logout") == signedIn)

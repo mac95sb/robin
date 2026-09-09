@@ -22,6 +22,13 @@ struct ApplicationResponderTests {
     var body: ComponentContent { Text { greeting } }
   }
 
+  private struct QueryPage: Page {
+    let path = "/query"
+    @Query("name") private var name: String?
+
+    var body: ComponentContent { Text { name ?? "missing" } }
+  }
+
   private struct Input: Codable, Sendable, Equatable { let name: String }
   private struct Output: Codable, Sendable, Equatable {
     let id: Int
@@ -273,6 +280,20 @@ struct ApplicationResponderTests {
 
     #expect(
       String(decoding: try #require(response.body.bufferedBytes), as: UTF8.self).contains("loaded"))
+  }
+
+  @Test func queryValuesAreVisibleWhileRenderingPages() async throws {
+    struct TestApplication: App {
+      var pages: some Pages { QueryPage() }
+    }
+    let responder = try ApplicationResponder(TestApplication(), transportCapabilities: .persistent)
+
+    let response = await responder.respond(
+      to: Request(HTTPRequest(method: .get, scheme: nil, authority: nil, path: "/query?name=Robin"))
+    )
+
+    #expect(
+      String(decoding: try #require(response.body.bufferedBytes), as: UTF8.self).contains("Robin"))
   }
 
   @Test(arguments: [SecurityPolicy(), SecurityPolicy(contentSecurityPolicy: "default-src 'none'")])

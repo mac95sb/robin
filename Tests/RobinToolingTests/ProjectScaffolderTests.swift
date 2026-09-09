@@ -11,6 +11,7 @@ struct ProjectScaffolderTests {
     let destination = try ProjectScaffolder.create(
       name: "Example",
       template: template,
+      siteURL: template == .marketing ? "https://example.com" : nil,
       templatesDirectory: repositoryRoot.appendingPathComponent("Templates"),
       projectRoot: root
     )
@@ -19,6 +20,9 @@ struct ProjectScaffolderTests {
       FileManager.default.fileExists(atPath: destination.appendingPathComponent(".gitignore").path))
     #expect(
       FileManager.default.fileExists(atPath: destination.appendingPathComponent("AGENTS.md").path))
+    #expect(
+      FileManager.default.fileExists(
+        atPath: destination.appendingPathComponent(".swift-format").path))
     #expect(
       FileManager.default.fileExists(
         atPath: destination.appendingPathComponent(".github/workflows/documentation.yml").path))
@@ -31,6 +35,7 @@ struct ProjectScaffolderTests {
     #expect(!package.contains("__PROJECT__"))
     #expect(package.contains("https://github.com/mac95sb/robin.git"))
     #expect(package.contains("https://github.com/swiftlang/swift-docc-plugin.git"))
+    #expect(package.contains("RobinTheme"))
     #expect(!package.contains(#".package(name: "robin", path: "../..")"#))
     #expect(
       !FileManager.default.fileExists(atPath: destination.appendingPathComponent(".build").path))
@@ -44,6 +49,7 @@ struct ProjectScaffolderTests {
     #expect(app.contains(template == .apiService ? "struct API: App" : "struct Site: App"))
     #expect(app.contains("RobinApplication"))
     #expect(app.contains(".run("))
+    #expect(app.contains("Theme.robin"))
     #expect(
       !FileManager.default.fileExists(
         atPath: destination.appendingPathComponent("Sources/Example/RobinMain.swift").path
@@ -52,7 +58,6 @@ struct ProjectScaffolderTests {
       let sourceRoot = destination.appendingPathComponent("Sources/Example")
       for path in [
         "App.swift",
-        "Views/Components/Greeting.swift",
         "Controllers/MessageController.swift",
         "Models/Message.swift",
         "Views/Pages/HomePage.swift",
@@ -61,13 +66,14 @@ struct ProjectScaffolderTests {
           FileManager.default.fileExists(atPath: sourceRoot.appendingPathComponent(path).path))
       }
       #expect(!app.contains("LocalizedPages("))
-      #expect(!app.contains("theme"))
     } else if template == .marketing {
-      #expect(app.contains("SitePreferencesClientModule.asset()"))
+      let homePage = try String(
+        contentsOf: destination.appendingPathComponent(
+          "Sources/Example/Views/Pages/HomePage.swift"), encoding: .utf8)
+      #expect(homePage.contains("https://example.com/docs/"))
+      #expect(!homePage.contains("robin.maclong.dev"))
+      #expect(!app.contains("ClientModule"))
       #expect(app.contains("robin-logo.png"))
-      #expect(
-        app.contains("https://mac95sb.github.io/robin/reference/RobinCore/documentation/robincore/")
-      )
     } else if template == .apiService {
       #expect(!app.contains("metadata"))
       let controller = try String(
@@ -110,7 +116,7 @@ struct ProjectScaffolderTests {
         app.contains("ChatController(messages: services.messages, usernames: services.usernames)"))
       #expect(app.contains("ChatPage()"))
       #expect(app.contains("WebSocketClientModule("))
-      #expect(app.contains("FormSubmissionClientModule("))
+      #expect(!app.contains("FormSubmissionClientModule("))
       #expect(app.contains(".authSessions("))
       let controller = try String(
         contentsOf: destination.appendingPathComponent(
@@ -152,6 +158,20 @@ struct ProjectScaffolderTests {
         templatesDirectory: repositoryRoot.appendingPathComponent("Templates"),
         projectRoot: root
       )
+    }
+  }
+
+  @Test func marketingTemplateRequiresAValidPublicSiteURL() throws {
+    let root = temporaryDirectory()
+    #expect(throws: ProjectScaffolderError.missingMarketingSiteURL) {
+      try ProjectScaffolder.create(
+        name: "Marketing", template: .marketing,
+        templatesDirectory: repositoryRoot.appendingPathComponent("Templates"), projectRoot: root)
+    }
+    #expect(throws: ProjectScaffolderError.invalidSiteURL("ftp://example.com")) {
+      try ProjectScaffolder.create(
+        name: "InvalidMarketing", template: .marketing, siteURL: "ftp://example.com",
+        templatesDirectory: repositoryRoot.appendingPathComponent("Templates"), projectRoot: root)
     }
   }
 

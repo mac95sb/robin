@@ -42,7 +42,17 @@ func stateJSON<Value: StateValue>(_ value: Value) -> String {
         (-9_007_199_254_740_991...9_007_199_254_740_991).contains($0)
       } ?? false
   case .number: valid = (try? decoder.decode(Double.self, from: data))?.isFinite == true
+  case .json: valid = true
   }
   precondition(valid, "State requires a scalar matching its kind and numeric range.")
+  return String(decoding: data, as: UTF8.self)
+}
+
+func localJSON<Value: Codable & Sendable>(_ value: Value) -> String {
+  let encoder = JSONEncoder()
+  encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+  guard let data = try? encoder.encode(value) else {
+    preconditionFailure("Local state requires a JSON-encodable value.")
+  }
   return String(decoding: data, as: UTF8.self)
 }

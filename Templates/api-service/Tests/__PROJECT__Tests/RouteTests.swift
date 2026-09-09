@@ -17,7 +17,8 @@ private struct TestSite: App {
 @Test func healthRouteRespondsSuccessfully() async throws {
   let client = try RouteTestClient(TestSite())
   let response = await client.response(
-    to: Request(.init(method: .get, scheme: nil, authority: nil, path: "/api/system/health")))
+    to: Request(.init(method: .get, scheme: nil, authority: nil, path: "/api/system/health"))
+  )
   #expect(response.head.status == .ok)
 }
 
@@ -31,13 +32,21 @@ private struct TestSite: App {
         scheme: nil,
         authority: nil,
         path: "/api/v1/catalog/todos",
-        headerFields: [.contentType: "application/json"]),
-      body: Array(#"{"title":"Write tests"}"#.utf8)))
-  let todo = try JSONDecoder().decode(
-    Todo.self, from: Data(try #require(created.body.bufferedBytes)))
+        headerFields: [.contentType: "application/json"]
+      ),
+      body: Array(#"{"title":"Write tests"}"#.utf8)
+    )
+  )
+  let todo = try JSONDecoder()
+    .decode(
+      Todo.self,
+      from: Data(try #require(created.body.bufferedBytes))
+    )
   let response = await client.response(
     to: Request(
-      .init(method: .get, scheme: nil, authority: nil, path: "/api/v1/catalog/todos/\(todo.id)")))
+      .init(method: .get, scheme: nil, authority: nil, path: "/api/v1/catalog/todos/\(todo.id)")
+    )
+  )
   #expect(response.head.status == .ok)
 }
 
@@ -50,8 +59,11 @@ private struct TestSite: App {
         scheme: nil,
         authority: nil,
         path: "/api/v1/catalog/todos",
-        headerFields: [.contentType: "application/json"]),
-      body: Array(#"{"title":"Write tests"}"#.utf8)))
+        headerFields: [.contentType: "application/json"]
+      ),
+      body: Array(#"{"title":"Write tests"}"#.utf8)
+    )
+  )
   #expect(created.head.status == .ok)
 
   let rejected = await client.response(
@@ -61,8 +73,11 @@ private struct TestSite: App {
         scheme: nil,
         authority: nil,
         path: "/api/v1/catalog/todos",
-        headerFields: [.contentType: "application/json", .accept: "application/json"]),
-      body: Array(#"{"title":"  "}"#.utf8)))
+        headerFields: [.contentType: "application/json", .accept: "application/json"]
+      ),
+      body: Array(#"{"title":"  "}"#.utf8)
+    )
+  )
   #expect(rejected.head.status == .badRequest)
 
   let oversized = await client.response(
@@ -72,7 +87,10 @@ private struct TestSite: App {
         scheme: nil,
         authority: nil,
         path: "/api/v1/catalog/todos",
-        headerFields: [.contentType: "application/json"]),
-      body: Array(#"{"title":"\#(String(repeating: "a", count: 201))"}"#.utf8)))
+        headerFields: [.contentType: "application/json"]
+      ),
+      body: Array(#"{"title":"\#(String(repeating: "a", count: 201))"}"#.utf8)
+    )
+  )
   #expect(oversized.head.status == .badRequest)
 }

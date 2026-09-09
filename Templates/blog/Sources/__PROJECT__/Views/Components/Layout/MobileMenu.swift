@@ -5,16 +5,15 @@ import RobinStyle
 
 /// Provides the compact navigation menu for small screens.
 struct MobileMenu: Component {
-  private let menuAnchor = try! Anchor("mobile-menu")
-
   var body: ComponentContent {
-    MenuTrigger {
-      Button(accessibilityLabel: "Menu", command: .toggle("mobile-menu")) {
-        Icon(.menu, size: 18)
+    Popover {
+      MenuTrigger {
+        Button(accessibilityLabel: "Menu") {
+          Icon(.menu, size: 18)
+        }
       }
-    }.anchor(menuAnchor).hidden(on: .md)
-    MenuPopover {
-      Popover(id: "mobile-menu") {
+    } content: {
+      MenuPopover {
         Navigation {
           MenuItem { Link(localizedPath("/")) { "Journal" } }
           MenuItem { Link(localizedPath("/about")) { t("about") } }
@@ -22,11 +21,14 @@ struct MobileMenu: Component {
           Stack {
             MenuItem { LanguageLink(.init(code: "en", name: "EN")) { "EN" } }
             MenuItem { LanguageLink(.init(code: "fr", name: "FR")) { "FR" } }
-          }.flex(gap: .sm)
+          }
+          .flex(gap: .sm)
           SiteRule()
           MenuItem {
             AppearanceButton(
-              .system, accessibilityLabel: localizedPath("/") == "/fr" ? "Système" : "System"
+              .system,
+              preferences: Site.preferences.binding,
+              accessibilityLabel: localizedPath("/") == "/fr" ? "Système" : "System"
             ) {
               Icon(.monitor, size: 18)
               Text { localizedPath("/") == "/fr" ? "Système" : "System" }
@@ -34,7 +36,9 @@ struct MobileMenu: Component {
           }
           MenuItem {
             AppearanceButton(
-              .light, accessibilityLabel: localizedPath("/") == "/fr" ? "Clair" : "Light"
+              .light,
+              preferences: Site.preferences.binding,
+              accessibilityLabel: localizedPath("/") == "/fr" ? "Clair" : "Light"
             ) {
               Icon(.sun, size: 18)
               Text { localizedPath("/") == "/fr" ? "Clair" : "Light" }
@@ -42,14 +46,19 @@ struct MobileMenu: Component {
           }
           MenuItem {
             AppearanceButton(
-              .dark, accessibilityLabel: localizedPath("/") == "/fr" ? "Sombre" : "Dark"
+              .dark,
+              preferences: Site.preferences.binding,
+              accessibilityLabel: localizedPath("/") == "/fr" ? "Sombre" : "Dark"
             ) {
               Icon(.moon, size: 18)
               Text { localizedPath("/") == "/fr" ? "Sombre" : "Dark" }
             }
           }
-        }.grid(columns: 1, gap: .xs)
+        }
+        .grid(columns: 1, gap: .xs)
       }
-    }.frame(width: 240).position(at: menuAnchor).hidden(on: .md)
+      .frame(width: 240)
+    }
+    .hidden(on: .md)
   }
 }

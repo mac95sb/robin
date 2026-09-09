@@ -18,7 +18,7 @@ public struct RobinPage: Component {
     .flex(justify: .center)
     .padding(.lg).padding(.xxl, on: .md)
     .font(.body, color: .foreground, lineHeight: 26)
-    .font(.body, color: .foreground, lineHeight: 26, on: .dark)
+    .font(color: .foreground, on: .dark)
     .background(color: .background).background(color: .background, on: .dark)
   }
 }

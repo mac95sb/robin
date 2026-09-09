@@ -85,6 +85,7 @@ public struct Input: Component {
       case .boolean: .checkbox
       case .integer, .number: .number
       case .string: .text
+      case .json: preconditionFailure("Inputs require scalar state.")
       }
     self.init(
       kind, name: name, showsStepper: showsStepper,

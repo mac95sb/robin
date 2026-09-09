@@ -62,10 +62,6 @@ Build output is available in `.robin/build`; reusable content remains in `.robin
 
 ### Browser enhancements
 
-- ``SitePreferencesClientModule``
-- ``TabsClientModule``
-- ``FormSubmissionClientModule``
-- <doc:Enhance-Form-Submissions>
 
 ### Deployment routing
 

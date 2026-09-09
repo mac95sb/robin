@@ -6,7 +6,7 @@ pkl = "0.32.1"
 hk = "1.54.1"
 
 [tasks.dev]
-run = "swift run --scratch-path .build/mise"
+run = "mise exec -- swift run --scratch-path .build/mise robin dev"
 
 [tasks.build]
 run = "swift build --scratch-path .build/mise -c release"

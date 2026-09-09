@@ -36,6 +36,15 @@ public struct Request: Sendable {
     return String(target[start..<end])
   }
 
+  /// Returns the first value of a URL query parameter.
+  ///
+  /// - Parameter name: The query parameter name.
+  /// - Returns: The decoded value, or `nil` when the request has no matching parameter.
+  public func queryValue(named name: String) -> String? {
+    guard let query else { return nil }
+    return urlEncodedValue(in: query, named: name)
+  }
+
   /// Returns the first value for a header field.
   ///
   /// - Parameter name: The case-insensitive field name.
@@ -66,7 +75,11 @@ public struct Request: Sendable {
       let body = String(bytes: body, encoding: .utf8)
     else { return nil }
 
-    for field in body.split(separator: "&", omittingEmptySubsequences: false) {
+    return urlEncodedValue(in: body, named: name)
+  }
+
+  private func urlEncodedValue(in source: String, named name: String) -> String? {
+    for field in source.split(separator: "&", omittingEmptySubsequences: false) {
       let pair = field.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
       guard
         let key = String(pair[0]).replacingOccurrences(of: "+", with: " ")

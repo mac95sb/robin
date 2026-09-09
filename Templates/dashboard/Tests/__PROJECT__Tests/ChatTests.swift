@@ -25,7 +25,8 @@ import Testing
       .authSessions(services.sessions, store: services.authentication),
       site.pageServices,
     ],
-    transportCapabilities: .persistent)
+    transportCapabilities: .persistent
+  )
   let headers: HTTPFields = [
     .cookie: "robin-session=\(token.value)", .origin: Site.origin.absoluteString,
   ]
@@ -34,22 +35,40 @@ import Testing
   let history = await responder.respond(
     to: Request(
       .init(
-        method: .get, scheme: nil, authority: nil, path: "/api/v1/messages",
-        headerFields: headers)))
+        method: .get,
+        scheme: nil,
+        authority: nil,
+        path: "/api/v1/messages",
+        headerFields: headers
+      )
+    )
+  )
   #expect(history.head.status == .ok)
 
   let page = await responder.respond(
     to: Request(
       .init(
-        method: .get, scheme: nil, authority: nil, path: "/en/conversations", headerFields: headers)
-    ))
+        method: .get,
+        scheme: nil,
+        authority: nil,
+        path: "/en/conversations",
+        headerFields: headers
+      )
+    )
+  )
   #expect(String(decoding: page.body.bufferedBytes ?? [], as: UTF8.self).contains("Hello"))
 
   let socket = await responder.respond(
     to: Request(
       .init(
-        method: .get, scheme: nil, authority: nil, path: "/api/v1/chat",
-        headerFields: headers)))
+        method: .get,
+        scheme: nil,
+        authority: nil,
+        path: "/api/v1/chat",
+        headerFields: headers
+      )
+    )
+  )
   guard case .webSocket = socket.body else {
     let body = String(decoding: socket.body.bufferedBytes ?? [], as: UTF8.self)
     Issue.record("Expected a WebSocket session, received HTTP \(socket.head.status.code): \(body)")
@@ -62,8 +81,14 @@ import Testing
   let hostile = await responder.respond(
     to: Request(
       .init(
-        method: .get, scheme: nil, authority: nil, path: "/api/v1/chat",
-        headerFields: hostileHeaders)))
+        method: .get,
+        scheme: nil,
+        authority: nil,
+        path: "/api/v1/chat",
+        headerFields: hostileHeaders
+      )
+    )
+  )
   #expect(hostile.head.status == .forbidden)
   try await services.shutdown()
 }
@@ -77,7 +102,9 @@ import Testing
   #expect(try await messages.all().count == MessageStore.maximumMessages)
   await #expect(throws: MessageStoreError.messageTooLarge) {
     try await messages.append(
-      String(repeating: "a", count: MessageStore.maximumMessageBytes + 1), authorID: "demo")
+      String(repeating: "a", count: MessageStore.maximumMessageBytes + 1),
+      authorID: "demo"
+    )
   }
   try await services.shutdown()
 }

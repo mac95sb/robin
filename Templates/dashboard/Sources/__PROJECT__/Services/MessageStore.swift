@@ -19,7 +19,9 @@ actor MessageStore {
   func subscribe() -> (UUID, AsyncStream<ChatMessage>) {
     let id = UUID()
     let (stream, continuation) = AsyncStream.makeStream(
-      of: ChatMessage.self, bufferingPolicy: .bufferingOldest(32))
+      of: ChatMessage.self,
+      bufferingPolicy: .bufferingOldest(32)
+    )
     subscribers[id] = continuation
     return (id, stream)
   }
@@ -30,7 +32,8 @@ actor MessageStore {
     guard let data = try await storage.value(forKey: "history", namespace: "chat", at: now)
     else { return [] }
     return Array(
-      try JSONDecoder().decode([ChatMessage].self, from: data).suffix(Self.maximumMessages))
+      try JSONDecoder().decode([ChatMessage].self, from: data).suffix(Self.maximumMessages)
+    )
   }
 
   func append(_ text: String, authorID: String, at now: Date = Date()) async throws
@@ -50,9 +53,11 @@ actor MessageStore {
       messages.append(message)
       if try await storage.put(
         JSONEncoder().encode(Array(messages.suffix(Self.maximumMessages))),
-        forKey: "history", namespace: "chat", expiresAt: nil,
-        condition: previous.map { .ifEqual($0) } ?? .ifAbsent)
-      {
+        forKey: "history",
+        namespace: "chat",
+        expiresAt: nil,
+        condition: previous.map { .ifEqual($0) } ?? .ifAbsent
+      ) {
         for (id, subscriber) in subscribers {
           if case .dropped = subscriber.yield(message) { unsubscribe(id) }
         }

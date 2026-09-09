@@ -1,5 +1,6 @@
 import RobinHTML
 import RobinStyle
+import RobinTheme
 
 /// Styles supporting text and low-emphasis links.
 struct SiteLabel: Component {
@@ -11,7 +12,6 @@ struct SiteLabel: Component {
   }
 
   var body: ComponentContent {
-    content.font(.label, color: .muted, decoration: TextDecoration.none)
-      .font(.label, color: .muted, on: .dark)
+    RobinLabel { content }
   }
 }

@@ -4,50 +4,57 @@ import RobinStyle
 
 /// Renders the responsive marketing-site navigation.
 struct SiteHeader: Component {
-  private let menuAnchor = try! Anchor("marketing-menu")
-  private let appearanceAnchor = try! Anchor("marketing-appearance")
+  private let homeURL: String
+  private let documentationURL: String
+
+  init(homeURL: String, documentationURL: String) {
+    self.homeURL = homeURL
+    self.documentationURL = documentationURL
+  }
 
   var body: ComponentContent {
     Header {
-      Link(Site.homeURL) {
-        Image(source: "/robin-logo.png", alternateText: "").frame(width: 36, height: 36)
+      Link(homeURL) {
+        Image(source: "/robin-logo.png", alternateText: "Robin Logo").frame(width: 36, height: 36)
         Text { "Robin" }
-      }.flex(align: .center, gap: .zero)
-        .font(.emphasis, color: .foreground, decoration: TextDecoration.none)
-        .font(.emphasis, color: .foreground, on: .dark)
+      }
+      .flex(align: .center, gap: .zero)
+      .font(.emphasis, color: .foreground, decoration: TextDecoration.none)
+      .font(color: .foreground, on: .dark)
       Stack {
         Navigation {
-          MarketingLink { Link(Site.homeURL + "#features") { "Features" } }
-          MarketingLink { Link(Site.homeURL + "#examples") { "Examples" } }
-          MarketingLink { Link(Site.documentationURL) { "Docs" } }
-          MarketingLink { Link(Site.sourceURL) { "GitHub" } }
-        }.flex(align: .center, gap: .lg).hidden(on: .below(.md))
-        MarketingPicker {
-          Button(accessibilityLabel: "Appearance", command: .toggle("marketing-appearance")) {
+          NavigationLink(homeURL + "#features") { "Features" }
+          NavigationLink(homeURL + "#examples") { "Examples" }
+          NavigationLink(documentationURL) { "Docs" }
+        }
+        .flex(align: .center, gap: .lg).hidden(on: .below(.md))
+        Popover {
+          MenuTrigger(accessibilityLabel: "Appearance") {
             Icon(.sunMoon, size: 18)
           }
-        }.anchor(appearanceAnchor)
-        MarketingPopover {
-          Popover(id: "marketing-appearance") {
-            AppearanceControls()
+        } content: {
+          MenuPopover {
+            AppearanceMenu()
           }
-        }.position(at: appearanceAnchor)
-        MarketingPicker {
-          Button(accessibilityLabel: "Menu", command: .toggle("marketing-menu")) {
+        }
+        Popover {
+          MenuTrigger(accessibilityLabel: "Menu") {
             Icon(.menu, size: 18)
           }
-        }.anchor(menuAnchor).hidden(on: .md)
-        MarketingPopover {
-          Popover(id: "marketing-menu") {
+        } content: {
+          MenuPopover {
             Navigation {
-              MarketingMenuItem { Link(Site.homeURL + "#features") { "Features" } }
-              MarketingMenuItem { Link(Site.homeURL + "#examples") { "Examples" } }
-              MarketingMenuItem { Link(Site.documentationURL) { "Docs" } }
-              MarketingMenuItem { Link(Site.sourceURL) { "GitHub" } }
-            }.grid(columns: 1, gap: .sm)
+              MenuLink(homeURL + "#features") { "Features" }
+              MenuLink(homeURL + "#examples") { "Examples" }
+              MenuLink(documentationURL) { "Docs" }
+            }
+            .grid(columns: 1, gap: .sm)
           }
-        }.position(at: menuAnchor).hidden(on: .md)
-      }.flex(align: .center, gap: .sm).flex(align: .center, gap: .md, on: .md)
-    }.flex(justify: .spaceBetween, align: .center, gap: .md)
+        }
+        .hidden(on: .md)
+      }
+      .flex(align: .center, gap: .sm).flex(align: .center, gap: .md, on: .md)
+    }
+    .flex(justify: .spaceBetween, align: .center, gap: .md)
   }
 }

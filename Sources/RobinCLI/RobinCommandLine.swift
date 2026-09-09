@@ -51,6 +51,9 @@ struct RobinCommandLine: AsyncParsableCommand {
       } else {
         diagnostics = try RobinCommandRunner.run(
           command, additionalDiagnostics: additionalDiagnostics)
+        if command == .dev {
+          try await RobinCommandRunner.serveStaticBuildIfPresent()
+        }
       }
     } catch {
       let failure = ToolDiagnostic(
@@ -129,6 +132,8 @@ struct InitCommand: AsyncParsableCommand {
   @Argument(help: "The project name. Omit for guided setup in a terminal.") var projectName: String?
   @Option(name: .shortAndLong, help: "The project template.")
   var template = ProjectTemplate.dashboard
+  @Option(name: .customLong("site-url"), help: "The public URL for a marketing site.")
+  var siteURL: String?
   @Option(name: .customLong("templates"), help: "A custom templates directory.")
   var templatesDirectory: String?
 
@@ -149,6 +154,7 @@ struct InitCommand: AsyncParsableCommand {
       .initialize(
         name: projectName,
         template: template,
+        siteURL: siteURL,
         templatesDirectory: templatesDirectory.map { URL(fileURLWithPath: $0) }
       ))
   }
@@ -164,7 +170,12 @@ struct DevCommand: AsyncParsableCommand {
 struct BuildCommand: AsyncParsableCommand {
   static let configuration = CommandConfiguration(
     commandName: "build", abstract: "Build production output in .robin/build.")
-  mutating func run() async throws { try await RobinCommandLine.run(.build) }
+  @Flag(name: .customLong("no-optim"), help: "Skip asset transforms and CSS minification.")
+  var noOptim = false
+
+  mutating func run() async throws {
+    try await RobinCommandLine.run(.build(optimizesAssets: !noOptim))
+  }
 }
 
 struct ExportCommand: AsyncParsableCommand {

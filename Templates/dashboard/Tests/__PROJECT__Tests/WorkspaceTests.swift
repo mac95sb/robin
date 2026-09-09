@@ -13,7 +13,8 @@ import Testing
     middleware: [
       .authSessions(services.sessions, store: services.authentication), site.pageServices,
     ],
-    transportCapabilities: .persistent)
+    transportCapabilities: .persistent
+  )
   let notes = NotesStore(services.storage)
   try await notes.create("Private launch checklist", ownerID: "alice")
   _ = try await services.messages.append("Hello workspace", authorID: "alice")
@@ -30,7 +31,9 @@ import Testing
         let path = "/\(locale)" + page
         let response = await responder.respond(
           to: Request(
-            .init(method: .get, scheme: nil, authority: nil, path: path, headerFields: headers)))
+            .init(method: .get, scheme: nil, authority: nil, path: path, headerFields: headers)
+          )
+        )
         #expect(response.head.status == .ok)
         let html = String(decoding: response.body.bufferedBytes ?? [], as: UTF8.self)
         #expect(!html.contains("id=\"login\""))
@@ -43,12 +46,19 @@ import Testing
     let saved = await responder.respond(
       to: Request(
         .init(
-          method: .post, scheme: nil, authority: nil, path: "/api/v1/username",
+          method: .post,
+          scheme: nil,
+          authority: nil,
+          path: "/api/v1/username",
           headerFields: [
             .cookie: "robin-session=\(token.value)",
             .contentType: "application/x-www-form-urlencoded",
             .referer: "http://localhost/fr/conversations",
-          ]), body: Array("username=\(name)".utf8)))
+          ]
+        ),
+        body: Array("username=\(name)".utf8)
+      )
+    )
     #expect(saved.head.headerFields[.location] == "/fr/conversations")
   }
   try await services.shutdown()

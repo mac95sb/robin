@@ -20,24 +20,10 @@ extension Middleware {
         let bytes = response.body.bufferedBytes,
         !scripts.isEmpty
       else { return response }
-      let preferences = scripts.filter {
-        if case .robinDirectCapability(.browserAPI, "SitePreferencesClientModule") = $0.scriptOrigin
-        {
-          return true
-        }
-        return false
-      }
-      let tags = scripts.filter { asset in !preferences.contains { $0.reference == asset.reference }
-      }.map {
+      let tags = scripts.map {
         "<script type=\"module\" src=\"\(HTMLRenderer.escape($0.reference))\"></script>"
       }.joined()
       var html = String(decoding: bytes, as: UTF8.self)
-      if let head = html.range(of: "<head>") {
-        let early = preferences.map {
-          "<script src=\"\(HTMLRenderer.escape($0.reference))\"></script>"
-        }.joined()
-        html.insert(contentsOf: early, at: head.upperBound)
-      }
       if let closingBody = html.range(of: "</body>", options: .backwards) {
         html.insert(contentsOf: tags, at: closingBody.lowerBound)
       } else {

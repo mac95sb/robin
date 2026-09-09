@@ -1,5 +1,6 @@
 import RobinHTML
 import RobinStyle
+import RobinTheme
 
 /// Styles section and page headings.
 struct PageTitle: Component {
@@ -11,6 +12,6 @@ struct PageTitle: Component {
   }
 
   var body: ComponentContent {
-    content.margin(.zero).font(.title, lineHeight: 36, letterSpacing: -1)
+    RobinTitle { content }
   }
 }

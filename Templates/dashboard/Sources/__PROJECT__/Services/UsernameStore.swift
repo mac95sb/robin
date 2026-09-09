@@ -37,9 +37,12 @@ struct UsernameStore: Sendable {
       else { throw UsernameError.taken }
       names[accountID] = username
       if try await storage.put(
-        JSONEncoder().encode(names), forKey: "usernames", namespace: "chat", expiresAt: nil,
-        condition: previous.map { .ifEqual($0) } ?? .ifAbsent)
-      {
+        JSONEncoder().encode(names),
+        forKey: "usernames",
+        namespace: "chat",
+        expiresAt: nil,
+        condition: previous.map { .ifEqual($0) } ?? .ifAbsent
+      ) {
         return
       }
     }

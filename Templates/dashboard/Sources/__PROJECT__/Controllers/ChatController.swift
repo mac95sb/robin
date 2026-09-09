@@ -65,7 +65,9 @@ struct ChatController: Controller {
                 for await message in outgoing {
                   let author = try await usernames.all()[message.authorID] ?? "Member"
                   let payload = WebSocketClientModule.Message(
-                    text: "@\(author): \(message.text)", title: message.timestamp)
+                    text: "@\(author): \(message.text)",
+                    title: message.timestamp
+                  )
                   let data = try JSONEncoder().encode(payload)
                   try await connection.send(.text(String(decoding: data, as: UTF8.self)))
                 }
@@ -80,7 +82,8 @@ struct ChatController: Controller {
             try? await connection.close()
             throw error
           }
-        })
+        }
+      )
     }
   }
 }

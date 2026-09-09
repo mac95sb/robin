@@ -31,7 +31,8 @@ public struct Button: Component {
   ///   - id: An optional document-wide element identifier.
   ///   - accessibilityLabel: An optional accessible name emitted as `aria-label`.
   ///   - action: An optional browser-local state operation. Use with the default button kind.
-  ///   - command: An optional standard command for a native popover. May accompany a state action.
+  ///   - command: An optional command that dismisses the enclosing ``Popover``. May accompany a
+  ///     state action.
   ///   - content: A trailing view builder that creates the button's visible content.
   public init(
     _ kind: Kind = .button,

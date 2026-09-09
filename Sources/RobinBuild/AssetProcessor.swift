@@ -17,6 +17,7 @@ struct AssetProcessor {
   static func process(
     _ assets: [BuildAsset],
     toolchain: AssetToolchain,
+    optimizesAssets: Bool,
     cdnBaseURL: URL?,
     layout: OutputLayout
   ) throws -> ProcessedAssets {
@@ -24,11 +25,12 @@ struct AssetProcessor {
     var references: [String: ProcessedAssets.Reference] = [:]
     var headElements: [String] = []
     for asset in assets.sorted(by: { $0.path < $1.path }) {
+      let transforms = optimizesAssets ? asset.transforms : []
       var bytes = asset.bytes
-      for transform in asset.transforms {
+      for transform in transforms {
         bytes = try apply(transform, to: bytes, asset: asset, toolchain: toolchain, layout: layout)
       }
-      let final = finalIdentity(for: asset)
+      let final = finalIdentity(for: asset, transforms: transforms)
       let outputPath = fingerprintedPath(final.path, bytes: bytes)
       let integrity = ContentDigest.sha384Integrity(bytes)
       let imageMetadata = ImageMetadata(bytes: bytes)
@@ -43,7 +45,7 @@ struct AssetProcessor {
         bytes: bytes,
         mediaType: final.mediaType,
         integrity: integrity,
-        transforms: asset.transforms.map { recordedIdentifier($0, toolchain: toolchain) },
+        transforms: transforms.map { recordedIdentifier($0, toolchain: toolchain) },
         scriptOrigin: asset.scriptOrigin,
         imageMetadata: imageMetadata
       )
@@ -62,9 +64,7 @@ struct AssetProcessor {
       else { throw BuildError.duplicateArtifactPath(asset.reference) }
       if asset.scriptOrigin.map({ origin in
         switch origin {
-        case .robinDirectCapability(.webAuthn, _),
-          .robinDirectCapability(.navigation, "FormSubmissionClientModule"),
-          .robinDirectCapability(.navigation, "TabsClientModule"):
+        case .robinDirectCapability(.webAuthn, _):
           true
         default: false
         }
@@ -72,14 +72,6 @@ struct AssetProcessor {
         let crossorigin = cdnBaseURL == nil ? "" : " crossorigin=\"anonymous\""
         headElements.append(
           "<script type=\"module\" src=\"\(HTMLRenderer.escape(browserURL))\" integrity=\"\(integrity)\"\(crossorigin)></script>"
-        )
-      }
-      if case .robinDirectCapability(.browserAPI, "SitePreferencesClientModule") = asset
-        .scriptOrigin
-      {
-        let crossorigin = cdnBaseURL == nil ? "" : " crossorigin=\"anonymous\""
-        headElements.append(
-          "<script src=\"\(HTMLRenderer.escape(browserURL))\" integrity=\"\(integrity)\"\(crossorigin)></script>"
         )
       }
       for hint in asset.hints {
@@ -126,10 +118,12 @@ struct AssetProcessor {
     }
   }
 
-  private static func finalIdentity(for asset: BuildAsset) -> (path: String, mediaType: String) {
+  private static func finalIdentity(for asset: BuildAsset, transforms: [AssetTransform]) -> (
+    path: String, mediaType: String
+  ) {
     var path = asset.path
     var mediaType = asset.mediaType
-    for transform in asset.transforms {
+    for transform in transforms {
       switch transform {
       case .resizeImage(_, let format):
         path = replacingExtension(of: path, with: format.rawValue)

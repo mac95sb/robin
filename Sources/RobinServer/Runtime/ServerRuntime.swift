@@ -84,6 +84,58 @@ public actor ServerRuntime {
       middleware: [.deadline] + middleware,
       transportCapabilities: .persistent
     )
+    return try await start(
+      responder: responder,
+      host: host,
+      port: port,
+      maximumBodyBytes: maximumBodyBytes,
+      maximumHeaderBytes: maximumHeaderBytes,
+      maximumHeaderCount: maximumHeaderCount,
+      requestTimeout: requestTimeout,
+      clientAddressResolver: clientAddressResolver,
+      tls: tls
+    )
+  }
+
+  /// Starts an HTTP listener that serves a generated static site.
+  ///
+  /// - Parameters:
+  ///   - root: The generated site directory.
+  ///   - host: The IP address or hostname to bind.
+  ///   - port: The TCP port to bind.
+  /// - Returns: The bound runtime.
+  public static func start(staticFilesAt root: URL, host: String = "127.0.0.1", port: Int = 8080)
+    async throws -> ServerRuntime
+  {
+    let responder = try ApplicationResponder(
+      routes: [],
+      middleware: [.staticFiles(root: root)],
+      transportCapabilities: .persistent
+    )
+    return try await start(
+      responder: responder,
+      host: host,
+      port: port,
+      maximumBodyBytes: 1_048_576,
+      maximumHeaderBytes: 32_768,
+      maximumHeaderCount: 100,
+      requestTimeout: .seconds(30),
+      clientAddressResolver: { _, peer in peer },
+      tls: nil
+    )
+  }
+
+  private static func start(
+    responder: ApplicationResponder,
+    host: String,
+    port: Int,
+    maximumBodyBytes: Int,
+    maximumHeaderBytes: Int,
+    maximumHeaderCount: Int,
+    requestTimeout: Duration,
+    clientAddressResolver: @escaping ClientAddressResolver,
+    tls: ServerTLSConfiguration?
+  ) async throws -> ServerRuntime {
     let sslContext = try tls?.makeContext()
     let group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
     var quiescingHelper: ServerQuiescingHelper? = ServerQuiescingHelper(group: group)

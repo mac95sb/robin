@@ -17,12 +17,6 @@ public protocol App: Sendable {
   /// The application's design theme.
   var theme: any ApplicationTheme { get }
 
-  /// The SwiftPM resource bundle containing the application's content and public assets.
-  ///
-  /// Applications with a `Resources` directory return `.module`. Robin uses the bundle to
-  /// discover public image assets and, when present, `Localizable.xcstrings`.
-  var resourceBundle: Bundle? { get }
-
   /// The client-side navigation strategy for a Static Site application.
   ///
   /// The default, ``ClientNavigation/automatic``, ships no client navigation runtime.
@@ -41,8 +35,22 @@ extension App {
   public var clientNavigation: ClientNavigation { .automatic }
   /// The default unconfigured application theme.
   public var theme: any ApplicationTheme { DefaultApplicationTheme() }
-  /// Applications without bundled resources do not need resource configuration.
-  public var resourceBundle: Bundle? { nil }
+}
+
+@_spi(Rendering)
+public func applicationResourceBundle<Application: App>(for _: Application.Type) -> Bundle? {
+  guard let executableURL = Bundle.main.executableURL else { return nil }
+  let name = executableURL.lastPathComponent
+  let directory = executableURL.deletingLastPathComponent()
+  let suffixes = ["_\(name).bundle", "_\(name).resources"]
+  let candidates = try? FileManager.default.contentsOfDirectory(
+    at: directory, includingPropertiesForKeys: [.isDirectoryKey])
+  guard
+    let bundleURL = candidates?.first(where: { candidate in
+      candidate.hasDirectoryPath && suffixes.contains { candidate.lastPathComponent.hasSuffix($0) }
+    })
+  else { return nil }
+  return Bundle(url: bundleURL)
 }
 
 extension App where PageRegistration == EmptyPages {

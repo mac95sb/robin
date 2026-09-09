@@ -55,7 +55,7 @@ extension RobinCommand {
       )
     case .doctor:
       return (.note, "Environment checks passed: 0 errors, 0 warnings.", [])
-    case .initialize(let name, let template, _):
+    case .initialize(let name, let template, _, _):
       let path = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         .appendingPathComponent(name).path
       return (

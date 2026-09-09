@@ -240,7 +240,7 @@ let package = Package(
     ),
     .target(
       name: "RobinTooling",
-      dependencies: ["RobinBuild", "RobinCore"],
+      dependencies: ["RobinBuild", "RobinCore", "RobinServer"],
       swiftSettings: lowLevelFeatures
     ),
     .target(

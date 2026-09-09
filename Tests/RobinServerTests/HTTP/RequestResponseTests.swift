@@ -42,4 +42,13 @@ struct RequestResponseTests {
     #expect(response.head.status == .seeOther)
     #expect(response.head.headerFields[.location] == "/")
   }
+
+  @Test func decodesURLQueryValues() {
+    let request = Request(
+      HTTPRequest(method: .get, scheme: nil, authority: nil, path: "/?name=Robin+Swift")
+    )
+
+    #expect(request.queryValue(named: "name") == "Robin Swift")
+    #expect(request.queryValue(named: "missing") == nil)
+  }
 }

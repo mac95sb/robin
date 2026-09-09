@@ -23,8 +23,9 @@ struct HomePage: Page {
           Text { t("journalIntro") }
             .margin(.zero).frame(maxWidth: 560)
             .font(.body, color: .muted, lineHeight: 28)
-            .font(.body, color: .muted, lineHeight: 28, on: .dark)
-        }.grid(columns: 1, gap: .lg).padding(.lg)
+            .font(color: .muted, on: .dark)
+        }
+        .grid(columns: 1, gap: .lg).padding(.lg)
 
         SiteRule()
 
@@ -33,20 +34,23 @@ struct HomePage: Page {
             Stack {
               SiteLabel { Text { t("featuredPost") }.margin(.zero) }
               SiteLabel { Text { Post.publicationDate }.margin(.zero) }
-            }.flex(wrap: .wrap, justify: .spaceBetween, gap: .md)
+            }
+            .flex(wrap: .wrap, justify: .spaceBetween, gap: .md)
             PageTitle { Heading(.two) { Post.current.frontMatter.title ?? "" } }
             Text { Post.current.frontMatter.summary ?? "" }
               .margin(.zero).frame(maxWidth: 640)
             SiteLabel { Text { t("readPost") } }
-          }.grid(columns: 1, gap: .lg)
+          }
+          .grid(columns: 1, gap: .lg)
         }
         .padding(.lg)
         .border(color: .border, width: 0, radius: .xl)
         .font(.body, color: .foreground, decoration: TextDecoration.none)
-        .font(.body, color: .foreground, on: .dark)
+        .font(color: .foreground, on: .dark)
         .background(color: .cardHover, on: .hover || .focus)
         .background(color: .cardHover, on: .dark && (.hover || .focus))
-      }.grid(columns: 1, gap: .xxl)
+      }
+      .grid(columns: 1, gap: .xxl)
       SiteFooter()
     }
   }

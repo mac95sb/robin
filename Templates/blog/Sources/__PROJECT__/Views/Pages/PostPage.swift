@@ -24,12 +24,14 @@ struct PostPage: Page {
             .margin(.zero).font(.title, lineHeight: 38, letterSpacing: -1)
           Text { Post.current.frontMatter.summary ?? "" }
             .margin(.zero).font(.body, color: .muted, lineHeight: 30)
-            .font(.body, color: .muted, lineHeight: 30, on: .dark)
+            .font(color: .muted, on: .dark)
           SiteRule()
           Post.current.margin(.zero)
-        }.grid(columns: 1, gap: .lg).font(.body, lineHeight: 30)
-          .frame(maxWidth: 800).flexItem(grow: 1)
-      }.flex(justify: .center)
+        }
+        .grid(columns: 1, gap: .lg).font(.body, lineHeight: 30)
+        .frame(maxWidth: 800).flexItem(grow: 1)
+      }
+      .flex(justify: .center)
       SiteFooter()
     }
   }

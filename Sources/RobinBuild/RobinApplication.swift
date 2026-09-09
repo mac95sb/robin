@@ -13,7 +13,13 @@ extension RobinApplication {
     throws
   where Application.RouteRegistration == EmptyRoutes {
     let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    let optimizesAssets = ProcessInfo.processInfo.environment["ROBIN_NO_OPTIM"] != "1"
     _ = try BuildPipeline.build(
-      application, configuration: .init(assets: assets), in: OutputLayout(projectRoot: root))
+      application,
+      configuration: .init(
+        cssOutputMode: optimizesAssets ? .production : .development,
+        assets: assets,
+        optimizesAssets: optimizesAssets),
+      in: OutputLayout(projectRoot: root))
   }
 }

@@ -38,6 +38,9 @@ still follow the standard command-line usage-error format.
 Run `robin doctor` to check tools and dependency resolution, and `robin test` to run Swift tests.
 Lint success does not imply that behavior tests passed. Run `robin init` without arguments in an
 interactive terminal for guided project creation, or provide a name and `--template` in scripts.
+The marketing template also requires `--site-url https://example.com`; Robin writes that canonical
+URL into generated layout links and static asset URLs. For a GitHub Pages project,
+use its complete project URL, including the repository path.
 
 ## Topics
 

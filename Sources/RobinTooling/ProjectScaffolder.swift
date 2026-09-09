@@ -2,6 +2,8 @@ import Foundation
 
 package enum ProjectScaffolderError: Error, Equatable, CustomStringConvertible, Sendable {
   case invalidProjectName(String)
+  case invalidSiteURL(String)
+  case missingMarketingSiteURL
   case templatesUnavailable
   case destinationExists(String)
   case invalidTemplateEntry(String)
@@ -10,6 +12,10 @@ package enum ProjectScaffolderError: Error, Equatable, CustomStringConvertible, 
     switch self {
     case .invalidProjectName(let name):
       "`\(name)` is not a valid Swift project name."
+    case .invalidSiteURL(let value):
+      "`\(value)` is not a valid public site URL."
+    case .missingMarketingSiteURL:
+      "The marketing template requires --site-url, for example https://example.com."
     case .templatesUnavailable:
       "Robin's project templates are unavailable; set ROBIN_TEMPLATES or pass --templates."
     case .destinationExists(let path):
@@ -24,12 +30,14 @@ package struct ProjectScaffolder {
   package static func create(
     name: String,
     template: ProjectTemplate,
+    siteURL: String? = nil,
     templatesDirectory: URL?,
     projectRoot: URL,
     environment: [String: String] = ProcessInfo.processInfo.environment,
     executableURL: URL? = Bundle.main.executableURL
   ) throws -> URL {
     guard isValidProjectName(name) else { throw ProjectScaffolderError.invalidProjectName(name) }
+    let publicSiteURL = try validatedSiteURL(siteURL, for: template)
     let templates = try resolveTemplatesDirectory(
       explicit: templatesDirectory,
       projectRoot: projectRoot,
@@ -47,7 +55,8 @@ package struct ProjectScaffolder {
     }
     try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
     do {
-      try copyContents(from: source, to: destination, replacing: "__PROJECT__", with: name)
+      try copyContents(
+        from: source, to: destination, projectName: name, siteURL: publicSiteURL)
     } catch {
       try? FileManager.default.removeItem(at: destination)
       throw error
@@ -88,8 +97,8 @@ package struct ProjectScaffolder {
   private static func copyContents(
     from source: URL,
     to destination: URL,
-    replacing placeholder: String,
-    with projectName: String
+    projectName: String,
+    siteURL: String?
   ) throws {
     let manager = FileManager.default
     guard
@@ -112,7 +121,7 @@ package struct ProjectScaffolder {
         throw ProjectScaffolderError.invalidTemplateEntry(relative)
       }
       let output = destination.appendingPathComponent(
-        relative.replacingOccurrences(of: placeholder, with: projectName)
+        relative.replacingOccurrences(of: "__PROJECT__", with: projectName)
       )
       let values = try entry.resourceValues(
         forKeys: [.isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey])
@@ -124,13 +133,15 @@ package struct ProjectScaffolder {
       } else if values.isRegularFile == true {
         let data = try Data(contentsOf: entry)
         if let text = String(data: data, encoding: .utf8) {
-          let text =
-            text
-            .replacingOccurrences(of: placeholder, with: projectName)
+          let generated = text.replacingOccurrences(of: "__PROJECT__", with: projectName)
             .replacingOccurrences(
               of: #".package(name: "robin", path: "../..")"#,
               with: #".package(url: "https://github.com/mac95sb/robin.git", branch: "main")"#)
-          try Data(text.utf8)
+          let configured =
+            siteURL.map {
+              generated.replacingOccurrences(of: "https://robin.maclong.dev", with: $0)
+            } ?? generated
+          try Data(configured.utf8)
             .write(to: output, options: .atomic)
         } else {
           try data.write(to: output, options: .atomic)
@@ -142,5 +153,26 @@ package struct ProjectScaffolder {
   private static func isValidProjectName(_ value: String) -> Bool {
     guard let first = value.first, first.isLetter else { return false }
     return value.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" }
+  }
+
+  private static func validatedSiteURL(_ value: String?, for template: ProjectTemplate) throws
+    -> String?
+  {
+    guard let value else {
+      if template == .marketing { throw ProjectScaffolderError.missingMarketingSiteURL }
+      return nil
+    }
+    guard
+      let url = URL(string: value),
+      ["http", "https"].contains(url.scheme),
+      url.host != nil,
+      url.user == nil,
+      url.password == nil,
+      url.query == nil,
+      url.fragment == nil
+    else {
+      throw ProjectScaffolderError.invalidSiteURL(value)
+    }
+    return value.hasSuffix("/") ? String(value.dropLast()) : value
   }
 }

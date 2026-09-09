@@ -1,11 +1,11 @@
+@_spi(Rendering) import RobinRuntime
+
 /// A button that selects a persistent appearance preference.
-///
-/// Include RobinBuild's `SitePreferencesClientModule` asset to activate it.
 ///
 /// HTML reference: [MDN: button](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button).
 public struct AppearanceButton: Component {
   /// An appearance preference.
-  public enum Preference: String, Sendable {
+  public enum Preference: String, Codable, Sendable {
     /// Follows the device appearance.
     case system
     /// Uses the light palette.
@@ -15,33 +15,53 @@ public struct AppearanceButton: Component {
   }
 
   private let preference: Preference
+  private let selectedPreference: Preference
   private let label: String
+  private let action: StateAction
+  private let state: StateReference
   private let content: ComponentContent
 
-  /// Creates a labeled appearance button with custom visible content.
+  /// Creates an appearance button backed by an application-owned local preferences value.
   /// - Parameters:
   ///   - preference: The appearance to select when activated.
+  ///   - preferences: The application-owned local preferences binding.
   ///   - accessibilityLabel: The accessible name, also shown as a native tooltip.
   ///   - content: The button's text or decorative icon.
-  public init(
-    _ preference: Preference, accessibilityLabel: String,
+  public init<Preferences: AppearancePreferences>(
+    _ preference: Preference,
+    preferences: LocalBinding<Preferences>,
+    accessibilityLabel: String,
     @ViewBuilder content: () -> ComponentContent
   ) {
+    var updated = preferences.initialValue
+    updated.appearance = preference
     self.preference = preference
+    selectedPreference = preferences.initialValue.appearance
     label = accessibilityLabel
+    action = preferences.set(updated)
+    state = preferences.reference
     self.content = content()
   }
 
   /// The button and its initial selection state.
   public var body: ComponentContent {
-    .node(
+    let attributes: [RenderElement.Attribute] = [
+      .buttonType(.button), .appearanceChoice(preference),
+      .accessibilityLabel(label), .title(label),
+      .accessibilityPressed(preference == selectedPreference),
+      .stateAction(action), .appearanceState(state),
+    ]
+    return .node(
       .element(
         RenderElement(
           kind: .button,
-          attributes: [
-            .buttonType(.button), .appearanceChoice(preference),
-            .accessibilityLabel(label), .title(label), .accessibilityPressed(preference == .system),
-          ],
+          attributes: attributes,
           children: content.nodes)))
   }
+}
+
+/// An application-owned preferences value containing an appearance choice.
+public protocol AppearancePreferences: Codable, Sendable {
+  /// The selected appearance.
+  var appearance: AppearanceButton.Preference { get set }
 }

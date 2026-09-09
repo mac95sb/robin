@@ -14,8 +14,11 @@ struct SiteFooter: Component {
             Link("https://github.com/mac95sb/robin/tree/main/Templates/blog") { "Source" }
           }
           SiteLabel { Link(localizedPath("/")) { "Back to journal" } }
-        }.flex(wrap: .wrap, gap: .lg)
-      }.flex(wrap: .wrap, justify: .spaceBetween, align: .center, gap: .md)
-    }.grid(columns: 1, gap: .lg)
+        }
+        .flex(wrap: .wrap, gap: .lg)
+      }
+      .flex(wrap: .wrap, justify: .spaceBetween, align: .center, gap: .md)
+    }
+    .grid(columns: 1, gap: .lg)
   }
 }

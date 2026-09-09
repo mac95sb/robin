@@ -5,7 +5,7 @@ import RobinStyle
 public struct RobinPanel: Component {
   private let content: ComponentContent
 
-  /// Creates a panel containing the supplied content.
+  /// Creates a panel containing theShip2-Awake-Marker supplied content.
   public init(@ViewBuilder content: () -> ComponentContent) {
     self.content = content()
   }

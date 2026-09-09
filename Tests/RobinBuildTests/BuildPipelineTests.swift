@@ -48,6 +48,7 @@ struct BuildPipelineTests {
     let html = try String(
       contentsOf: root.appendingPathComponent(".robin/build/index.html"), encoding: .utf8)
     #expect(html.contains("<!doctype html><html lang=\"en-GB\" dir=\"ltr\">"))
+    #expect(html.contains("<meta name=\"generator\" content=\"Robin\">"))
     #expect(html.contains("<title>Home | Robin</title>"))
     #expect(html.contains("property=\"og:title\" content=\"Robin on Open Graph\""))
     #expect(html.contains("property=\"og:type\" content=\"website\""))
@@ -514,6 +515,25 @@ struct BuildPipelineTests {
     let invocationCount = invocations.split(separator: "\n").count
     #expect(invocationCount == 4)
     #expect(invocations.contains(" 320 --height=2147483647"))
+  }
+
+  @Test func skipsDeclaredAssetTransformsWhenOptimizationIsDisabled() throws {
+    let root = temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let source = Array("<svg><!-- retain --></svg>".utf8)
+    let asset = try BuildAsset(
+      reference: "/logo.svg", path: "logo.svg", bytes: source, mediaType: "image/svg+xml",
+      transforms: [.optimizeSVG])
+
+    let result = try BuildPipeline.build(
+      StaticApplication(),
+      configuration: .init(assets: [asset], optimizesAssets: false),
+      in: OutputLayout(projectRoot: root))
+
+    let output = try #require(result.manifest.artifacts.first { $0.mediaType == "image/svg+xml" })
+    let outputURL = root.appending(path: ".robin/build/\(output.path)")
+    #expect(Array(try Data(contentsOf: outputURL)) == source)
+    #expect(output.transforms.isEmpty)
   }
 
   @Test func enforcesRemotePinsAndVerifiesCachedBytes() async throws {
