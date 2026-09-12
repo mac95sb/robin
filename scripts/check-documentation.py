@@ -25,8 +25,9 @@ def tutorial_errors(page):
 
 def check():
     root = Path(__file__).resolve().parents[1]
+    scratch = root / ".build/docs"
     build = Path(subprocess.check_output(
-        ["swift", "build", "--show-bin-path"], cwd=root, text=True
+        ["swift", "build", "--scratch-path", scratch, "--show-bin-path"], cwd=root, text=True
     ).strip())
     description = json.loads((build / "description.json").read_text())
     flags = set()
@@ -42,17 +43,22 @@ def check():
             "-load-plugin-executable", str(build / "RobinMacros-tool") + "#RobinMacros"]
     for flag in sorted(flags):
         if flag[0] == "-plugin-path":
-            server = Path(shutil.which("swiftc")).resolve().with_name("swift-plugin-server")
+            if sys.platform == "darwin":
+                server = subprocess.check_output(
+                    ["xcrun", "--find", "swift-plugin-server"], text=True
+                ).strip()
+            else:
+                server = shutil.which("swift-plugin-server")
             args.extend(["-external-plugin-path", flag[1] + "#" + str(server)])
         else:
             args.extend(flag)
     maps = list(build.glob("*/module.modulemap"))
     maps += list((root / "Sources").rglob("module.modulemap"))
-    maps += list((root / ".build/checkouts").rglob("module.modulemap"))
+    maps += list((scratch / "checkouts").rglob("module.modulemap"))
     for path in sorted(maps):
         if "-tool.build" not in str(path):
             args.extend(["-Xcc", "-fmodule-map-file=" + str(path.resolve())])
-    args.extend(["-Xcc", "-I" + str(root / ".build/checkouts/swift-cmark/src/include")])
+    args.extend(["-Xcc", "-I" + str(scratch / "checkouts/swift-cmark/src/include")])
     failures = []
     samples = sorted((root / "Sources").glob("**/Documentation.docc/**/*.swift"))
     for path in samples:

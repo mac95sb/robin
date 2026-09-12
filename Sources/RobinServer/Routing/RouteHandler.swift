@@ -197,7 +197,7 @@ public struct POST<Request: Decodable & Sendable, Response: Encodable & Sendable
 
   /// Creates a POST endpoint that decodes a resource's client-supplied properties.
   ///
-  /// Apply ``RobinRouting/Resource()`` to the resource. The handler receives the complete
+  /// Apply `Resource()` to the resource. The handler receives the complete
   /// resource, including values created from its declared defaults.
   public init<Resource: ResourceRepresentable>(
     _ resource: Resource.Type,

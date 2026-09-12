@@ -40,7 +40,7 @@ let package = Package(
     .library(name: "RobinLucide", targets: ["RobinLucide"]),
     .library(name: "RobinPolar", targets: ["RobinPolar"]),
     .library(name: "RobinPostgres", targets: ["RobinPostgres"]),
-    .executable(name: "robin", targets: ["RobinCLI"]),
+    .executable(name: "robin", targets: ["RobinExecutable"]),
   ],
   dependencies: [
     .package(url: "https://github.com/vapor/sqlite-nio.git", from: "1.10.0"),
@@ -308,7 +308,7 @@ let package = Package(
       ],
       swiftSettings: lowLevelFeatures
     ),
-    .executableTarget(
+    .target(
       name: "RobinCLI",
       dependencies: [
         "RobinCore",
@@ -316,6 +316,11 @@ let package = Package(
         .product(name: "ArgumentParser", package: "swift-argument-parser"),
         .product(name: "Noora", package: "Noora"),
       ],
+      swiftSettings: lowLevelFeatures
+    ),
+    .executableTarget(
+      name: "RobinExecutable",
+      dependencies: ["RobinCLI"],
       swiftSettings: lowLevelFeatures
     ),
     .testTarget(

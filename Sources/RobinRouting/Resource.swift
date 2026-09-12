@@ -2,8 +2,9 @@
 ///
 /// Apply ``Resource()`` to a `Codable & Sendable` structure. Its properties with defaults
 /// belong to server-created responses; its required properties form the nested ``Create`` body
-/// decoded by ``POST``.
+/// decoded by `POST`.
 public protocol ResourceRepresentable: Codable, Sendable {
+  /// The client-supplied properties required to create the resource.
   associatedtype Create: Decodable & Sendable
 
   /// Creates a complete resource from its client-supplied properties.

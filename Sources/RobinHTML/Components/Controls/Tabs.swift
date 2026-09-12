@@ -37,37 +37,3 @@ public struct Tabs: Component {
           })))
   }
 }
-
-/// One label and panel in ``Tabs``.
-public struct Tab: Sendable {
-  fileprivate let label: ComponentContent
-  fileprivate let content: ComponentContent
-
-  /// Creates a tab with a visible label and panel content.
-  public init(
-    @ViewBuilder label: () -> ComponentContent,
-    @ViewBuilder content: () -> ComponentContent
-  ) {
-    self.label = label()
-    self.content = content()
-  }
-
-  /// Creates a tab with a text label and panel content.
-  public init(_ label: String, @ViewBuilder content: () -> ComponentContent) {
-    self.init(label: { Text { label } }, content: content)
-  }
-}
-
-/// Builds a list of native tabs.
-@resultBuilder public enum TabsBuilder {
-  public static func buildBlock(_ tabs: [Tab]...) -> [Tab] {
-    tabs.flatMap { $0 }
-  }
-  public static func buildOptional(_ tabs: [Tab]?) -> [Tab] { tabs ?? [] }
-  public static func buildEither(first tabs: [Tab]) -> [Tab] { tabs }
-  public static func buildEither(second tabs: [Tab]) -> [Tab] { tabs }
-  public static func buildArray(_ tabs: [[Tab]]) -> [Tab] {
-    tabs.flatMap { $0 }
-  }
-  public static func buildExpression(_ tab: Tab) -> [Tab] { [tab] }
-}

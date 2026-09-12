@@ -3,9 +3,9 @@ import Foundation
 import Noora
 import RobinTooling
 
-@main
-struct RobinCommandLine: AsyncParsableCommand {
-  static let configuration = CommandConfiguration(
+@available(macOS 10.15, macCatalyst 13, iOS 13, tvOS 13, watchOS 6, *)
+public struct RobinCommandLine: AsyncParsableCommand {
+  public static let configuration = CommandConfiguration(
     commandName: "robin",
     abstract: "Build and operate Robin projects.",
     subcommands: [
@@ -20,6 +20,8 @@ struct RobinCommandLine: AsyncParsableCommand {
       DoctorCommand.self,
     ]
   )
+
+  public init() {}
 
   static var terminal: Noora {
     Noora(standardPipelines: .init(output: StandardErrorPipeline()))
