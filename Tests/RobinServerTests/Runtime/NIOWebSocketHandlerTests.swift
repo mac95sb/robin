@@ -13,47 +13,50 @@ import Testing
   import FoundationNetworking
 #endif
 
-@Test func upgradedConnectionExchangesMessagesAndLeavesHTTPAvailable() async throws {
-  let server = try await ServerRuntime.start(SocketApplication(), port: 0)
-  let configuration = URLSessionConfiguration.ephemeral
-  configuration.timeoutIntervalForRequest = 5
-  configuration.timeoutIntervalForResource = 10
-  let client = URLSession(configuration: configuration)
-  defer { client.invalidateAndCancel() }
-  do {
-    let address = try #require(await server.localAddress)
-    let socket = client.webSocketTask(
-      with: URL(string: "ws://127.0.0.1:\(address.port)/api/socket")!)
-    socket.resume()
-    for text in ["First message", "A second message 👋"] {
-      try await socket.send(.string(text))
-      let received = try await socket.receive()
-      guard case .string(let echoed) = received else {
-        Issue.record("Expected an echoed text message")
-        break
+// FoundationNetworking's libcurl does not implement WebSocket clients.
+#if !canImport(FoundationNetworking)
+  @Test func upgradedConnectionExchangesMessagesAndLeavesHTTPAvailable() async throws {
+    let server = try await ServerRuntime.start(SocketApplication(), port: 0)
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.timeoutIntervalForRequest = 5
+    configuration.timeoutIntervalForResource = 10
+    let client = URLSession(configuration: configuration)
+    defer { client.invalidateAndCancel() }
+    do {
+      let address = try #require(await server.localAddress)
+      let socket = client.webSocketTask(
+        with: URL(string: "ws://127.0.0.1:\(address.port)/api/socket")!)
+      socket.resume()
+      for text in ["First message", "A second message 👋"] {
+        try await socket.send(.string(text))
+        let received = try await socket.receive()
+        guard case .string(let echoed) = received else {
+          Issue.record("Expected an echoed text message")
+          break
+        }
+        #expect(echoed == text)
       }
-      #expect(echoed == text)
-    }
-    let bytes = Data([0, 1, 255])
-    try await socket.send(.data(bytes))
-    let received = try await socket.receive()
-    if case .data(let echoed) = received {
-      #expect(echoed == bytes)
-    } else {
-      Issue.record("Expected an echoed binary message")
-    }
-    socket.cancel(with: .normalClosure, reason: nil)
+      let bytes = Data([0, 1, 255])
+      try await socket.send(.data(bytes))
+      let received = try await socket.receive()
+      if case .data(let echoed) = received {
+        #expect(echoed == bytes)
+      } else {
+        Issue.record("Expected an echoed binary message")
+      }
+      socket.cancel(with: .normalClosure, reason: nil)
 
-    let (body, response) = try await client.data(
-      from: URL(string: "http://127.0.0.1:\(address.port)/")!)
-    #expect((response as? HTTPURLResponse)?.statusCode == 200)
-    #expect(String(decoding: body, as: UTF8.self).contains("Still running"))
-    try await server.shutdown()
-  } catch {
-    try? await server.shutdown()
-    throw error
+      let (body, response) = try await client.data(
+        from: URL(string: "http://127.0.0.1:\(address.port)/")!)
+      #expect((response as? HTTPURLResponse)?.statusCode == 200)
+      #expect(String(decoding: body, as: UTF8.self).contains("Still running"))
+      try await server.shutdown()
+    } catch {
+      try? await server.shutdown()
+      throw error
+    }
   }
-}
+#endif
 
 private struct SocketApplication: App {
   @PagesBuilder var pages: PageList { SocketHomePage() }

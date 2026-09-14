@@ -155,58 +155,61 @@ import Testing
   try await services.shutdown()
 }
 
-@Test func liveMessagesUseTheCurrentUsername() async throws {
-  let services = try await DashboardServices()
-  let account = try Account(id: "private-id", name: "Account")
-  try await services.authentication.save(account)
-  try await services.usernames.set("alice", for: account.id)
-  let token = try await services.sessions.create(for: account.id)
-  let messages = services.messages
-  let site = Site(services: services)
-  let server = try await ServerRuntime.start(
-    site,
-    port: 0,
-    middleware: [
-      .authSessions(services.sessions, store: services.authentication), site.pageServices,
-    ]
-  )
-  let configuration = URLSessionConfiguration.ephemeral
-  configuration.timeoutIntervalForRequest = 5
-  configuration.timeoutIntervalForResource = 10
-  let client = URLSession(configuration: configuration)
-  defer { client.invalidateAndCancel() }
-  do {
-    let address = try #require(await server.localAddress)
-    var request = URLRequest(url: URL(string: "ws://127.0.0.1:\(address.port)/api/v1/chat")!)
-    request.setValue("robin-session=\(token.value)", forHTTPHeaderField: "Cookie")
-    let socket = client.webSocketTask(with: request)
-    socket.resume()
-    for name in ["alice", "alice_new"] {
-      try await services.usernames.set(name, for: account.id)
-      try await socket.send(.string("Hello"))
-      let received = try await socket.receive()
-      if case .string(let text) = received {
-        let payload = try JSONDecoder()
-          .decode(
-            WebSocketClientModule.Message.self,
-            from: Data(text.utf8)
-          )
-        #expect(payload.text == "@\(name): Hello")
-        let stored = try #require(try await messages.all().last)
-        #expect(payload.title == stored.timestamp)
-      } else {
-        Issue.record("Expected a username in the live message")
+// FoundationNetworking's libcurl does not implement WebSocket clients.
+#if !canImport(FoundationNetworking)
+  @Test func liveMessagesUseTheCurrentUsername() async throws {
+    let services = try await DashboardServices()
+    let account = try Account(id: "private-id", name: "Account")
+    try await services.authentication.save(account)
+    try await services.usernames.set("alice", for: account.id)
+    let token = try await services.sessions.create(for: account.id)
+    let messages = services.messages
+    let site = Site(services: services)
+    let server = try await ServerRuntime.start(
+      site,
+      port: 0,
+      middleware: [
+        .authSessions(services.sessions, store: services.authentication), site.pageServices,
+      ]
+    )
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.timeoutIntervalForRequest = 5
+    configuration.timeoutIntervalForResource = 10
+    let client = URLSession(configuration: configuration)
+    defer { client.invalidateAndCancel() }
+    do {
+      let address = try #require(await server.localAddress)
+      var request = URLRequest(url: URL(string: "ws://127.0.0.1:\(address.port)/api/v1/chat")!)
+      request.setValue("robin-session=\(token.value)", forHTTPHeaderField: "Cookie")
+      let socket = client.webSocketTask(with: request)
+      socket.resume()
+      for name in ["alice", "alice_new"] {
+        try await services.usernames.set(name, for: account.id)
+        try await socket.send(.string("Hello"))
+        let received = try await socket.receive()
+        if case .string(let text) = received {
+          let payload = try JSONDecoder()
+            .decode(
+              WebSocketClientModule.Message.self,
+              from: Data(text.utf8)
+            )
+          #expect(payload.text == "@\(name): Hello")
+          let stored = try #require(try await messages.all().last)
+          #expect(payload.title == stored.timestamp)
+        } else {
+          Issue.record("Expected a username in the live message")
+        }
       }
+      socket.cancel(with: .normalClosure, reason: nil)
+      try await server.shutdown()
+      try await services.shutdown()
+    } catch {
+      try? await server.shutdown()
+      try? await services.shutdown()
+      throw error
     }
-    socket.cancel(with: .normalClosure, reason: nil)
-    try await server.shutdown()
-    try await services.shutdown()
-  } catch {
-    try? await server.shutdown()
-    try? await services.shutdown()
-    throw error
   }
-}
+#endif
 
 @Test func usernamesSurviveDatabaseReopen() async throws {
   let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
