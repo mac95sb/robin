@@ -52,12 +52,16 @@ def check():
             args.extend(["-external-plugin-path", flag[1] + "#" + str(server)])
         else:
             args.extend(flag)
-    maps = list(build.glob("*/module.modulemap"))
+    # Host-tool and target maps define the same C modules; prefer the tool variant.
+    maps = list(build.glob("*-tool.build/module.modulemap"))
+    maps += [
+        path for path in build.glob("*.build/module.modulemap")
+        if not (build / (path.parent.stem + "-tool.build") / "module.modulemap").exists()
+    ]
     maps += list((root / "Sources").rglob("module.modulemap"))
     maps += list((scratch / "checkouts").rglob("module.modulemap"))
     for path in sorted(maps):
-        if "-tool.build" not in str(path):
-            args.extend(["-Xcc", "-fmodule-map-file=" + str(path.resolve())])
+        args.extend(["-Xcc", "-fmodule-map-file=" + str(path.resolve())])
     args.extend(["-Xcc", "-I" + str(scratch / "checkouts/swift-cmark/src/include")])
     failures = []
     samples = sorted((root / "Sources").glob("**/Documentation.docc/**/*.swift"))
