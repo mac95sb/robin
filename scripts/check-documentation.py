@@ -39,7 +39,7 @@ def check():
             if flag in ("-I", "-F", "-sdk", "-plugin-path") and value != "-Xcc":
                 flags.add((flag, value))
     args = ["swiftc", "-typecheck", "-swift-version", "6", "-I", str(build / "Modules"),
-            "-I", str(build), "-module-cache-path", str(build / "ModuleCache"),
+            "-module-cache-path", str(build / "ModuleCache"),
             "-load-plugin-executable", str(build / "RobinMacros-tool") + "#RobinMacros"]
     for flag in sorted(flags):
         if flag[0] == "-plugin-path":
