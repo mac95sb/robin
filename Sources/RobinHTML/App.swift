@@ -41,15 +41,35 @@ extension App {
 public func applicationResourceBundle<Application: App>(for _: Application.Type) -> Bundle? {
   guard let executableURL = Bundle.main.executableURL else { return nil }
   let name = executableURL.lastPathComponent
-  let directory = executableURL.deletingLastPathComponent()
-  let suffixes = ["_\(name).bundle", "_\(name).resources"]
-  let candidates = try? FileManager.default.contentsOfDirectory(
-    at: directory, includingPropertiesForKeys: [.isDirectoryKey])
-  guard
-    let bundleURL = candidates?.first(where: { candidate in
+  let module = String(reflecting: Application.self).split(separator: ".").first.map(String.init)
+  var directories = [
+    executableURL.deletingLastPathComponent(),
+    Bundle.main.bundleURL.deletingLastPathComponent(),
+  ]
+  let arguments = ProcessInfo.processInfo.arguments
+  if let flag = arguments.firstIndex(of: "--test-bundle-path"),
+    arguments.indices.contains(arguments.index(after: flag)),
+    let testBundle = sequence(
+      first: URL(fileURLWithPath: arguments[arguments.index(after: flag)]),
+      next: { url in
+        let parent = url.deletingLastPathComponent()
+        return parent == url ? nil : parent
+      }
+    ).first(where: { $0.pathExtension == "xctest" })
+  {
+    directories.append(testBundle.deletingLastPathComponent())
+  }
+  let suffixes = [name, module].compactMap { $0 }.flatMap {
+    ["_\($0).bundle", "_\($0).resources"]
+  }
+  let bundleURL = directories.lazy.compactMap { directory in
+    try? FileManager.default.contentsOfDirectory(
+      at: directory, includingPropertiesForKeys: [.isDirectoryKey]
+    ).first { candidate in
       candidate.hasDirectoryPath && suffixes.contains { candidate.lastPathComponent.hasSuffix($0) }
-    })
-  else { return nil }
+    }
+  }.first
+  guard let bundleURL else { return nil }
   return Bundle(url: bundleURL)
 }
 

@@ -82,11 +82,17 @@ struct CounterDemo: Component {
               .background(color: .cardHover, on: .hover || .focus)
               .background(color: .cardHover, on: .dark && (.hover || .focus))
             Input(
-              name: "count", value: $count, showsStepper: false, id: "demo-count",
+              name: "count",
+              value: $count,
+              showsStepper: false,
+              id: "demo-count",
               accessibilityLabel: "Count"
             )
-            .frame(width: 64, height: 44).padding(.zero).font(
-              .title, color: .foreground, align: .center
+            .frame(width: 64, height: 44).padding(.zero)
+            .font(
+              .title,
+              color: .foreground,
+              align: .center
             )
             .font(color: .foreground, on: .dark)
             .background(color: .cardHover).background(color: .cardHover, on: .dark)
@@ -100,7 +106,8 @@ struct CounterDemo: Component {
               .border(color: .border, radius: .md).border(color: .border, radius: .md, on: .dark)
               .background(color: .cardHover, on: .hover || .focus)
               .background(color: .cardHover, on: .dark && (.hover || .focus))
-          }.flex(justify: .center, align: .center, gap: .sm)
+          }
+          .flex(justify: .center, align: .center, gap: .sm)
           Button(action: #action { count = 0 }) { "Reset counter" }.flex(align: .center, gap: .sm)
             .padding(.sm)
             .font(.label, color: .foreground, decoration: TextDecoration.none)
@@ -111,7 +118,8 @@ struct CounterDemo: Component {
             .font(color: .accent, on: .dark && .pressed)
             .background(color: .cardHover, on: .hover || .focus)
             .background(color: .cardHover, on: .dark && (.hover || .focus))
-        }.flex(direction: .column, align: .center, gap: .md)
+        }
+        .flex(direction: .column, align: .center, gap: .md)
       }
     }
     """

@@ -38,7 +38,8 @@ struct ToggleDemo: Component {
             .border(color: .accent, radius: .md, on: .hover || .focus)
             .border(color: .accent, radius: .md, on: .dark && (.hover || .focus))
           Text { "A little more detail, just when you need it." }.visible($showDetails)
-        }.grid(columns: 1, gap: .md)
+        }
+        .grid(columns: 1, gap: .md)
       }
     }
     """

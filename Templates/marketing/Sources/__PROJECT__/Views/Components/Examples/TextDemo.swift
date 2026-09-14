@@ -48,7 +48,8 @@ struct TextDemo: Component {
             $name
             "!"
           }
-        }.grid(columns: 1, gap: .md)
+        }
+        .grid(columns: 1, gap: .md)
       }
     }
     """
