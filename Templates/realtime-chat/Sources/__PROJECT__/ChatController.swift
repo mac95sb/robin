@@ -1,13 +1,10 @@
 import Foundation
 import RobinCore
-import RobinHTML
-import RobinRouting
 import RobinServer
 
-/// Serves authenticated message history and realtime chat connections.
+/// Serves authenticated message history and realtime connections.
 struct ChatController: Controller {
   let messages: MessageStore
-  let usernames: UsernameStore
 
   @RoutesBuilder var body: RouteList {
     RouteGroup("messages") { GET(use: history) }
@@ -23,12 +20,9 @@ struct ChatController: Controller {
     return try await messages.all()
   }
 
-  private func socket(_ context: RequestContext) async throws -> WebSocketSession {
+  private func socket(_ context: RequestContext) throws -> WebSocketSession {
     guard let principal = context.principal else {
       throw ServerError(.unauthorized, "Sign in to join the chat.")
-    }
-    guard try await usernames.all()[principal.id] != nil else {
-      throw ServerError(.forbidden, "Choose a username before joining the chat.")
     }
     return WebSocketSession { connection, incoming in
       let (subscription, outgoing) = await messages.subscribe()
@@ -42,10 +36,9 @@ struct ChatController: Controller {
           }
           group.addTask {
             for await message in outgoing {
-              let author = try await usernames.all()[message.authorID] ?? "Member"
               let payload = WebSocketClientModule.Message(
-                text: "@\(author): \(message.text)",
-                title: message.timestamp
+                text: "\(message.authorID): \(message.text)",
+                title: message.sentAt.ISO8601Format()
               )
               let data = try JSONEncoder().encode(payload)
               try await connection.send(.text(String(decoding: data, as: UTF8.self)))

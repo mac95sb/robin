@@ -84,7 +84,7 @@ struct ProjectScaffolderTests {
       #expect(controller.contains("GET { _, _ in await self.list() }"))
       #expect(controller.contains("GET(\":id\")"))
       #expect(controller.contains("POST(Todo.self)"))
-    } else if template != .blank {
+    } else if template == .dashboard || template == .blog {
       #expect(!app.contains("LocalizedPages("))
       #expect(app.contains("separator: \" — \""))
       #expect(!app.contains("openGraph:"))
@@ -123,6 +123,16 @@ struct ProjectScaffolderTests {
           "Sources/Example/Controllers/AppController.swift"), encoding: .utf8)
       #expect(controller.contains("struct AppController: Controller"))
       #expect(controller.contains("RouteGroup(\"system\")"))
+    } else if template == .realtimeChat {
+      #expect(app.contains("ChatServices"))
+      #expect(app.contains("ChatPage()"))
+      #expect(app.contains("WebSocketClientModule("))
+      let controller = try String(
+        contentsOf: destination.appendingPathComponent(
+          "Sources/Example/Controllers/ChatController.swift"), encoding: .utf8)
+      #expect(controller.contains("WebSocketRoute("))
+      #expect(!controller.contains(": APIRoute"))
+      #expect(!controller.contains(": ServerRoute"))
     } else if template == .blog {
       let post = try String(
         contentsOf: destination.appendingPathComponent(
