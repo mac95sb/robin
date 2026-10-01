@@ -32,6 +32,7 @@ The blog writes static files to `.robin/build`. Serve that directory with your s
 | `blog` | Markdown, metadata, localization, and static output with optional client enhancements |
 | `marketing` | Product or portfolio site with live components, generated code examples, and a DocC link |
 | `dashboard` | One workspace with passkey sign-in, private notes, shared conversations, usernames, and SQLite persistence |
+| `realtime-chat` | Authenticated WebSocket chat with persistent messages and reconnect handling |
 | `api-service` | JSON requests to `/api/system/health` and `/api/v1/catalog/todos` |
 
 Generated projects reference this repository's `main` branch during release preparation. Use a

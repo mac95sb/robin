@@ -13,7 +13,7 @@ ln -s "$HOME/Developer/robin/.build/debug/robin" "$HOME/.local/bin/robin"
 robin init MyReview --template blank
 ```
 
-Replace `blank` with `blog`, `marketing`, `dashboard`, or `api-service` and choose a
+Replace `blank` with `blog`, `marketing`, `dashboard`, `realtime-chat`, or `api-service` and choose a
 new project name. Generated packages currently reference GitHub `main`; to review
 unpublished framework edits, point the generated package dependency at your local
 Robin checkout. Run the generated project's documented mise tasks from its root.
@@ -24,6 +24,7 @@ Robin checkout. Run the generated project's documented mise tasks from its root.
 | blog | Write a Markdown post; change metadata, locale, and theme | Correct links, syntax highlighting, Blog/BlogPosting metadata, and static output |
 | marketing | Switch examples and source tabs; edit counter, Boolean, and string state | Displayed Swift matches the preview; bindings and actions feel natural |
 | dashboard | Sign up, sign out, sign in; create/edit/delete notes; send chat messages in two sessions | Authenticated views switch correctly, notes stay private, updates need no refresh, usernames are unique, messages survive reconnects |
+| realtime-chat | Sign up, sign out, sign in; send messages in two sessions | Authentication, WebSocket lifecycle, bounded updates, and reconnects behave clearly |
 | api-service | Call a route; add an endpoint; send invalid input | Routing, validation, errors, and response types are clear |
 
 For each visual template, also try a narrow viewport, keyboard-only navigation,
@@ -44,7 +45,7 @@ Copy this block for each change you want:
 
 ## Before approving v1.0.0
 
-- [ ] Reviewed all five templates from fresh projects.
+- [ ] Reviewed all six templates from fresh projects.
 - [ ] Resolved API feedback that blocks release.
 - [ ] Ran `mise run check` and the generated templates' checks.
 - [ ] Verified marketing and DocC on the published GitHub Pages site.
