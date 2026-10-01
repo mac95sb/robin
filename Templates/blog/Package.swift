@@ -28,7 +28,11 @@ let package = Package(
         .product(name: "RobinStyle", package: "robin"),
         .product(name: "RobinTheme", package: "robin"),
       ],
-      resources: [.copy("Resources/Localizable.xcstrings")],
+      resources: [
+        .copy("Resources/Localizable.xcstrings"),
+        .process("Resources/favicon.png"),
+        .process("Resources/social-card.jpg"),
+      ],
       swiftSettings: swiftSettings
     ),
     .testTarget(
