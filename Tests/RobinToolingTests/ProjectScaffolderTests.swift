@@ -129,7 +129,7 @@ struct ProjectScaffolderTests {
       #expect(app.contains("WebSocketClientModule("))
       let controller = try String(
         contentsOf: destination.appendingPathComponent(
-          "Sources/Example/Controllers/ChatController.swift"), encoding: .utf8)
+          "Sources/Example/ChatController.swift"), encoding: .utf8)
       #expect(controller.contains("WebSocketRoute("))
       #expect(!controller.contains(": APIRoute"))
       #expect(!controller.contains(": ServerRoute"))

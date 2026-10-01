@@ -64,10 +64,9 @@ import Testing
   let authData =
     relyingPartyHash + [0x45, 0, 0, 0, 0] + [UInt8](repeating: 0, count: 16)
     + [0, 16] + credentialID + cose
-  let attestation: [UInt8] =
-    [0xa3, 0x63] + Array("fmt".utf8) + [0x64] + Array("none".utf8)
-    + [0x67] + Array("attStmt".utf8) + [0xa0, 0x68] + Array("authData".utf8)
-    + [0x58, UInt8(authData.count)] + authData
+  var attestation: [UInt8] = [0xa3, 0x63] + Array("fmt".utf8) + [0x64] + Array("none".utf8)
+  attestation += [0x67] + Array("attStmt".utf8) + [0xa0, 0x68] + Array("authData".utf8)
+  attestation += [0x58, UInt8(authData.count)] + authData
   let registration = try json(await post("register/begin"))
   let registered = try await post(
     "register/finish",
