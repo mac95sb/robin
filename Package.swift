@@ -361,7 +361,7 @@ let package = Package(
     .testTarget(
       name: "RobinContentTests",
       dependencies: ["RobinContent", "RobinHTML"],
-      resources: [.copy("Fixtures"), .process("Resources")],
+      resources: [.copy("Fixtures"), .copy("Resources/Localizable.xcstrings")],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(

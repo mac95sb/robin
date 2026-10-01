@@ -39,8 +39,7 @@ extension LocalizationCatalog {
       for (locale, localization) in entry.localizations {
         // ponytail: decode variations when a generated template needs catalog plurals.
         guard let stringUnit = localization.stringUnit else { continue }
-        translations[locale, default: [:]][LocalizedStringKey(key)] =
-          .text(stringUnit.value)
+        translations[locale, default: [:]][LocalizedStringKey(key)] = .text(stringUnit.value)
       }
     }
     self.init(translations)

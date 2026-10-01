@@ -33,7 +33,7 @@ let package = Package(
         .product(name: "RobinStyle", package: "robin"),
         .product(name: "RobinTheme", package: "robin"),
       ],
-      resources: [.process("Resources")],
+      resources: [.copy("Resources/Localizable.xcstrings")],
       swiftSettings: swiftSettings
     ),
     .testTarget(

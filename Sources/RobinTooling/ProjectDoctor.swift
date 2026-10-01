@@ -41,7 +41,7 @@ package struct ProjectDoctor {
     let process = Process()
     let output = Pipe()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-    process.arguments = ["swift", "--version"]
+    process.arguments = ["mise", "exec", "--", "swift", "--version"]
     process.standardOutput = output
     process.standardError = output
     do {
