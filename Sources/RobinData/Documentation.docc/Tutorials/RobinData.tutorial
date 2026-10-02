@@ -1,6 +1,6 @@
 @Tutorials(name: "RobinData") {
   @Intro(title: "Persist application data") {
-    Use the same repository and migration code with SQLite and PostgreSQL.
+    Use the same migration and query code with SQLite and PostgreSQL.
   }
 
   @Chapter(name: "Essentials") {

@@ -1,4 +1,3 @@
-import RobinCore
 import RobinData
 
 struct User: Codable, Sendable {
@@ -12,10 +11,6 @@ enum UserRowError: Error {
 
 let database = try await SQLiteDatabase(
   storage: .file(path: "/var/lib/my-app/app.sqlite"))
-let repositoryContext = RepositoryContext(
-  database: database,
-  tenant: .tenant(TenantContext(verified: "acme", source: .route)))
-
 let users = DatabaseQuery<User>("SELECT id, name FROM users") { row in
   guard case .integer(let id) = row["id"],
     case .text(let name) = row["name"]
@@ -23,6 +18,6 @@ let users = DatabaseQuery<User>("SELECT id, name FROM users") { row in
   return User(id: id, name: name)
 }
 
-let results = try await repositoryContext.database.withConnection { connection in
+let results = try await database.withConnection { connection in
   try await connection.fetch(users)
 }

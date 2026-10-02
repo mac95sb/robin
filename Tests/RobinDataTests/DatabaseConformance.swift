@@ -16,7 +16,7 @@ func runDatabaseConformance(_ database: any Database) async throws {
   try await Migrator(database: database).migrate(migrations)
   try await Migrator(database: database).migrate(migrations)
 
-  let repository = RecordRepository(context: RepositoryContext(database: database))
+  let repository = RecordRepository(database: database)
   try await repository.insert(Record(id: 1, value: "kept"))
   await #expect(throws: (any Error).self) {
     try await database.transaction { connection in
@@ -114,12 +114,11 @@ private struct Record: Codable, Equatable, Sendable {
   let value: String
 }
 
-private struct RecordRepository: Repository {
-  typealias Model = Record
-  let context: RepositoryContext
+private struct RecordRepository {
+  let database: any Database
 
   func insert(_ record: Record) async throws {
-    try await context.database.transaction { connection in
+    try await database.transaction { connection in
       try await connection.execute(
         "INSERT INTO records(id, value) VALUES (\(record.id), \(record.value))")
     }
@@ -129,6 +128,6 @@ private struct RecordRepository: Repository {
     let query = DatabaseQuery<Record>("SELECT id, value FROM records ORDER BY id") { row in
       Record(id: try #require(row["id"]?.integer), value: try #require(row["value"]?.string))
     }
-    return try await context.database.withConnection { try await $0.fetch(query) }
+    return try await database.withConnection { try await $0.fetch(query) }
   }
 }

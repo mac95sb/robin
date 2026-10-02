@@ -46,7 +46,6 @@ RobinContent parses supported Markdown structures, returns typed nodes in source
 - ``LocalizationFormatter``
 - ``TextDirection``
 - ``LocalizedRouteSet``
-- ``TranslationProvider``
 
 ### Publication
 

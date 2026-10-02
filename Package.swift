@@ -35,7 +35,6 @@ let package = Package(
     .library(name: "RobinBuild", targets: ["RobinBuild"]),
     .library(name: "RobinTesting", targets: ["RobinTesting"]),
     .library(name: "RobinTooling", targets: ["RobinTooling"]),
-    .library(name: "RobinPlugin", targets: ["RobinPlugin"]),
     .library(name: "RobinTheme", targets: ["RobinTheme"]),
     .library(name: "RobinLucide", targets: ["RobinLucide"]),
     .library(name: "RobinPolar", targets: ["RobinPolar"]),
@@ -244,18 +243,6 @@ let package = Package(
       swiftSettings: lowLevelFeatures
     ),
     .target(
-      name: "RobinPlugin",
-      dependencies: [
-        "RobinBuild",
-        "RobinContent",
-        "RobinCore",
-        "RobinServer",
-        "RobinStyle",
-        .product(name: "ArgumentParser", package: "swift-argument-parser"),
-      ],
-      swiftSettings: lowLevelFeatures
-    ),
-    .target(
       name: "RobinTheme",
       dependencies: ["RobinHTML", "RobinStyle"],
       path: "Sources/RobinExtensions/RobinTheme",
@@ -274,7 +261,6 @@ let package = Package(
       dependencies: [
         "RobinCore",
         "RobinJobs",
-        "RobinPlugin",
         "RobinRouting",
         "RobinServer",
         .product(name: "Crypto", package: "swift-crypto"),
@@ -466,11 +452,6 @@ let package = Package(
         .product(name: "ArgumentParser", package: "swift-argument-parser"),
       ],
       resources: [.copy("Fixtures")],
-      swiftSettings: upcomingFeatures
-    ),
-    .testTarget(
-      name: "RobinPluginTests",
-      dependencies: ["RobinPlugin"],
       swiftSettings: upcomingFeatures
     ),
     .testTarget(

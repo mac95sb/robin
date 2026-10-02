@@ -71,34 +71,10 @@ struct LocalizationTests {
         == "<p>Bonjour /fr/about</p>")
   }
 
-  @Test func translationProvidersCanPullAndPushCatalogs() async throws {
-    let provider = TestTranslationProvider()
-    let catalog = try await LocalizationCatalog.pulling(locales: ["en"], from: provider)
-
-    #expect(catalog.string("title", locale: "en") == "Robin")
-    try await catalog.push(sourceLocale: "en", to: provider)
-    #expect(await provider.pushedKeys() == ["title"])
-  }
 }
 
 private struct LocalizedTestPage: Page {
   let path = "/guide"
   var metadata: Metadata { Metadata(title: t("greeting")) }
   var body: ComponentContent { Text { "\(t("greeting")) \(localizedPath("/about"))" } }
-}
-
-private actor TestTranslationProvider: TranslationProvider {
-  private var pushed: [LocalizedStringKey] = []
-
-  func pull(locale _: String) -> [LocalizedStringKey: LocalizedMessage] {
-    ["title": .text("Robin")]
-  }
-
-  func push(
-    _ messages: [LocalizedStringKey: LocalizedMessage], sourceLocale _: String
-  ) {
-    pushed = messages.keys.sorted { $0.value < $1.value }
-  }
-
-  func pushedKeys() -> [String] { pushed.map(\.value) }
 }

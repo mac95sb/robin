@@ -20,7 +20,7 @@
       }
 
       @Step {
-        Create ``PostgresDatabase`` and pass it to the same `RepositoryContext` used with SQLite.
+        Create ``PostgresDatabase`` and use it with the same migrations and queries used with SQLite.
 
         @Code(name: "Persistence.swift", file: "ConfigurePostgreSQL-03.swift")
       }

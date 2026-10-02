@@ -35,6 +35,7 @@ public struct DatabaseKeyValueStore: KeyValueStore {
     }
   }
 
+  /// Writes a value, optionally replacing an expired or conditionally matching entry.
   public func put(
     _ value: Data,
     forKey key: String,
@@ -90,6 +91,7 @@ public struct DatabaseKeyValueStore: KeyValueStore {
     }
   }
 
+  /// Returns an unexpired value for a namespaced key.
   public func value(forKey key: String, namespace: String, at now: Date) async throws -> Data? {
     try await database.withConnection { connection in
       let rows = try await connection.query(
@@ -102,6 +104,7 @@ public struct DatabaseKeyValueStore: KeyValueStore {
     }
   }
 
+  /// Atomically removes and returns an unexpired value.
   public func consumeValue(forKey key: String, namespace: String, at now: Date) async throws
     -> Data?
   {
@@ -117,6 +120,7 @@ public struct DatabaseKeyValueStore: KeyValueStore {
     }
   }
 
+  /// Removes a value and reports whether it existed.
   public func removeValue(forKey key: String, namespace: String) async throws -> Bool {
     try await database.withConnection { connection in
       !((try await connection.query(
@@ -125,6 +129,7 @@ public struct DatabaseKeyValueStore: KeyValueStore {
     }
   }
 
+  /// Removes at most `limit` expired values.
   public func removeExpired(at now: Date, limit: Int = 100) async throws -> Int {
     guard limit > 0 else { throw KeyValueStoreError.invalidCleanupLimit(limit) }
     return try await database.transaction { connection in

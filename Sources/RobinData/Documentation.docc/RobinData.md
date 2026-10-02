@@ -1,10 +1,10 @@
 # ``RobinData``
 
-Persist plain Swift models through database-neutral repositories, migrations, transactions, and durable key-value storage.
+Persist plain Swift models through database-neutral databases, migrations, transactions, and durable key-value storage.
 
 ## Overview
 
-RobinData keeps application models as ordinary `Codable & Sendable` values. Repositories receive a request-scoped ``RepositoryContext`` and issue typed ``SQLStatement`` and ``DatabaseQuery`` values through ``Database`` rather than depending on a database driver.
+RobinData keeps application models as ordinary `Codable & Sendable` values. Application code issues typed ``SQLStatement`` and ``DatabaseQuery`` values through ``Database`` rather than depending on a database driver.
 
 ``SQLiteDatabase`` is the zero-configuration default. It supports in-memory test databases and persistent files through one serialized connection. The separate `RobinPostgres` module supplies production connection pooling while conforming to the same contracts.
 
@@ -27,10 +27,8 @@ RobinData keeps application models as ordinary `Codable & Sendable` values. Repo
 - ``SQLDialect``
 - ``DatabaseQuery``
 
-### Repositories and schema
+### Schema
 
-- ``Repository``
-- ``RepositoryContext``
 - ``Migration``
 - ``Migrator``
 - ``TestDatabase``

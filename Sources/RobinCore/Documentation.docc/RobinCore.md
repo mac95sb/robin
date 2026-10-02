@@ -25,7 +25,6 @@ RobinCore contains transport- and renderer-neutral values used throughout the fr
 - [RobinBuild](https://mac95sb.github.io/robin/reference/RobinBuild/documentation/robinbuild/)
 - [RobinTesting](https://mac95sb.github.io/robin/reference/RobinTesting/documentation/robintesting/)
 - [RobinTooling](https://mac95sb.github.io/robin/reference/RobinTooling/documentation/robintooling/)
-- [RobinPlugin](https://mac95sb.github.io/robin/reference/RobinPlugin/documentation/robinplugin/)
 - [RobinLucide](https://mac95sb.github.io/robin/reference/RobinLucide/documentation/robinlucide/)
 - [RobinPolar](https://mac95sb.github.io/robin/reference/RobinPolar/documentation/robinpolar/)
 - [RobinPostgres](https://mac95sb.github.io/robin/reference/RobinPostgres/documentation/robinpostgres/)

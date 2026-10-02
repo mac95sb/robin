@@ -29,6 +29,7 @@ public struct Embed: Component {
     case originNotAllowed(String)
   }
 
+  /// The rendered embedded document.
   public let body: ComponentContent
 
   /// Creates an allowlisted, sandboxed embed.

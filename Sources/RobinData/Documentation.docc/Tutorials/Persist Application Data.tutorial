@@ -20,7 +20,7 @@
       }
 
       @Step {
-        Give each repository a ``RepositoryContext`` carrying the database and explicit tenant scope.
+        Use the database directly from application-owned persistence code, with tenant scope kept explicit in the application layer.
 
         @Code(name: "Persistence.swift", file: "PersistApplicationData-03.swift")
       }

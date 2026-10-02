@@ -1,4 +1,3 @@
-import RobinCore
 import RobinData
 
 let database = try await SQLiteDatabase(
@@ -12,7 +11,3 @@ try await Migrator(database: database).migrate([
       "CREATE TABLE users (id BIGINT PRIMARY KEY, name TEXT NOT NULL)"
     ])
 ])
-
-let repositoryContext = RepositoryContext(
-  database: database,
-  tenant: .tenant(TenantContext(verified: "acme", source: .route)))

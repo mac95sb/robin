@@ -1,4 +1,3 @@
-import RobinCore
 import RobinData
 import RobinPostgres
 
@@ -10,6 +9,3 @@ let configuration = PostgresConfiguration(
   maximumConnections: 20)
 
 let database = PostgresDatabase(configuration: configuration)
-let repositoryContext = RepositoryContext(
-  database: database,
-  tenant: .tenant(TenantContext(verified: "acme", source: .route)))

@@ -1,9 +1,8 @@
 import RobinCore
 import RobinJobs
-import RobinPlugin
 
 /// Polar checkout, subscription, and webhook integration.
-public struct PolarPlugin: RoutePlugin, ServicePlugin {
+public struct PolarPlugin {
   /// Configured API client.
   public let client: PolarClient
   /// Verified webhook route.

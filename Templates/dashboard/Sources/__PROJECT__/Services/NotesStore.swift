@@ -48,7 +48,7 @@ actor NotesStore {
   }
 
   private func modify(ownerID: String, at now: Date, _ change: (inout [Note]) -> Void) async throws {
-    // ponytail: one encoded list suits a starter; use a Repository when note volume needs queries.
+    // ponytail: one encoded list suits a starter; use direct database queries when note volume needs them.
     while true {
       try Task.checkCancellation()
       let previous = try await storage.value(forKey: ownerID, namespace: "dashboard.notes", at: now)
