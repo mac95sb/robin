@@ -16,7 +16,7 @@ struct Post {
 
   private static func load(_ name: String) -> ParsedContent {
     guard
-      let url = Bundle.module.url(forResource: name, withExtension: "md"),
+      let url = Bundle.module.url(forResource: name, withExtension: "md", subdirectory: "posts"),
       let source = try? String(contentsOf: url, encoding: .utf8)
     else { preconditionFailure("Missing bundled Markdown post: \(name).md") }
     let post = MarkdownContentParser.parse(source, allowedEmbedHosts: [])

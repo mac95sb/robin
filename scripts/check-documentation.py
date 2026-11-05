@@ -29,18 +29,43 @@ def check():
     build = Path(subprocess.check_output(
         ["swift", "build", "--scratch-path", scratch, "--show-bin-path"], cwd=root, text=True
     ).strip())
-    description = json.loads((build / "description.json").read_text())
     flags = set()
-    # Reuse SwiftPM's SDK, testing framework, C module, and macro search paths.
-    for command in description["swiftCommands"].values():
-        args = command["otherArguments"]
-        for index, flag in enumerate(args[:-1]):
-            value = args[index + 1]
-            if flag in ("-I", "-F", "-sdk", "-plugin-path") and value != "-Xcc":
-                flags.add((flag, value))
-    args = ["swiftc", "-typecheck", "-swift-version", "6", "-I", str(build / "Modules"),
-            "-module-cache-path", str(build / "ModuleCache"),
-            "-load-plugin-executable", str(build / "RobinMacros-tool") + "#RobinMacros"]
+    description_path = build / "description.json"
+    if description_path.exists():
+        description = json.loads(description_path.read_text())
+        # Reuse SwiftPM's SDK, testing framework, C module, and macro search paths.
+        for command in description["swiftCommands"].values():
+            command_args = command["otherArguments"]
+            for index, flag in enumerate(command_args[:-1]):
+                value = command_args[index + 1]
+                if flag in ("-I", "-F", "-sdk", "-plugin-path") and value != "-Xcc":
+                    flags.add((flag, value))
+
+    output = build.parents[1]
+    modules = build / "Modules" if (build / "Modules").exists() else build
+    module_cache = (
+        output / "ModuleCache.noindex"
+        if (output / "ModuleCache.noindex").exists()
+        else build / "ModuleCache"
+    )
+    args = ["swiftc", "-typecheck", "-swift-version", "6", "-I", str(modules),
+            "-module-cache-path", str(module_cache)]
+    if sys.platform == "darwin":
+        platform_path = subprocess.check_output(
+            ["xcrun", "--show-sdk-platform-path"], text=True
+        ).strip()
+        args.extend(["-F", str(Path(platform_path) / "Developer/Library/Frameworks")])
+        swiftc = Path(subprocess.check_output(["xcrun", "--find", "swiftc"], text=True).strip())
+        plugin = swiftc.parents[2] / "usr/lib/swift/host/plugins/testing"
+        server = subprocess.check_output(["xcrun", "--find", "swift-plugin-server"], text=True).strip()
+        if plugin.exists():
+            args.extend(["-external-plugin-path", f"{plugin}#{server}"])
+    macro = next(
+        (path for path in (build / "RobinMacros-tool", build / "RobinMacros") if path.exists()),
+        None,
+    )
+    if macro:
+        args.extend(["-load-plugin-executable", str(macro) + "#RobinMacros"])
     for flag in sorted(flags):
         if flag[0] == "-plugin-path":
             if sys.platform == "darwin":
@@ -58,6 +83,7 @@ def check():
         path for path in build.glob("*.build/module.modulemap")
         if not (build / (path.parent.stem + "-tool.build") / "module.modulemap").exists()
     ]
+    maps += list((output / "Intermediates.noindex/GeneratedModuleMaps").glob("*.modulemap"))
     maps += list((root / "Sources").rglob("module.modulemap"))
     maps += list((scratch / "checkouts").rglob("module.modulemap"))
     for path in sorted(maps):

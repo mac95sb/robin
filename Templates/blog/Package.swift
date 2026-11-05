@@ -30,6 +30,7 @@ let package = Package(
       ],
       resources: [
         .copy("Resources/Localizable.xcstrings"),
+        .copy("Resources/posts"),
         .process("Resources/favicon.png"),
         .process("Resources/social-card.jpg"),
       ],

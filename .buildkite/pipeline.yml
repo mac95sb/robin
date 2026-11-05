@@ -1,0 +1,78 @@
+steps:
+  - label: ":swift: Check (Linux)"
+    key: check-linux
+    agents:
+      queue: linux
+    command:
+      - mise run check
+      - mise run benchmark
+
+  - label: ":swift: Check (macOS)"
+    key: check-macos
+    agents:
+      queue: macos
+    command:
+      - mise run check
+      - mise run benchmark
+
+  - label: ":postgres: PostgreSQL conformance"
+    key: postgres
+    agents:
+      queue: linux
+    command: |
+      set -euo pipefail
+      container="robin-postgres-$$BUILDKITE_BUILD_ID"
+      trap 'docker rm --force "$$container" >/dev/null 2>&1 || true' EXIT
+      docker run --detach --name "$$container" --publish 5432:5432 --env POSTGRES_PASSWORD=robin-test --health-cmd='pg_isready' --health-interval=5s --health-timeout=5s --health-retries=10 postgres:17-alpine
+      for attempt in {1..30}; do
+        if [ "$(docker inspect --format='{{.State.Health.Status}}' "$$container")" = healthy ]; then
+          break
+        fi
+        sleep 2
+      done
+      test "$(docker inspect --format='{{.State.Health.Status}}' "$$container")" = healthy
+      ROBIN_POSTGRES_TESTS=1 PGPASSWORD=robin-test mise run test -- --filter PostgresDatabaseTests
+
+  - label: ":swift: Starter template — blank"
+    agents:
+      queue: linux
+    command: cd Templates/blank && mise run test
+
+  - label: ":swift: Starter template — blog"
+    agents:
+      queue: linux
+    command: cd Templates/blog && mise run test
+
+  - label: ":swift: Starter template — marketing"
+    agents:
+      queue: linux
+    command: cd Templates/marketing && mise run test
+
+  - label: ":swift: Starter template — dashboard"
+    agents:
+      queue: linux
+    command: cd Templates/dashboard && mise run test
+
+  - label: ":swift: Starter template — realtime-chat"
+    agents:
+      queue: linux
+    command: cd Templates/realtime-chat && mise run test
+
+  - label: ":swift: Starter template — api-service"
+    agents:
+      queue: linux
+    command: cd Templates/api-service && mise run test
+
+  - label: ":test_tube: Provider conformance"
+    key: provider-conformance
+    agents:
+      queue: linux
+    command: |
+      set -euo pipefail
+      mkdir -p .robin
+      mise run test -- --filter InvocationRuntimeTests 2>&1 | tee .robin/provider-conformance.log
+      mise run test -- --filter emitsVersionedVercelBuildOutputRoutes 2>&1 | tee -a .robin/provider-conformance.log
+      swift sdk install https://download.swift.org/swift-6.3.3-release/wasm-sdk/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE_wasm.artifactbundle.tar.gz --checksum cabfa08b73bb8ac783927ecd15fa386e99d0c139c5f232445067bcf58379cae7
+      swift build --package-path Tests/ProviderFixtures/WASI --swift-sdk swift-6.3.3-RELEASE_wasm
+      npx --yes vercel@59.10.0 --version
+    artifact_paths: .robin/provider-conformance.log
