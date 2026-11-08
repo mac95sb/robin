@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+#MISE description="Validate reviewed release artifacts and publish a draft-first Forgejo release"
+"""Usage: mise run release-publish -- [--dry-run] vX.Y.Z.
+
+Dry runs are offline and write nothing. Real publication requires a clean checkout
+and FORGEJO_TOKEN. Existing drafts require manual inspection and cleanup; this
+command never overwrites or deletes releases or assets.
+"""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path, PurePosixPath
+import re
+import subprocess
+import sys
+import tarfile
+import urllib.error
+import urllib.request
+import uuid
+
+API = 'https://git.maclong.dev/api/v1/repos/mac/robin'
+PLATFORMS = ('linux-x86_64', 'macos-aarch64')
+ARCHIVES = tuple('robin-' + p + '.tar.gz' for p in PLATFORMS)
+DOCS = 'robin-docs.tar.gz'
+CORE_LANDING = 'reference/RobinCore/documentation/robincore/index.html'
+NUMBER = r'(?:0|[1-9][0-9]*)'
+IDENTIFIER = r'(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+TAG = re.compile(rf'v{NUMBER}\.{NUMBER}\.{NUMBER}(?:-{IDENTIFIER}(?:\.{IDENTIFIER})*)?'
+                 r'(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?')
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def git(root, *arguments):
+    return subprocess.check_output(['git', '--no-pager', '--no-optional-locks', *arguments],
+                                   cwd=root, stderr=subprocess.PIPE)
+
+
+def sha256(path):
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def checksums(path, expected):
+    entries = {}
+    for line in path.read_text(encoding='utf-8').splitlines():
+        match = re.fullmatch(r'([0-9a-fA-F]{64}) [ *]([^/\\]+)', line)
+        require(match is not None, f'Invalid checksum line in {path.name}')
+        digest, name = match.groups()
+        require(name not in entries, f'Duplicate checksum for {name}')
+        entries[name] = digest.lower()
+    require(set(entries) == set(expected), f'Unexpected checksum entries in {path.name}')
+    for name in expected:
+        require(entries[name] == sha256(path.parent / name), f'Checksum mismatch: {name}')
+
+
+def archive_members(bundle):
+    members = {}
+    for member in bundle.getmembers():
+        path = PurePosixPath(member.name)
+        require(not path.is_absolute() and '..' not in path.parts
+                and '\\' not in member.name and (member.isfile() or member.isdir()),
+                f'Unsafe archive member: {member.name}')
+        name = str(path)
+        require(name not in members, f'Duplicate archive member: {name}')
+        members[name] = member
+    return members
+
+
+def verify_archive(path, tag, commit, platform=None):
+    with tarfile.open(path, 'r:gz') as bundle:
+        members = archive_members(bundle)
+
+        def content(name):
+            require(name in members and members[name].isfile() and members[name].size > 0,
+                    f'{path.name}: missing or empty {name}')
+            return bundle.extractfile(members[name]).read()
+
+        if platform is None:
+            content('index.html')
+            content(CORE_LANDING)
+            return
+        metadata = json.loads(content('release.json'))
+        require(isinstance(metadata, dict), f'{path.name}: invalid release.json')
+        for key, expected in [('version', tag), ('commit', commit), ('platform', platform)]:
+            require(metadata.get(key) == expected, f'{path.name}: provenance {key} mismatch')
+        require(metadata.get('publishable') is True, f'{path.name}: local/non-publishable archive')
+        content('robin')
+        content('Source/Package.swift')
+        content('Source/Package.resolved')
+        require(any(name.startswith('Templates/') and member.isfile()
+                    for name, member in members.items()), f'{path.name}: missing Templates')
+        # Same path + NUL + file SHA256 algorithm as release-smoke.source_digest,
+        # but read directly from the tar so even dry runs need no extraction/writes.
+        digest = hashlib.sha256()
+        for name in sorted(members, key=PurePosixPath):
+            relative = PurePosixPath(name).relative_to('Source') if name.startswith('Source/') else None
+            member = members[name]
+            if relative is not None and member.isfile():
+                require(not {'.build', '.swiftpm'}.intersection(relative.parts),
+                        f'{path.name}: source contains build caches')
+                digest.update(str(relative).encode() + b'\0')
+                digest.update(hashlib.sha256(bundle.extractfile(member).read()).digest())
+        require(digest.hexdigest() == metadata.get('source_sha256'),
+                f'{path.name}: source digest mismatch')
+        return digest.hexdigest()
+
+
+def validate(root, tag, dry_run=False):
+    require(TAG.fullmatch(tag) is not None, 'Expected a v-prefixed semantic release version')
+    commit = git(root, 'rev-parse', 'HEAD').decode().strip()
+    tagged = git(root, 'rev-parse', '--verify', f'refs/tags/{tag}^{{commit}}').decode().strip()
+    require(tagged == commit, 'Release tag must point at HEAD')
+    if not dry_run:
+        require(not git(root, 'status', '--porcelain', '--untracked-files=all'),
+                'Publishing requires a clean checkout, including untracked files')
+    notes_name = f'.forgejo/workflows/release-notes/{tag}.md'
+    git(root, 'ls-files', '--error-unmatch', '--', notes_name)
+    committed = git(root, 'show', f'HEAD:{notes_name}')
+    require(committed.decode('utf-8').strip(), 'Reviewed release notes are empty')
+    require(git(root, 'show', f':{notes_name}') == committed,
+            'Reviewed release notes index differs from HEAD')
+    require((root / notes_name).read_bytes() == committed,
+            'Reviewed release notes working copy differs from HEAD')
+    directory = root / '.robin/releases'
+    names = (*ARCHIVES, DOCS, *(name + '.sha256' for name in ARCHIVES), 'SHA256SUMS', tag + '.md')
+    require(not directory.is_symlink(), 'Release directory must not be a symlink')
+    require({p.name for p in directory.iterdir()} == set(names),
+            'Release directory must contain only the two native archives, their checksums, '
+            'docs archive, SHA256SUMS, and reviewed tag notes (no local archives or extras)')
+    assets = [directory / name for name in names]
+    require(all(p.is_file() and not p.is_symlink() for p in assets),
+            'Release assets must be regular files, not symlinks')
+    require((directory / (tag + '.md')).read_bytes() == committed,
+            'Staged release notes differ from committed reviewed notes')
+    checksums(directory / 'SHA256SUMS', (*ARCHIVES, DOCS))
+    for name in ARCHIVES:
+        checksums(directory / (name + '.sha256'), (name,))
+    digests = [verify_archive(directory / name, tag, commit, platform)
+               for name, platform in zip(ARCHIVES, PLATFORMS)]
+    require(len(set(digests)) == 1, 'Native archives contain different source snapshots')
+    verify_archive(directory / DOCS, tag, commit)
+    return dict(tag_name=tag, target_commitish=commit, name=tag, body=committed.decode('utf-8'),
+                draft=True, prerelease='-' in tag.split('+', 1)[0]), assets
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, message, headers, newurl):
+        raise ValueError('Forgejo redirected the request; refusing to forward the token')
+
+
+class Forgejo:
+    def __init__(self, token):
+        self.token = token
+        self.opener = urllib.request.build_opener(NoRedirect())
+
+    def request(self, method, path, payload=None, asset=None):
+        headers = {'Authorization': 'token ' + self.token, 'Accept': 'application/json'}
+        data = None
+        if asset is not None:
+            boundary = uuid.uuid4().hex
+            headers['Content-Type'] = 'multipart/form-data; boundary=' + boundary
+            data = (f'--{boundary}\r\nContent-Disposition: form-data; name="attachment"; '
+                    f'filename="{asset.name}"\r\nContent-Type: application/octet-stream\r\n\r\n').encode()
+            data += asset.read_bytes() + f'\r\n--{boundary}--\r\n'.encode()
+        elif payload is not None:
+            headers['Content-Type'] = 'application/json'
+            data = json.dumps(payload).encode()
+        request = urllib.request.Request(API + path, data=data, headers=headers, method=method)
+        try:
+            with self.opener.open(request, timeout=120) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as error:
+            if method == 'GET' and error.code == 404:
+                return None
+            # Do not print response bodies: upstream diagnostics may contain secrets.
+            raise ValueError(f'Forgejo {method} {path} failed: HTTP {error.code}') from None
+
+
+def publish(payload, assets, client):
+    existing = client.request('GET', '/releases/tags/' + payload['tag_name'])
+    require(existing is None, 'Release already exists (draft or finalized); immutable publication '
+            'refused. Inspect it in Forgejo; clean up an incomplete draft manually before retrying')
+    release_id = None
+    try:
+        release = client.request('POST', '/releases', payload=payload)
+        require(release.get('draft') is True and type(release.get('id')) is int,
+                'Forgejo did not confirm a draft release')
+        release_id = release['id']
+        for asset in assets:
+            uploaded = client.request('POST', f'/releases/{release_id}/assets', asset=asset)
+            require(uploaded.get('name') == asset.name and uploaded.get('size') == asset.stat().st_size,
+                    f'Forgejo did not confirm upload of {asset.name}')
+        finalized = client.request('PATCH', f'/releases/{release_id}', payload={'draft': False})
+        require(finalized.get('draft') is False, 'Forgejo did not confirm finalization')
+    except Exception as error:
+        location = f'draft {release_id}' if release_id is not None else 'release creation'
+        raise ValueError(f'Publication failed during {location}: {error}. No cleanup was attempted. '
+                         'Inspect Forgejo before retrying; uploaded assets remain in the draft. '
+                         'If finalization was attempted, verify its remote status first.') from None
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('tag')
+    args = parser.parse_args(argv)
+    root = Path(__file__).resolve().parents[2]
+    try:
+        payload, assets = validate(root, args.tag, args.dry_run)
+        if args.dry_run:
+            print(f'Validated {args.tag}: {len(assets)} assets; offline dry run, no writes')
+            return 0
+        token = os.environ.get('FORGEJO_TOKEN', '').strip()
+        require(token, 'FORGEJO_TOKEN is required for publication (not for --dry-run)')
+        publish(payload, assets, Forgejo(token))
+        print(f'Published {args.tag} to https://git.maclong.dev/mac/robin/releases')
+        return 0
+    except (ValueError, OSError, subprocess.CalledProcessError, tarfile.TarError) as error:
+        print(f'release-publish: {error}', file=sys.stderr)
+        return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -1,0 +1,319 @@
+#!/usr/bin/env python3
+#MISE description="Test release publication offline with fixture archives and mocked Forgejo"
+import contextlib
+import hashlib
+import io
+import json
+import os
+from pathlib import Path
+import runpy
+import subprocess
+import tarfile
+import tempfile
+import unittest
+from unittest.mock import Mock, patch
+import urllib.error
+
+TASKS = Path(__file__).resolve().parent
+PUBLISH = runpy.run_path(str(TASKS / 'release-publish'))
+SMOKE = runpy.run_path(str(TASKS / 'release-smoke'))
+GLOBALS = PUBLISH['validate'].__globals__
+TAG = 'v1.2.3'
+COMMIT = 'a' * 40
+NOTES = b'# Reviewed release\n\nApproved changes.\n'
+
+
+class PublishTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.directory = self.root / '.robin/releases'
+        self.directory.mkdir(parents=True)
+        self.notes_path = self.root / '.forgejo/workflows/release-notes' / (TAG + '.md')
+        self.notes_path.parent.mkdir(parents=True)
+        self.notes_path.write_bytes(NOTES)
+        (self.directory / (TAG + '.md')).write_bytes(NOTES)
+        self.source = self.root / 'source'
+        self.source.mkdir()
+        for name, data in [('Package.swift', b'// fixture'), ('Package.resolved', b'{}'),
+                           ('Sources/A.swift', b'let a = 1'), ('Sources/A/File.swift', b'let b = 2')]:
+            path = self.source / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        self.metadata = dict(version=TAG, commit=COMMIT, publishable=True,
+                             source_sha256=SMOKE['source_digest'](self.source))
+        self.native()
+        self.docs()
+        self.checksums()
+        self.git_mock = Mock(side_effect=self.git)
+        self.addCleanup(patch.stopall)
+        patch.dict(GLOBALS, git=self.git_mock).start()
+
+    def git(self, root, *arguments):
+        self.assertEqual(root, self.root)
+        if arguments == ('rev-parse', 'HEAD') or arguments == (
+                'rev-parse', '--verify', f'refs/tags/{TAG}^{{commit}}'):
+            return (COMMIT + '\n').encode()
+        if arguments == ('status', '--porcelain', '--untracked-files=all'):
+            return b''
+        if arguments == ('ls-files', '--error-unmatch', '--', str(self.notes_path.relative_to(self.root))):
+            return str(self.notes_path).encode()
+        if arguments in [('show', 'HEAD:' + str(self.notes_path.relative_to(self.root))),
+                         ('show', ':' + str(self.notes_path.relative_to(self.root)))]:
+            return NOTES
+        self.fail(f'Unexpected git command: {arguments}')
+
+    def tar(self, name, files, unsafe=None):
+        with tarfile.open(self.directory / name, 'w:gz') as bundle:
+            for path, content in files.items():
+                member = tarfile.TarInfo(path)
+                member.size = len(content)
+                bundle.addfile(member, io.BytesIO(content))
+            if unsafe is not None:
+                bundle.addfile(unsafe)
+
+    def native(self, **changes):
+        for platform, name in zip(PUBLISH['PLATFORMS'], PUBLISH['ARCHIVES']):
+            metadata = dict(self.metadata, platform=platform, **changes)
+            files = {'./release.json': json.dumps(metadata).encode(), './robin': b'binary',
+                     './Templates/blank/Package.swift': b'fixture'}
+            for path in self.source.rglob('*'):
+                if path.is_file():
+                    files['./Source/' + str(path.relative_to(self.source))] = path.read_bytes()
+            self.tar(name, files)
+
+    def docs(self, files=None, unsafe=None):
+        self.tar(PUBLISH['DOCS'], files if files is not None else {
+            './index.html': b'<html>Robin</html>', './' + PUBLISH['CORE_LANDING']: b'<html>Core</html>'},
+            unsafe)
+
+    def checksums(self):
+        entries = []
+        for name in (*PUBLISH['ARCHIVES'], PUBLISH['DOCS']):
+            line = hashlib.sha256((self.directory / name).read_bytes()).hexdigest() + '  ' + name + '\n'
+            entries.append(line)
+            if name in PUBLISH['ARCHIVES']:
+                (self.directory / (name + '.sha256')).write_text(line)
+        (self.directory / 'SHA256SUMS').write_text(''.join(entries))
+
+    def validate(self, dry_run=True):
+        return PUBLISH['validate'](self.root, TAG, dry_run)
+
+    def test_valid_offline_dry_run_has_no_writes_or_token_or_api(self):
+        before = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in self.root.rglob('*') if p.is_file()}
+        with patch.dict(GLOBALS, validate=lambda root, tag, dry: self.validate(dry),
+                        Forgejo=Mock(side_effect=AssertionError('Network forbidden'))), \
+                patch.dict(os.environ, {}, clear=True), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(PUBLISH['main'](['--dry-run', TAG]), 0)
+        after = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in self.root.rglob('*') if p.is_file()}
+        self.assertEqual(before, after)
+        self.assertFalse(any(call.args[1] == 'status' for call in self.git_mock.call_args_list))
+
+    def test_checksum_tamper(self):
+        for name in (*PUBLISH['ARCHIVES'], PUBLISH['DOCS']):
+            path = self.directory / name
+            original = path.read_bytes()
+            path.write_bytes(original + b'tamper')
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'Checksum mismatch'):
+                self.validate()
+            path.write_bytes(original)
+        path = self.directory / (PUBLISH['ARCHIVES'][0] + '.sha256')
+        path.write_text('0' * 64 + '  ' + PUBLISH['ARCHIVES'][0] + '\n')
+        with self.assertRaisesRegex(ValueError, 'Checksum mismatch'):
+            self.validate()
+
+    def test_checksum_entries_are_exact(self):
+        path = self.directory / 'SHA256SUMS'
+        original = path.read_text()
+        for bad in [original + original.splitlines()[0] + '\n',
+                    original.replace(PUBLISH['DOCS'], '../' + PUBLISH['DOCS']),
+                    original.splitlines()[0] + '\n']:
+            path.write_text(bad)
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                self.validate()
+
+    def test_provenance_rejected_even_with_updated_checksums(self):
+        for field, value in [('version', 'v0.0.1'), ('version', 'local-abc'), ('commit', 'b' * 40),
+                             ('publishable', False), ('publishable', 'true'),
+                             ('source_sha256', '0' * 64)]:
+            self.native(**{field: value})
+            self.checksums()
+            with self.subTest(field=field, value=value), self.assertRaisesRegex(ValueError, 'provenance|publishable|digest'):
+                self.validate()
+        self.native()
+        name = PUBLISH['ARCHIVES'][0]
+        PUBLISH['verify_archive'](self.directory / name, TAG, COMMIT, 'linux-x86_64')
+        with self.assertRaisesRegex(ValueError, 'platform mismatch'):
+            PUBLISH['verify_archive'](self.directory / name, TAG, COMMIT, 'macos-aarch64')
+
+    def test_docs_required_and_safe(self):
+        for name, kind in [('../escape', tarfile.REGTYPE), ('/absolute', tarfile.REGTYPE),
+                           ('link', tarfile.SYMTYPE), ('hardlink', tarfile.LNKTYPE),
+                           ('device', tarfile.CHRTYPE)]:
+            member = tarfile.TarInfo(name)
+            member.type = kind
+            self.docs(unsafe=member)
+            self.checksums()
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'Unsafe'):
+                self.validate()
+        self.docs({'index.html': b'fixture'})
+        self.checksums()
+        with self.assertRaisesRegex(ValueError, 'missing or empty'):
+            self.validate()
+        (self.directory / PUBLISH['DOCS']).unlink()
+        with self.assertRaisesRegex(ValueError, 'must contain only'):
+            self.validate()
+
+    def test_extra_local_and_symlink_assets_rejected(self):
+        for name in ['robin-local-linux-x86_64.tar.gz', 'unexpected.txt']:
+            extra = self.directory / name
+            extra.write_text('extra')
+            with self.assertRaisesRegex(ValueError, 'no local archives or extras'):
+                self.validate()
+            extra.unlink()
+        archive = self.directory / PUBLISH['ARCHIVES'][0]
+        archive.unlink()
+        archive.symlink_to(self.notes_path)
+        with self.assertRaisesRegex(ValueError, 'regular files'):
+            self.validate()
+
+    def test_tag_validation(self):
+        for tag in ['main', 'v01.2.3', 'v1.2', 'v1.2.3-01', 'v1.2.3-rc..1', 'v1.2.3\n']:
+            with self.subTest(tag=tag), self.assertRaisesRegex(ValueError, 'semantic release'):
+                PUBLISH['validate'](self.root, tag, True)
+        original = self.git
+        self.git_mock.side_effect = lambda root, *args: b'b' * 40 if args[:2] == (
+            'rev-parse', '--verify') else original(root, *args)
+        with self.assertRaisesRegex(ValueError, 'tag must point at HEAD'):
+            self.validate()
+
+    def test_reviewed_notes_must_match_head_index_worktree_and_staging(self):
+        for path in [self.notes_path, self.directory / (TAG + '.md')]:
+            path.write_bytes(b'unreviewed')
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, 'notes.*differ'):
+                self.validate()
+            path.write_bytes(NOTES)
+        original = self.git
+        self.git_mock.side_effect = lambda root, *args: b'index edits' if args[0] == 'show' and args[1].startswith(':') else original(root, *args)
+        with self.assertRaisesRegex(ValueError, 'index differs'):
+            self.validate()
+        self.git_mock.side_effect = lambda root, *args: (_ for _ in ()).throw(
+            subprocess.CalledProcessError(1, ['git'])) if args[0] == 'ls-files' else original(root, *args)
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.validate()
+
+    def test_real_publish_requires_clean_including_untracked(self):
+        original = self.git
+        for status in [b' M Sources/File.swift\n', b'?? new-file\n']:
+            self.git_mock.side_effect = lambda root, *args: status if args[0] == 'status' else original(root, *args)
+            with self.assertRaisesRegex(ValueError, 'clean checkout, including untracked'):
+                self.validate(False)
+
+    def test_payload_and_prerelease_classification(self):
+        payload, assets = self.validate()
+        self.assertEqual(payload, dict(tag_name=TAG, target_commitish=COMMIT, name=TAG,
+                                       body=NOTES.decode(), draft=True, prerelease=False))
+        self.assertEqual(len(assets), 7)
+        for tag, expected in [('v1.2.3', False), ('v1.2.3-rc.1', True),
+                              ('v1.2.3+build-5', False), ('v1.2.3-0+build.5', True)]:
+            # Exercise the full validator with renamed note paths and matching metadata.
+            self.metadata['version'] = tag
+            self.native()
+            self.checksums()
+            old_notes = self.notes_path
+            self.notes_path = old_notes.with_name(tag + '.md')
+            old_notes.rename(self.notes_path)
+            (self.directory / (TAG + '.md')).rename(self.directory / (tag + '.md'))
+            with patch.dict(GLOBALS, git=lambda root, *args: (COMMIT + '\n').encode()
+                            if args[0] == 'rev-parse' else NOTES):
+                result, _ = PUBLISH['validate'](self.root, tag, True)
+            self.assertEqual(result['prerelease'], expected)
+            self.notes_path.rename(old_notes)
+            self.notes_path = old_notes
+            (self.directory / (tag + '.md')).rename(self.directory / (TAG + '.md'))
+
+    def client(self, fail_upload=None):
+        client = Mock()
+        count = 0
+
+        def request(method, path, payload=None, asset=None):
+            nonlocal count
+            if method == 'GET':
+                return None
+            if path == '/releases':
+                self.assertIs(payload['draft'], True)
+                return {'id': 42, 'draft': True}
+            if asset is not None:
+                count += 1
+                if count == fail_upload:
+                    raise OSError('simulated upload failure')
+                return {'name': asset.name, 'size': asset.stat().st_size}
+            self.assertEqual((method, path, payload), ('PATCH', '/releases/42', {'draft': False}))
+            return {'draft': False}
+
+        client.request.side_effect = request
+        return client
+
+    def test_draft_upload_then_finalize_last(self):
+        payload, assets = self.validate()
+        client = self.client()
+        PUBLISH['publish'](payload, assets, client)
+        calls = client.request.call_args_list
+        self.assertEqual([call.args[0] for call in calls], ['GET', 'POST'] + ['POST'] * 7 + ['PATCH'])
+        self.assertEqual([call.kwargs['asset'] for call in calls[2:-1]], assets)
+
+    def test_partial_upload_never_finalizes_or_cleans_up(self):
+        payload, assets = self.validate()
+        for failure in range(1, len(assets) + 1):
+            client = self.client(failure)
+            with self.subTest(failure=failure), self.assertRaisesRegex(ValueError, 'draft 42.*No cleanup'):
+                PUBLISH['publish'](payload, assets, client)
+            self.assertFalse(any(call.args[0] in ('PATCH', 'DELETE') for call in client.request.call_args_list))
+
+    def test_existing_draft_or_finalized_release_refused(self):
+        payload, assets = self.validate()
+        for draft in [True, False]:
+            client = Mock()
+            client.request.return_value = {'id': 42, 'draft': draft}
+            with self.assertRaisesRegex(ValueError, 'already exists'):
+                PUBLISH['publish'](payload, assets, client)
+            client.request.assert_called_once()
+
+    def test_unconfirmed_upload_never_finalizes(self):
+        payload, assets = self.validate()
+        client = Mock()
+        client.request.side_effect = [None, {'id': 42, 'draft': True}, {'name': 'wrong', 'size': 0}]
+        with self.assertRaisesRegex(ValueError, 'did not confirm upload'):
+            PUBLISH['publish'](payload, assets, client)
+        self.assertEqual(client.request.call_count, 3)
+
+    def test_http_payload_token_multipart_and_404(self):
+        client = PUBLISH['Forgejo']('test-token')
+        response = Mock()
+        response.read.return_value = b'{"id": 42}'
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=False)
+        client.opener = Mock()
+        client.opener.open.return_value = response
+        client.request('POST', '/releases', payload={'draft': True, 'prerelease': False})
+        request = client.opener.open.call_args.args[0]
+        self.assertEqual(request.full_url, PUBLISH['API'] + '/releases')
+        self.assertEqual(request.get_header('Authorization'), 'token test-token')
+        self.assertEqual(json.loads(request.data), {'draft': True, 'prerelease': False})
+        asset = self.directory / (TAG + '.md')
+        client.request('POST', '/releases/42/assets', asset=asset)
+        request = client.opener.open.call_args.args[0]
+        self.assertIn(b'name="attachment"', request.data)
+        self.assertIn(NOTES, request.data)
+        error = urllib.error.HTTPError(PUBLISH['API'], 404, 'Not found', {}, None)
+        client.opener.open.side_effect = error
+        self.assertIsNone(client.request('GET', '/releases/tags/' + TAG))
+        with self.assertRaisesRegex(ValueError, 'HTTP 404'):
+            client.request('POST', '/releases', payload={})
+        with self.assertRaisesRegex(ValueError, 'refusing to forward'):
+            PUBLISH['NoRedirect']().redirect_request(None, None, 302, '', {}, 'https://other.example')
+
+
+if __name__ == '__main__':
+    unittest.main()

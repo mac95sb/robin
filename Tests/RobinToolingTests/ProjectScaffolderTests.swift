@@ -33,7 +33,8 @@ struct ProjectScaffolderTests {
       contentsOf: destination.appendingPathComponent("Package.swift"), encoding: .utf8)
     #expect(package.contains("name: \"Example\""))
     #expect(!package.contains("__PROJECT__"))
-    #expect(package.contains("https://github.com/mac95sb/robin.git"))
+    #expect(
+      package.contains(#".package(url: "https://git.maclong.dev/mac/robin.git", branch: "main")"#))
     #expect(package.contains("https://github.com/swiftlang/swift-docc-plugin.git"))
     #expect(package.contains("RobinTheme"))
     #expect(!package.contains(#".package(name: "robin", path: "../..")"#))
@@ -214,6 +215,91 @@ struct ProjectScaffolderTests {
     #expect(
       try String(contentsOf: destination.appendingPathComponent("marker.txt"), encoding: .utf8)
         == "bundled Installed")
+  }
+
+  @Test(arguments: [
+    ("v1.0.0", "from", "1.0.0"),
+    ("v1.1.0-rc.1", "exact", "1.1.0-rc.1"),
+    ("v1.1.0-0+build.5", "exact", "1.1.0-0+build.5"),
+    ("1.2.3+build.5", "from", "1.2.3+build.5"),
+  ])
+  func usesPackagedReleaseVersion(version: String, requirement: String, expected: String) throws {
+    let installation = temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: installation) }
+    let data = try JSONSerialization.data(withJSONObject: ["version": version, "publishable": true])
+    try data.write(to: installation.appendingPathComponent("release.json"))
+    let package = try generatedPackage(executableURL: installation.appendingPathComponent("robin"))
+    #expect(
+      package.contains(
+        #".package(url: "https://git.maclong.dev/mac/robin.git", \#(requirement): "\#(expected)")"#)
+    )
+    #expect(!package.contains("branch: \"main\""))
+  }
+
+  @Test(arguments: [
+    "{", #"{"version":"v1.0.0"}"#, #"{"version":"v1.0.0","publishable":"true"}"#,
+    #"{"version":"main","publishable":true}"#,
+    #"{"version":"v01.0.0","publishable":true}"#,
+    #"{"version":"v1.0","publishable":true}"#,
+    #"{"version":"v1.0.0-01","publishable":true}"#,
+    #"{"version":"v1.0.0-rc..1","publishable":true}"#,
+    #"{"version":"v1.0.0\n","publishable":true}"#,
+    #"{"version":"v1.0.0\"), branch: \"main","publishable":true}"#,
+  ])
+  func rejectsMalformedReleaseMetadata(_ metadata: String) throws {
+    let installation = temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: installation) }
+    let metadataURL = installation.appendingPathComponent("release.json")
+    try Data(metadata.utf8).write(to: metadataURL)
+    #expect(throws: ProjectScaffolderError.invalidReleaseMetadata(metadataURL.path)) {
+      try generatedPackage(executableURL: installation.appendingPathComponent("robin"))
+    }
+  }
+
+  @Test(arguments: ["local-abc", "v1.0.0"])
+  func unpublishableBuildUsesDevelopmentDependency(_ version: String) throws {
+    let installation = temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: installation) }
+    let data = try JSONSerialization.data(withJSONObject: [
+      "version": version, "publishable": false,
+    ])
+    try data.write(to: installation.appendingPathComponent("release.json"))
+    let package = try generatedPackage(executableURL: installation.appendingPathComponent("robin"))
+    #expect(
+      package.contains(#".package(url: "https://git.maclong.dev/mac/robin.git", branch: "main")"#))
+  }
+
+  @Test func developmentIgnoresProjectRootReleaseMetadata() throws {
+    let root = temporaryDirectory()
+    let installation = temporaryDirectory()
+    defer {
+      try? FileManager.default.removeItem(at: root)
+      try? FileManager.default.removeItem(at: installation)
+    }
+    try Data(#"{"version":"v9.9.9","publishable":true}"#.utf8)
+      .write(to: root.appendingPathComponent("release.json"))
+    for executableURL in [nil, installation.appendingPathComponent("robin")] as [URL?] {
+      let destination = try ProjectScaffolder.create(
+        name: executableURL == nil ? "NoExecutable" : "Development", template: .blank,
+        templatesDirectory: repositoryRoot.appendingPathComponent("Templates"),
+        projectRoot: root, environment: [:], executableURL: executableURL)
+      let package = try String(
+        contentsOf: destination.appendingPathComponent("Package.swift"), encoding: .utf8)
+      #expect(
+        package.contains(#".package(url: "https://git.maclong.dev/mac/robin.git", branch: "main")"#)
+      )
+    }
+  }
+
+  private func generatedPackage(executableURL: URL) throws -> String {
+    let root = temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let destination = try ProjectScaffolder.create(
+      name: "Release", template: .blank,
+      templatesDirectory: repositoryRoot.appendingPathComponent("Templates"),
+      projectRoot: root, environment: [:], executableURL: executableURL)
+    return try String(
+      contentsOf: destination.appendingPathComponent("Package.swift"), encoding: .utf8)
   }
 
   private var repositoryRoot: URL {

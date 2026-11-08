@@ -1,0 +1,220 @@
+#!/usr/bin/env swift
+import Foundation
+
+struct TaskFailure: Error, CustomStringConvertible {
+  let description: String
+}
+
+func run(_ executable: String, _ arguments: [String], cwd: URL? = nil) throws -> (
+  Int32, String, String
+) {
+  let process = Process()
+  process.executableURL = URL(fileURLWithPath: executable)
+  process.arguments = arguments
+  process.currentDirectoryURL = cwd
+  let out = Pipe()
+  let err = Pipe()
+  process.standardOutput = out
+  process.standardError = err
+  try process.run()
+  let output = out.fileHandleForReading.readDataToEndOfFile()
+  let error = err.fileHandleForReading.readDataToEndOfFile()
+  process.waitUntilExit()
+  return (
+    process.terminationStatus, String(decoding: output, as: UTF8.self),
+    String(decoding: error, as: UTF8.self)
+  )
+}
+
+func executable(_ name: String) throws -> String {
+  let result = try run("/usr/bin/which", [name])
+  guard result.0 == 0, let path = result.1.split(whereSeparator: { $0.isNewline }).first else {
+    throw TaskFailure(description: "Could not find \(name) in PATH")
+  }
+  return String(path)
+}
+
+func files(_ directory: URL, extension fileExtension: String) -> [URL] {
+  guard
+    let enumerator = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: nil)
+  else { return [] }
+  return enumerator.compactMap { $0 as? URL }.filter { $0.pathExtension == fileExtension }
+}
+
+func tutorialErrors(_ page: [String: Any]) -> [String] {
+  var errors: [String] = []
+  let references = page["references"] as? [String: Any] ?? [:]
+  for section in page["sections"] as? [[String: Any]] ?? [] {
+    for task in section["tasks"] as? [[String: Any]] ?? [] {
+      if (task["contentSection"] as? [Any] ?? []).isEmpty {
+        errors.append("tutorial section has no introduction")
+      }
+      let steps = task["stepsSection"] as? [[String: Any]] ?? []
+      if steps.isEmpty { errors.append("tutorial section has no steps") }
+      for step in steps {
+        if let code = step["code"] as? String, references[code] == nil {
+          errors.append("missing code reference: \(code)")
+        }
+      }
+    }
+  }
+  return errors
+}
+
+func check(root: URL) throws {
+  let swift = try executable("swift")
+  let scratch = root.appending(path: ".build/docs")
+  let build = try run(
+    swift, ["build", "--scratch-path", scratch.path, "--show-bin-path"], cwd: root)
+  guard build.0 == 0 else { throw TaskFailure(description: build.2) }
+  let bin = URL(fileURLWithPath: build.1.trimmingCharacters(in: .whitespacesAndNewlines))
+  let output = bin.deletingLastPathComponent().deletingLastPathComponent()
+  let descriptionURL = bin.appending(path: "description.json")
+  var flags = Set<[String]>()
+  if let data = try? Data(contentsOf: descriptionURL),
+    let description = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+    let commands = description["swiftCommands"] as? [String: [String: Any]]
+  {
+    for command in commands.values {
+      let args = command["otherArguments"] as? [String] ?? []
+      for index in 0..<max(args.count - 1, 0)
+      where ["-I", "-F", "-sdk", "-plugin-path"].contains(args[index]) {
+        if args[index + 1] != "-Xcc" { flags.insert([args[index], args[index + 1]]) }
+      }
+    }
+  }
+  let moduleDir = bin.appending(path: "Modules")
+  let modules = FileManager.default.fileExists(atPath: moduleDir.path) ? moduleDir : bin
+  let cacheCandidates = [
+    output.appending(path: "ModuleCache.noindex"), bin.appending(path: "ModuleCache"),
+  ]
+  let moduleCache =
+    cacheCandidates.first { FileManager.default.fileExists(atPath: $0.path) } ?? cacheCandidates[1]
+  var base = [
+    "-typecheck", "-swift-version", "6", "-I", modules.path, "-module-cache-path", moduleCache.path,
+  ]
+  #if os(macOS)
+    let xcrun = try executable("xcrun")
+    let sdk = try run(xcrun, ["--show-sdk-platform-path"])
+    let compiler = try run(xcrun, ["--find", "swiftc"])
+    let pluginServer = try run(xcrun, ["--find", "swift-plugin-server"])
+    if sdk.0 == 0 {
+      base += [
+        "-F",
+        URL(fileURLWithPath: sdk.1.trimmingCharacters(in: .whitespacesAndNewlines)).appending(
+          path: "Developer/Library/Frameworks"
+        ).path,
+      ]
+    }
+    if compiler.0 == 0, pluginServer.0 == 0 {
+      let plugin = URL(fileURLWithPath: compiler.1.trimmingCharacters(in: .whitespacesAndNewlines))
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        .appending(path: "usr/lib/swift/host/plugins/testing")
+      if FileManager.default.fileExists(atPath: plugin.path) {
+        base += [
+          "-external-plugin-path",
+          "\(plugin.path)#\(pluginServer.1.trimmingCharacters(in: .whitespacesAndNewlines))",
+        ]
+      }
+    }
+  #endif
+  let macros = [bin.appending(path: "RobinMacros-tool"), bin.appending(path: "RobinMacros")]
+  if let macro = macros.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+    base += ["-load-plugin-executable", "\(macro.path)#RobinMacros"]
+  }
+  for flag in flags.sorted(by: { $0.joined() < $1.joined() }) {
+    if flag[0] == "-plugin-path" {
+      #if os(macOS)
+        let server = try run(try executable("xcrun"), ["--find", "swift-plugin-server"]).1
+          .trimmingCharacters(in: .whitespacesAndNewlines)
+      #else
+        let server = try executable("swift-plugin-server")
+      #endif
+      base += ["-external-plugin-path", "\(flag[1])#\(server)"]
+    } else {
+      base += flag
+    }
+  }
+  let sourceRoot = root.appending(path: "Sources")
+  let checkoutRoot = scratch.appending(path: "checkouts")
+  let generatedMapRoot = output.appending(path: "Intermediates.noindex/GeneratedModuleMaps")
+  let buildMaps = files(bin, extension: "modulemap").filter { $0.path.contains(".build/") }
+  let hostMaps = buildMaps.filter {
+    $0.deletingLastPathComponent().lastPathComponent.hasSuffix("-tool.build")
+  }
+  let targetMaps = buildMaps.filter { map in
+    let parent = map.deletingLastPathComponent()
+    guard parent.lastPathComponent.hasSuffix(".build") else { return false }
+    let toolModuleMap = bin.appending(
+      path: parent.lastPathComponent.replacingOccurrences(of: ".build", with: "-tool.build")
+    ).appending(path: "module.modulemap")
+    return !FileManager.default.fileExists(atPath: toolModuleMap.path)
+  }
+  let moduleMaps =
+    hostMaps + targetMaps + files(generatedMapRoot, extension: "modulemap")
+    + files(sourceRoot, extension: "modulemap") + files(checkoutRoot, extension: "modulemap")
+  for moduleMap in moduleMaps.sorted(by: { $0.path < $1.path }) {
+    base += ["-Xcc", "-fmodule-map-file=\(moduleMap.path)"]
+  }
+  base += ["-Xcc", "-I\(checkoutRoot.appending(path: "swift-cmark/src/include").path)"]
+  let samples = files(sourceRoot, extension: "swift").filter {
+    $0.path.contains("Documentation.docc/")
+  }.sorted { $0.path < $1.path }
+  let swiftc = try executable("swiftc")
+  var failures: [String] = []
+  for sample in samples {
+    let source = try String(contentsOf: sample, encoding: .utf8)
+    let result = try run(
+      swiftc, base + (source.contains("@main") ? ["-parse-as-library"] : []) + [sample.path],
+      cwd: root)
+    if result.0 != 0 {
+      failures.append(
+        "\(sample.path.replacingOccurrences(of: root.path + "/", with: "")):\n\(result.2)")
+    }
+  }
+  let tutorialRoot = root.appending(path: ".robin/site/reference")
+  let tutorials = files(tutorialRoot, extension: "json").filter {
+    $0.path.contains("/data/tutorials/")
+  }.sorted { $0.path < $1.path }
+  if tutorials.isEmpty { failures.append("No rendered tutorials found; run mise run docs first.") }
+  for url in tutorials {
+    guard let data = try? Data(contentsOf: url),
+      let page = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    else {
+      failures.append("\(url.path): invalid tutorial JSON")
+      continue
+    }
+    failures += tutorialErrors(page).map {
+      "\(url.path.replacingOccurrences(of: root.path + "/", with: "")): \($0)"
+    }
+  }
+  guard failures.isEmpty else { throw TaskFailure(description: failures.joined(separator: "\n")) }
+  print("Checked \(samples.count) Swift samples and \(tutorials.count) tutorial pages.")
+}
+
+let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+do {
+  if CommandLine.arguments.contains("--self-test") {
+    let missingIntro: [String: Any] = [
+      "sections": [["tasks": [["contentSection": [], "stepsSection": []]]]]
+    ]
+    let valid: [String: Any] = [
+      "sections": [
+        ["tasks": [["contentSection": [["content": []]], "stepsSection": [["code": "sample"]]]]]
+      ], "references": ["sample": [:]],
+    ]
+    let missingCode: [String: Any] = [
+      "sections": [
+        ["tasks": [["contentSection": [[String: Any]()], "stepsSection": [["code": "missing"]]]]]
+      ]
+    ]
+    precondition(!tutorialErrors(missingIntro).isEmpty)
+    precondition(tutorialErrors(valid).isEmpty)
+    precondition(!tutorialErrors(missingCode).isEmpty)
+  } else {
+    try check(root: root)
+  }
+} catch {
+  fputs("\(error)\n", stderr)
+  exit(1)
+}

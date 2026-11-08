@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#MISE description="Generate the client-state fixture and test Chromium state/navigation; CI adds --install-deps"
+set -euo pipefail
+install_deps=false
+case "${1:-}" in
+  --install-deps) [[ $# == 1 ]] || exit 2; install_deps=true ;;
+  '') [[ $# == 0 ]] || exit 2 ;;
+  *) echo 'Usage: mise run browser-test -- [--install-deps]' >&2; exit 2 ;;
+esac
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+# All generated dependencies and browser downloads stay under ignored output.
+mkdir -p .robin/browser
+cp Tests/Browser/package.json Tests/Browser/package-lock.json .robin/browser/
+export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$root/.robin/browser/browsers}"
+export NODE_PATH="$root/.robin/browser/node_modules${NODE_PATH:+:$NODE_PATH}"
+mise exec node@24.21.0 -- npm ci --prefix .robin/browser --cache .robin/npm-cache --ignore-scripts --no-audit --no-fund
+if [[ "$install_deps" == true ]]; then
+  mise exec node@24.21.0 -- .robin/browser/node_modules/.bin/playwright install-deps chromium
+fi
+if [[ -z "${PLAYWRIGHT_CHROMIUM_EXECUTABLE:-}" ]]; then
+  mise exec node@24.21.0 -- .robin/browser/node_modules/.bin/playwright install chromium
+fi
+fixture=$(mktemp -d "${TMPDIR:-/tmp}/robin-browser.XXXXXX")
+trap 'rm -rf "$fixture"' EXIT
+# Both export roots must exist before BuildPipeline validates their paths.
+mkdir -p "$fixture/navigation"
+ROBIN_STATE_BROWSER_OUTPUT="$fixture" mise run test -- --filter ClientStateTests.emitsOneAutomaticRuntimeOnlyOnStatefulPages
+mise exec node@24.21.0 -- node Tests/Browser/client-state.cjs "$fixture/.robin/build"
+mise exec node@24.21.0 -- node Tests/Browser/client-state.cjs "$fixture/navigation/.robin/build" --navigation

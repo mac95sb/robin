@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+#MISE description="Run focused release packaging tests without compiling Swift or using the network"
+import contextlib
+import io
+import json
+import os
+from pathlib import Path
+import runpy
+import subprocess
+import tarfile
+import tempfile
+import unittest
+from unittest.mock import patch
+
+TASKS = Path(__file__).resolve().parent
+SMOKE = runpy.run_path(str(TASKS / 'release-smoke'))
+
+
+class ReleaseTests(unittest.TestCase):
+    def test_archive_rejects_traversal_and_links(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name, kind in [('..' + '/escape', tarfile.REGTYPE),
+                               ('/absolute', tarfile.REGTYPE),
+                               ('link', tarfile.SYMTYPE), ('hardlink', tarfile.LNKTYPE)]:
+                archive = root / 'unsafe.tar.gz'
+                with tarfile.open(archive, 'w:gz') as bundle:
+                    entry = tarfile.TarInfo(name)
+                    entry.type = kind
+                    entry.linkname = '/tmp/escape'
+                    bundle.addfile(entry)
+                with self.assertRaises(ValueError):
+                    SMOKE['extract'](archive, root / 'out')
+
+    def test_release_dependencies(self):
+        for version, requirement, expected in [
+                ('v1.0.0', 'from', '1.0.0'),
+                ('v1.1.0-rc.1', 'exact', '1.1.0-rc.1'),
+                ('v1.1.0-0+build.5', 'exact', '1.1.0-0+build.5'),
+                ('1.2.3+build.5', 'from', '1.2.3+build.5')]:
+            with self.subTest(version=version):
+                self.assertEqual(SMOKE['release_dependency'](dict(version=version, publishable=True)),
+                                 f'.package(url: "https://git.maclong.dev/mac/robin.git", '
+                                 f'{requirement}: "{expected}")')
+        for version in ['local-abc', 'v1.0.0']:
+            self.assertEqual(SMOKE['release_dependency'](dict(version=version, publishable=False)),
+                             SMOKE['REMOTE'])
+        for metadata in [{}, dict(version='v1.0.0', publishable='true')]:
+            with self.assertRaises(ValueError):
+                SMOKE['release_dependency'](metadata)
+        for version in ['main', 'v01.0.0', 'v1.0', 'v1.0.0-01', 'v1.0.0-rc..1', 'v1.0.0\n']:
+            with self.subTest(version=version), self.assertRaises(ValueError):
+                SMOKE['release_dependency'](dict(version=version, publishable=True))
+
+    def test_all_starters_extracted_and_local_override(self):
+        for version, publishable in [('local-abc', False), ('v1.0.0', True), ('v1.1.0-rc.1', True)]:
+            with self.subTest(version=version):
+                self.check_starters(version, publishable)
+
+    def check_starters(self, version, publishable):
+        remote = SMOKE['release_dependency'](dict(version=version, publishable=publishable))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            stage = root / 'stage'
+            stage.mkdir()
+            source = stage / 'Source'
+            source.mkdir()
+            (source / 'Package.resolved').write_text('{}')
+            (stage / 'release.json').write_text(json.dumps(dict(
+                commit='abc', version=version, publishable=publishable, platform='test',
+                source_sha256=SMOKE['source_digest'](source))))
+            for starter in SMOKE['STARTERS']:
+                template = stage / 'Templates' / starter
+                template.mkdir(parents=True)
+                (template / 'Package.swift').write_text(SMOKE['LOCAL'])
+                (template / '__PROJECT__.txt').write_text('__PROJECT__ https://robin.maclong.dev')
+            (stage / 'robin').write_text('fixture')
+            archive = root / 'release.tar.gz'
+            with tarfile.open(archive, 'w:gz') as bundle:
+                for child in stage.iterdir():
+                    bundle.add(child, arcname=child.name)
+            calls = []
+
+            def fake_run(arguments, cwd, environment):
+                calls.append(arguments)
+                self.assertNotIn('ROBIN_TEMPLATES', environment)
+                self.assertFalse(Path(cwd).is_relative_to(root))
+                if arguments[1] == 'init':
+                    name = arguments[2]
+                    starter = arguments[4]
+                    extracted = Path(arguments[0]).parent
+                    template = extracted / 'Templates' / starter
+                    project = Path(cwd) / name
+                    project.mkdir()
+                    for original in template.iterdir():
+                        text = original.read_text().replace('__PROJECT__', name)
+                        text = text.replace(SMOKE['LOCAL'], remote)
+                        text = text.replace('https://robin.maclong.dev', SMOKE['SITE'])
+                        (project / original.name.replace('__PROJECT__', name)).write_text(text)
+                elif arguments[0] == 'swift':
+                    manifest = (Path(arguments[3]) / 'Package.swift').read_text()
+                    self.assertNotIn(remote, manifest)
+                    self.assertIn('/distribution/Source', manifest)
+
+            with patch.dict(SMOKE['smoke'].__globals__, run=fake_run), contextlib.redirect_stdout(io.StringIO()):
+                SMOKE['smoke'](archive, test_starters=True)
+            self.assertEqual(len([c for c in calls if c[1] == 'init']), 6)
+            tests = [c for c in calls if c[0] == 'swift']
+            self.assertEqual(len(tests), 6)
+            self.assertEqual(len({str(c[-1]) for c in tests}), 1)
+
+    def test_generated_content_mismatch_fails(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            template, project = root / 'template', root / 'project'
+            template.mkdir()
+            project.mkdir()
+            (template / 'Package.swift').write_text(SMOKE['LOCAL'])
+            (project / 'Package.swift').write_text('wrong')
+            with self.assertRaises(ValueError):
+                SMOKE['verify_project'](template, project, 'Check', SMOKE['REMOTE'])
+
+    def test_publish_rejects_dirty_and_untracked_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            git = root / 'git'
+            for status in (' M Sources/File.swift', '?? Sources/New.swift'):
+                git.write_text('#!/bin/sh\ncase "$*" in\n'
+                               '"rev-parse --show-toplevel") printf "%s\\n" ' + str(root) + ' ;;\n'
+                               '"rev-parse HEAD"|"rev-parse --verify refs/tags/v1.2.3^{commit}") echo abc ;;\n'
+                               '"--no-optional-locks status --porcelain --untracked-files=all") '
+                               'printf "%s\\n" "' + status + '" ;;\n'
+                               '*) exit 90 ;;\nesac\n')
+                git.chmod(0o755)
+                environment = dict(os.environ, PATH=str(root) + os.pathsep + os.environ['PATH'])
+                result = subprocess.run(['bash', str(TASKS / 'release-build'), '--tag', 'v1.2.3'],
+                                        env=environment, capture_output=True, text=True, timeout=10)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('Publishing requires a clean checkout', result.stderr)
+
+    def test_build_requires_explicit_mode_and_valid_tag(self):
+        repo = TASKS.parent.parent
+        for arguments in [[], ['--local', '--tag', 'v1.0.0'], ['--tag', 'HEAD']]:
+            result = subprocess.run(['bash', str(TASKS / 'release-build'), *arguments],
+                                    cwd=repo, capture_output=True, text=True, timeout=10)
+            self.assertNotEqual(result.returncode, 0)
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+#MISE description="Test live PostgreSQL/S3 providers, or the isolated Swift 6.3.3 WASI fixture (--wasi)"
+set -euo pipefail
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+case "${1:-}" in
+  --wasi)
+    [[ $# == 1 ]] || { echo 'Usage: mise run provider-test -- [--wasi]' >&2; exit 2; }
+    # Swift SDKs must match the host compiler. Never install the 6.3.3 SDK
+    # into a build using the project's Swift 6.4.2 compiler.
+    sdk=swift-6.3.3-RELEASE_wasm
+    if ! mise exec swift@6.3.3 -- swift sdk list | grep -Fxq "$sdk"; then
+      mise exec swift@6.3.3 -- swift sdk install \
+        https://download.swift.org/swift-6.3.3-release/wasm-sdk/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE_wasm.artifactbundle.tar.gz \
+        --checksum cabfa08b73bb8ac783927ecd15fa386e99d0c139c5f232445067bcf58379cae7
+    fi
+    mise exec swift@6.3.3 -- swift build --package-path Tests/ProviderFixtures/WASI \
+      --scratch-path .build/wasi-6.3.3 --swift-sdk "$sdk"
+    exit 0
+    ;;
+  '') ;;
+  *) echo 'Usage: mise run provider-test -- [--wasi]' >&2; exit 2 ;;
+esac
+[[ $# == 0 ]] || { echo 'Usage: mise run provider-test -- [--wasi]' >&2; exit 2; }
+command -v docker >/dev/null
+command -v curl >/dev/null
+docker info >/dev/null
+suffix="$(date +%s)-$$"
+postgres="robin-postgres-$suffix"
+s3="robin-s3-$suffix"
+
+cleanup() {
+  status=$?
+  if [[ $status != 0 ]]; then
+    docker logs "$postgres" >&2 || true
+    docker logs "$s3" >&2 || true
+  fi
+  docker rm --force --volumes "$s3" "$postgres" >/dev/null 2>&1 || true
+  exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+# In a Docker Actions job, share its network namespace: localhost in the
+# Swift tests then reaches both services without publishing host ports.
+# Locally, publish loopback ports. S3's existing fixture fixes port 59000.
+pg_network=(--publish 127.0.0.1::5432)
+s3_network=(--publish 127.0.0.1:59000:59000)
+if [[ -n "${ROBIN_PROVIDER_NETWORK:-}" ]]; then
+  [[ "$ROBIN_PROVIDER_NETWORK" == container:* ]] || {
+    echo 'ROBIN_PROVIDER_NETWORK must be container:<job container ID>' >&2; exit 2;
+  }
+  pg_network=(--network "$ROBIN_PROVIDER_NETWORK")
+  s3_network=(--network "$ROBIN_PROVIDER_NETWORK")
+fi
+docker run --detach --name "$postgres" "${pg_network[@]}" \
+  --env POSTGRES_PASSWORD=robin-test \
+    postgres:17.5-alpine3.21@sha256:5d004e058f520673f1f6edbad6b1603d5dab4c818e257c041889ef64672a8cc4 >/dev/null
+docker run --detach --name "$s3" "${s3_network[@]}" \
+  --env http.port=59000 --env COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS=robin-tests \
+  adobe/s3mock:4.11.0@sha256:cd49108c0094bc3f420b24bff354073032a9ec1a6f4cc89f8e8f483a308cf99e >/dev/null
+ready=false
+for ((attempt=0; attempt<60; attempt++)); do
+  if docker exec "$postgres" pg_isready --timeout=2 --username postgres --dbname postgres >/dev/null 2>&1 \
+    && curl --fail --silent --connect-timeout 2 --max-time 2 --output /dev/null http://127.0.0.1:59000/robin-tests; then
+    ready=true
+    break
+  fi
+  sleep 2
+done
+[[ "$ready" == true ]] || { echo 'PostgreSQL/S3 readiness failed after 60 attempts.' >&2; exit 1; }
+
+pg_port=5432
+if [[ -z "${ROBIN_PROVIDER_NETWORK:-}" ]]; then
+  pg_port=$(docker port "$postgres" 5432/tcp)
+  pg_port=${pg_port##*:}
+fi
+ROBIN_POSTGRES_TESTS=1 PGHOST=127.0.0.1 PGPORT="$pg_port" PGUSER=postgres \
+  PGPASSWORD=robin-test PGDATABASE=postgres mise run test -- --filter PostgresDatabaseTests
+ROBIN_S3_TESTS=1 mise run test -- --filter StorageTests.liveS3ProviderConformance
+mise run test -- --filter InvocationRuntimeTests
+mise run test -- --filter emitsVersionedVercelBuildOutputRoutes

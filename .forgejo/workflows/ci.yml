@@ -1,0 +1,261 @@
+name: Validate and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional vX.Y.Z tag to publish; requires reviewed release notes committed at that tag'
+        required: false
+        default: ''
+
+# See OPERATIONS.md beside this file BEFORE enabling runners. These labels are
+# operator-provisioned, not hosted runners supplied by Forgejo.
+# No repository secrets are passed to validation or pull-request jobs.
+# Avoid caches: neither untrusted build caches nor cross-run artifacts feed releases.
+defaults:
+  run:
+    shell: bash
+
+env:
+  CI: 'true'
+  MISE_YES: '1'
+  MISE_SWIFT_VERSION: '6.4.2'
+
+jobs:
+  revision:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      commit: ${{ steps.revision.outputs.commit }}
+    steps:
+      - name: Validate manual release request
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          EVENT: ${{ forgejo.event_name }}
+          WORKFLOW_REF: ${{ forgejo.ref }}
+          REPOSITORY: ${{ forgejo.repository }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$RELEASE_TAG" ]]; then
+            [[ "$EVENT" == workflow_dispatch && "$WORKFLOW_REF" == refs/heads/main ]]
+            [[ "$REPOSITORY" == mac/robin ]]
+            [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          fi
+      - uses: https://data.forgejo.org/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.release_tag || forgejo.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve one immutable commit for every job
+        id: revision
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$RELEASE_TAG" ]]; then
+            test "$(git rev-parse HEAD)" = "$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")"
+            git merge-base --is-ancestor HEAD refs/remotes/origin/main
+            # Reviewed prose is committed before tagging, never AI-generated in CI.
+            notes=".forgejo/workflows/release-notes/$RELEASE_TAG.md"
+            git ls-files --error-unmatch "$notes"
+            test -s "$notes"
+          fi
+          printf 'commit=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  check:
+    needs: revision
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, macos]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ needs.revision.outputs.commit }}
+          persist-credentials: false
+      - uses: https://github.com/jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          version: '2026.11.2'
+          install_args: swift pkl hk jq
+          cache: false
+          github_token: ''
+      - run: mise run check
+      - run: mise run benchmark
+      - name: Archive docs without deploying them
+        if: matrix.runner == 'ubuntu-24.04'
+        run: |
+          mkdir -p .robin/ci
+          tar -czf .robin/ci/robin-docs.tar.gz -C .robin/site .
+      - uses: https://code.forgejo.org/forgejo/upload-artifact@ed48a7bb0c8a9079492c354d37994c413423c83e # v3-node20 (Forgejo legacy artifact API)
+        if: matrix.runner == 'ubuntu-24.04'
+        with:
+          name: documentation
+          path: .robin/ci/robin-docs.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  starters:
+    needs: revision
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        starter: [blank, blog, marketing, dashboard, realtime-chat, api-service]
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ needs.revision.outputs.commit }}
+          persist-credentials: false
+      - uses: https://github.com/jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          version: '2026.11.2'
+          install_args: swift pkl hk jq
+          cache: false
+          github_token: ''
+      - name: Test starter with the CI Swift 6.4.2 toolchain
+        env:
+          STARTER: ${{ matrix.starter }}
+        run: |
+          mise trust "Templates/$STARTER/mise.toml"
+          mise --cd "Templates/$STARTER" run test
+
+  providers:
+    needs: revision
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ needs.revision.outputs.commit }}
+          persist-credentials: false
+      - uses: https://github.com/jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          version: '2026.11.2'
+          install_args: swift pkl hk jq
+          cache: false
+          github_token: ''
+      - name: Live PostgreSQL and S3 plus deployment adapter conformance
+        run: |
+          export ROBIN_PROVIDER_NETWORK="container:$(hostname)"
+          mise run provider-test
+
+  wasi:
+    needs: revision
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ needs.revision.outputs.commit }}
+          persist-credentials: false
+      - uses: https://github.com/jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          version: '2026.11.2'
+          install: false
+          cache: false
+          github_token: ''
+      - name: Build the WASI SDK probe, not the Swift 6.4.2 Robin package
+        # Overrides the workflow-level tool override for this isolated fixture only.
+        env:
+          MISE_SWIFT_VERSION: '6.3.3'
+        run: mise run provider-test -- --wasi
+
+  browser:
+    needs: revision
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ needs.revision.outputs.commit }}
+          persist-credentials: false
+      - uses: https://github.com/jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          version: '2026.11.2'
+          install_args: swift pkl hk jq
+          cache: false
+          github_token: ''
+      - name: Generate fixture and test Chromium (including Linux system libraries)
+        run: mise run browser-test -- --install-deps
+
+  package:
+    if: forgejo.event_name == 'workflow_dispatch' && inputs.release_tag != ''
+    needs: [revision, check, starters, providers, wasi, browser]
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, macos]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ needs.revision.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: https://github.com/jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          version: '2026.11.2'
+          install_args: swift pkl hk jq
+          cache: false
+          github_token: ''
+      - name: Package and test all six generated starters from the actual archive
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: mise run release-build -- --tag "$RELEASE_TAG" --test-starters
+      - uses: https://code.forgejo.org/forgejo/upload-artifact@ed48a7bb0c8a9079492c354d37994c413423c83e # v3-node20
+        with:
+          name: release-${{ matrix.runner }}
+          path: .robin/releases/*.tar.gz*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    if: forgejo.event_name == 'workflow_dispatch' && inputs.release_tag != ''
+    needs: [revision, check, starters, providers, wasi, browser, package]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # This is the only job that receives a publication credential.
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ needs.revision.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: https://github.com/jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          version: '2026.11.2'
+          install_args: jq
+          cache: false
+          github_token: ''
+      - uses: https://code.forgejo.org/forgejo/download-artifact@7472b11854edc6c65b5924934f0904d64f5e1f38 # v3-node20
+        with:
+          name: release-ubuntu-24.04
+          path: .robin/releases
+      - uses: https://code.forgejo.org/forgejo/download-artifact@7472b11854edc6c65b5924934f0904d64f5e1f38 # v3-node20
+        with:
+          name: release-macos
+          path: .robin/releases
+      - uses: https://code.forgejo.org/forgejo/download-artifact@7472b11854edc6c65b5924934f0904d64f5e1f38 # v3-node20
+        with:
+          name: documentation
+          path: .robin/releases
+      - name: Stage reviewed notes and checksums
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          cp ".forgejo/workflows/release-notes/$RELEASE_TAG.md" ".robin/releases/$RELEASE_TAG.md"
+          (cd .robin/releases && sha256sum --check robin-*.tar.gz.sha256)
+          (cd .robin/releases && sha256sum robin-*.tar.gz > SHA256SUMS)
+      - name: Publish to Forgejo
+        env:
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: mise run release-publish -- "$RELEASE_TAG"

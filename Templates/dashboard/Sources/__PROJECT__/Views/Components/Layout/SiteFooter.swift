@@ -11,7 +11,7 @@ struct SiteFooter: Component {
         DashboardLabel { Text { "Built with Robin. Made to be your own." }.margin(.zero) }
         Navigation {
           DashboardLabel {
-            Link("https://github.com/mac95sb/robin/tree/main/Templates/dashboard") { "Source" }
+            Link("https://git.maclong.dev/mac/robin/src/branch/main/Templates/dashboard") { "Source" }
           }
           DashboardLabel { Link(localizedPath("/")) { "Back to workspace" } }
         }

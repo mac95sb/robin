@@ -7,6 +7,7 @@ package enum ProjectScaffolderError: Error, Equatable, CustomStringConvertible, 
   case templatesUnavailable
   case destinationExists(String)
   case invalidTemplateEntry(String)
+  case invalidReleaseMetadata(String)
 
   package var description: String {
     switch self {
@@ -22,6 +23,8 @@ package enum ProjectScaffolderError: Error, Equatable, CustomStringConvertible, 
       "The destination `\(path)` already exists."
     case .invalidTemplateEntry(let path):
       "The template entry `\(path)` is unsafe."
+    case .invalidReleaseMetadata(let path):
+      "The release metadata at `\(path)` is invalid; reinstall Robin."
     }
   }
 }
@@ -53,10 +56,12 @@ package struct ProjectScaffolder {
     guard !FileManager.default.fileExists(atPath: destination.path) else {
       throw ProjectScaffolderError.destinationExists(destination.path)
     }
+    let dependency = try robinDependency(executableURL: executableURL)
     try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: false)
     do {
       try copyContents(
-        from: source, to: destination, projectName: name, siteURL: publicSiteURL)
+        from: source, to: destination, projectName: name, siteURL: publicSiteURL,
+        dependency: dependency)
     } catch {
       try? FileManager.default.removeItem(at: destination)
       throw error
@@ -94,11 +99,43 @@ package struct ProjectScaffolder {
       .appendingPathComponent("Templates", isDirectory: true)
   }
 
+  private struct ReleaseMetadata: Decodable {
+    let version: String
+    let publishable: Bool
+  }
+
+  private static func robinDependency(executableURL: URL?) throws -> String {
+    let remote = "https://git.maclong.dev/mac/robin.git"
+    let development = #".package(url: "\#(remote)", branch: "main")"#
+    guard
+      let metadataURL = executableURL?.resolvingSymlinksInPath().deletingLastPathComponent()
+        .appendingPathComponent("release.json"),
+      FileManager.default.fileExists(atPath: metadataURL.path)
+    else { return development }
+    guard let data = try? Data(contentsOf: metadataURL),
+      let metadata = try? JSONDecoder().decode(ReleaseMetadata.self, from: data)
+    else { throw ProjectScaffolderError.invalidReleaseMetadata(metadataURL.path) }
+    guard metadata.publishable else { return development }
+    let version =
+      metadata.version.hasPrefix("v") ? String(metadata.version.dropFirst()) : metadata.version
+    let number = #"(0|[1-9][0-9]*)"#
+    let identifier = #"(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"#
+    let pattern =
+      #"\A\#(number)\.\#(number)\.\#(number)(-\#(identifier)(\.\#(identifier))*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?\z"#
+    guard version.range(of: pattern, options: .regularExpression) != nil else {
+      throw ProjectScaffolderError.invalidReleaseMetadata(metadataURL.path)
+    }
+    let requirement =
+      version.split(separator: "+", maxSplits: 1)[0].contains("-") ? "exact" : "from"
+    return #".package(url: "\#(remote)", \#(requirement): "\#(version)")"#
+  }
+
   private static func copyContents(
     from source: URL,
     to destination: URL,
     projectName: String,
-    siteURL: String?
+    siteURL: String?,
+    dependency: String
   ) throws {
     let manager = FileManager.default
     guard
@@ -136,7 +173,7 @@ package struct ProjectScaffolder {
           let generated = text.replacingOccurrences(of: "__PROJECT__", with: projectName)
             .replacingOccurrences(
               of: #".package(name: "robin", path: "../..")"#,
-              with: #".package(url: "https://github.com/mac95sb/robin.git", branch: "main")"#)
+              with: dependency)
           let configured =
             siteURL.map {
               generated.replacingOccurrences(of: "https://robin.maclong.dev", with: $0)

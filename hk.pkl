@@ -16,6 +16,10 @@ local swiftTest = new Step {
   check = new Command { argv = List("swift", "test") }
 }
 
+local releaseTooling = new Step {
+  check = new Command { argv = List("mise", "run", "tooling-test") }
+}
+
 local swiftDocs = new Step {
   check = new Command { argv = List("mise", "run", "docs") }
 }
@@ -39,6 +43,7 @@ hooks {
       ["swift-build"] = swiftBuild
       ["swift-test"] = swiftTest
       ["swift-docs"] = swiftDocs
+      ["release-tooling"] = releaseTooling
     }
   }
 }

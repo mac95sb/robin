@@ -1,0 +1,88 @@
+#!/usr/bin/env swift
+import Foundation
+
+func files(_ directory: URL) -> [URL] {
+  guard
+    let enumerator = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: nil)
+  else { return [] }
+  return enumerator.compactMap { $0 as? URL }.filter { $0.pathExtension == "html" }
+}
+
+func assemble(root: URL) throws {
+  let manager = FileManager.default
+  let site = root.appending(path: ".robin/site")
+  let navigation = try String(
+    contentsOf: root.appending(path: ".robin/docc-navigation.html"), encoding: .utf8)
+  guard navigation.contains("id=\"robin-site-navigation\"") else {
+    throw NSError(
+      domain: "assemble-pages", code: 1,
+      userInfo: [
+        NSLocalizedDescriptionKey: "Generated navigation is missing robin-site-navigation."
+      ])
+  }
+  let reference = site.appending(path: "reference")
+  for module in try manager.contentsOfDirectory(
+    at: reference, includingPropertiesForKeys: [.isDirectoryKey])
+  {
+    var isDirectory: ObjCBool = false
+    guard manager.fileExists(atPath: module.path, isDirectory: &isDirectory), isDirectory.boolValue
+    else { continue }
+    let settings = module.appending(path: "theme-settings.json")
+    if !manager.fileExists(atPath: settings.path) {
+      try "{}\n".write(to: settings, atomically: true, encoding: .utf8)
+    }
+  }
+  let pages = files(reference)
+  guard !pages.isEmpty else {
+    throw NSError(
+      domain: "assemble-pages", code: 2,
+      userInfo: [NSLocalizedDescriptionKey: "DocC pages must be built before assembly."])
+  }
+  let bodyPattern = try NSRegularExpression(pattern: "<body\\b[^>]*>", options: [.caseInsensitive])
+  for page in pages {
+    let html = try String(contentsOf: page, encoding: .utf8)
+    let matches = bodyPattern.matches(in: html, range: NSRange(html.startIndex..., in: html))
+    guard matches.count == 1, let match = matches.first, let range = Range(match.range, in: html)
+    else {
+      throw NSError(
+        domain: "assemble-pages", code: 3,
+        userInfo: [NSLocalizedDescriptionKey: "Unexpected DocC HTML structure: \(page.path)"])
+    }
+    if !html.contains("id=\"robin-site-navigation\"") {
+      var updated = html
+      updated.insert(contentsOf: navigation, at: range.upperBound)
+      try updated.write(to: page, atomically: true, encoding: .utf8)
+    }
+  }
+  let index = site.appending(path: "index.html")
+  guard try String(contentsOf: index, encoding: .utf8).contains("Build for the web.") else {
+    throw NSError(
+      domain: "assemble-pages", code: 4,
+      userInfo: [
+        NSLocalizedDescriptionKey: "Marketing page is missing expected content: Build for the web."
+      ])
+  }
+  let destination = "/robin/reference/RobinCore/documentation/robincore/"
+  guard
+    manager.fileExists(
+      atPath: site.appending(path: "reference/RobinCore/documentation/robincore/index.html").path)
+  else {
+    throw NSError(
+      domain: "assemble-pages", code: 5,
+      userInfo: [NSLocalizedDescriptionKey: "RobinCore documentation landing page is missing."])
+  }
+  let legacy = site.appending(path: "docs/index.html")
+  try manager.createDirectory(
+    at: legacy.deletingLastPathComponent(), withIntermediateDirectories: true)
+  let redirect =
+    "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"0;url=\(destination)\"><title>Robin documentation</title></head><body><a href=\"\(destination)\">Open documentation</a></body></html>\n"
+  try redirect.write(to: legacy, atomically: true, encoding: .utf8)
+  print("Assembled marketing, documentation redirect, and \(pages.count) DocC entry points.")
+}
+
+do {
+  try assemble(root: URL(fileURLWithPath: FileManager.default.currentDirectoryPath))
+} catch {
+  fputs("\(error)\n", stderr)
+  exit(1)
+}

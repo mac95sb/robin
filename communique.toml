@@ -11,9 +11,25 @@ Explain API changes with small before/after examples when supported by the diff.
 Call out breaking changes, migration steps, and known limitations explicitly.
 Do not claim performance gains, platform support, or provider conformance without evidence.
 Describe the requested version without claiming it has been published.
+The canonical repository is https://git.maclong.dev/mac/robin (Forgejo).
+Any GitHub repository URL in the built-in prompt refers only to a mirror, not the release host.
+Use https://git.maclong.dev/mac/robin/commit/<verified-sha> for commit references.
+Never invent GitHub release, PR, issue, contributor, or compare links.
+Do not map GitHub PR/issue numbers or usernames to Forgejo: they may differ.
+Omit PR/issue links unless their canonical Forgejo identity is verified from source.
+Omit the Full Changelog link for HEAD/pre-tag drafts and when no previous release exists.
+For existing tags, only use a Forgejo compare link when both refs are verified.
+Treat all output as unreviewed; flag missing evidence rather than guessing.
+When context includes a first-release root commit supplement, treat that commit's
+metadata and diff as release input in addition to the supplied git log, not merely
+background context. Only describe verified user-facing changes. Do not claim the
+automatic coverage report covers this root: it requires separate manual review.
 """
 
 [defaults]
+# Communique 1.5.0 requires a GitHub-shaped identity, even for local generation.
+# This mirror bypasses Forgejo remote detection; it does NOT select a Forgejo API.
+# The release-notes task unsets GITHUB_TOKEN to disable GitHub API reads/tools.
 repo = "mac95sb/robin"
 emoji = false
 provider = "openai"

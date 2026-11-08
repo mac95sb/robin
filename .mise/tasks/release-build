@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+#MISE description="Package the native CLI; use --tag vX.Y.Z for publishing or --local for smoke checks"
+set -euo pipefail
+usage() {
+  echo 'Usage: mise run release-build -- (--tag vX.Y.Z | --local) [--test-starters]'
+  echo 'Outputs .robin/releases/robin-<platform>.tar.gz (+ .sha256); local names include local-.'
+  echo 'Requires python3. --test-starters runs all six generated test suites with shared build storage.'
+}
+mode= tag= test_starters=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --local) [[ -z "$mode" ]] || { usage; exit 2; }; mode=local; shift ;;
+    --tag) [[ -z "$mode" && $# -ge 2 ]] || { usage; exit 2; }; mode=tag; tag=$2; shift 2 ;;
+    --test-starters) test_starters=true; shift ;;
+    --help|-h) usage; exit 0 ;;
+    *) usage >&2; exit 2 ;;
+  esac
+done
+[[ -n "$mode" ]] || { usage >&2; exit 2; }
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+commit=$(git rev-parse HEAD)
+if [[ "$mode" == tag ]]; then
+  [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo 'Expected a v-prefixed release version.' >&2; exit 1; }
+  [[ "$(git rev-parse --verify "refs/tags/$tag^{commit}")" == "$commit" ]] || { echo 'Release tag must point at HEAD.' >&2; exit 1; }
+  [[ -z "$(git --no-optional-locks status --porcelain --untracked-files=all)" ]] || {
+    echo 'Publishing requires a clean checkout, including no untracked files. Use --local for smoke checks.' >&2; exit 1;
+  }
+  version=$tag
+else
+  version="local-$commit"
+fi
+case "$(uname -s)-$(uname -m)" in
+  Linux-x86_64) platform=linux-x86_64 ;;
+  Linux-aarch64|Linux-arm64) platform=linux-aarch64 ;;
+  Darwin-arm64) platform=macos-aarch64 ;;
+  *) echo 'Unsupported release platform; run natively on macOS arm64 or Linux x86_64/arm64.' >&2; exit 1 ;;
+esac
+command -v python3 >/dev/null
+mkdir -p .robin/releases
+# A stable snapshot path lets SwiftPM reuse compilation across packaging runs.
+# mkdir also prevents concurrent runs from sharing the same build storage.
+stage="$root/.robin/releases/packaging-stage"
+mkdir "$stage" || { echo "Another packaging run is active, or stale staging remains at $stage" >&2; exit 1; }
+trap 'rm -rf "$stage"' EXIT
+mkdir "$stage/Source"
+# Build and ship one snapshot, never HEAD templates paired with a dirty working binary.
+if [[ "$mode" == tag ]]; then
+  git archive "$commit" Package.swift Package.resolved Sources Tests Templates | tar -xf - -C "$stage/Source"
+else
+  git ls-files -z --cached --others --exclude-standard -- Package.swift Package.resolved Sources Tests Templates \
+    | python3 -c 'import pathlib, shutil, sys; dest = pathlib.Path(sys.argv[1]); files = set(sys.stdin.buffer.read().split(b"\0"));
+for name in files:
+ if not name: continue
+ path = pathlib.Path(name.decode()); target = dest / path
+ if path.is_symlink(): raise SystemExit("Source symlinks are not supported: " + str(path))
+ if path.is_file():
+  target.parent.mkdir(parents=True, exist_ok=True); shutil.copy2(path, target)
+' "$stage/Source"
+fi
+cp -R "$stage/Source/Templates" "$stage/Templates"
+flags=(-c release --force-resolved-versions --product robin --package-path "$stage/Source" --scratch-path "$root/.build")
+if [[ "$platform" == linux-* ]]; then flags+=(--static-swift-stdlib); fi
+# This file is the canonical mise packaging build task; do not bypass it in CI.
+swift build "${flags[@]}"
+binary=$(swift build "${flags[@]}" --show-bin-path)
+cp "$binary/robin" "$stage/robin"
+if [[ "$platform" == linux-* ]]; then
+  ldd "$stage/robin" > "$stage/runtime-libraries.txt"
+  if grep -q 'not found' "$stage/runtime-libraries.txt"; then
+    cat "$stage/runtime-libraries.txt" >&2; exit 1
+  fi
+  if grep -E 'libswift[^ /]*\.so' "$stage/runtime-libraries.txt"; then
+    echo 'Unexpected dynamic Swift runtime dependency.' >&2; exit 1
+  fi
+else
+  otool -L "$stage/robin" > "$stage/runtime-libraries.txt"
+fi
+python3 - "$stage" "$version" "$commit" "$platform" "$mode" <<'PY'
+import hashlib, json, pathlib, subprocess, sys
+stage = pathlib.Path(sys.argv[1])
+# A content digest identifies local snapshots even when HEAD is unchanged.
+h = hashlib.sha256()
+for path in sorted((stage / 'Source').rglob('*')):
+    if path.is_file() and '.build' not in path.parts and '.swiftpm' not in path.parts:
+        h.update(str(path.relative_to(stage / 'Source')).encode() + b'\0')
+        h.update(hashlib.sha256(path.read_bytes()).digest())
+metadata = dict(version=sys.argv[2], commit=sys.argv[3], platform=sys.argv[4],
+                publishable=sys.argv[5] == 'tag', source_sha256=h.hexdigest(),
+                swift=subprocess.check_output(['swift', '--version'], text=True).strip(),
+                runtime_note='Not fully static. Runtime libraries and OS baseline depend on the build host; see runtime-libraries.txt.')
+(stage / 'release.json').write_text(json.dumps(metadata, indent=2) + '\n')
+PY
+# SwiftPM may have written caches into Source; never distribute them.
+rm -rf "$stage/Source/.build" "$stage/Source/.swiftpm"
+name="robin-$platform"
+[[ "$mode" != local ]] || name="robin-local-$platform"
+archive="$stage/$name.tar.gz"
+tar -czf "$archive" -C "$stage" robin Templates Source release.json runtime-libraries.txt
+# Validate the actual compressed distributable, not the staging directory.
+if [[ "$test_starters" == true ]]; then
+  python3 "$root/.mise/tasks/release-smoke" "$archive" --test-starters
+else
+  python3 "$root/.mise/tasks/release-smoke" "$archive"
+fi
+python3 - "$archive" <<'PY'
+import hashlib, pathlib, sys
+p = pathlib.Path(sys.argv[1])
+p.with_suffix(p.suffix + '.sha256').write_text(hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name + '\n')
+PY
+mv "$archive" "$archive.sha256" "$root/.robin/releases/"
+printf 'Packaged %s (%s) in .robin/releases/%s.tar.gz\n' "$version" "$commit" "$name"

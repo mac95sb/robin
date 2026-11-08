@@ -1,0 +1,12 @@
+{
+  "name": "robin-browser-tests",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Pinned browser tooling for Robin's client-state fixture",
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

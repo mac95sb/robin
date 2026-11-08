@@ -5,7 +5,8 @@ swift = "6.4.2"
 pkl = "0.32.1"
 hk = "1.54.1"
 jq = "1.8.2"
-communique = "latest"
+communique = "1.5.0"
+ruby = "3"
 
 [env]
 HK_MISE = "1"
@@ -31,39 +32,10 @@ run = "swift test -c release --filter ReleaseBenchmarks"
 description = "Check Swift source formatting"
 run = "swift format lint --strict --recursive --parallel Sources Tests Templates Package.swift"
 
-[tasks.docs]
-description = "Build the publishable DocC sites and validate public documentation"
-run = '''
-set -eu
-rm -rf .robin/site
-mkdir -p .robin/site/reference
-for target in RobinCore RobinHTML RobinStyle RobinContent RobinForms RobinRouting RobinRuntime RobinData RobinCache RobinJobs RobinEmail RobinStorage RobinServer RobinAuth RobinBuild RobinTesting RobinTooling RobinTheme RobinLucide RobinPolar RobinPostgres; do
-  swift package --scratch-path .build/docs --allow-writing-to-directory .robin/site generate-documentation --target "$target" --output-path ".robin/site/reference/$target" --transform-for-static-hosting --hosting-base-path "robin/reference/$target" --disable-indexing --warnings-as-errors --experimental-skip-synthesized-symbols --experimental-documentation-coverage --coverage-summary-level brief
-done
 
-# DocC still reports compiler-synthesized conformance members in coverage output.
-missing=$(
-  for report in .robin/site/reference/*/documentation-coverage.json; do
-    jq -r '
-      .[]
-      | select(.kind.isSymbol == true and .hasAbstract == false)
-      | select((.kind.name | startswith("Extended ")) | not)
-      | select(.title != "init(rawValue:)" and .title != "init(from:)" and .title != "<(_:_:)")
-      | .referencePath
-    ' "$report"
-  done
-)
-if [ -n "$missing" ]; then
-  printf 'Undocumented public symbols:\n%s\n' "$missing" >&2
-  exit 1
-fi
-python3 scripts/check-documentation.py --self-test
-python3 scripts/check-documentation.py
-swift run --scratch-path .build/docs RobinDocumentation
-(cd Templates/marketing && swift run --scratch-path .build/mise -- __PROJECT__ --github-pages)
-cp -R Templates/marketing/.robin/build/. .robin/site/
-python3 scripts/assemble-pages.py
-'''
+[tasks.tooling-test]
+description = "Test release packaging, publication, and note generation without network access"
+depends = ["release-test", "publish-test", "notes-test"]
 
 [tasks.check]
 description = "Run the same checks used by CI"
@@ -74,11 +46,119 @@ description = "Explicitly install this project's Git hooks"
 run = "hk install"
 
 [tasks.release-notes]
-description = "Draft release notes for a version without publishing"
-usage = 'arg "[version]" default="HEAD" help="Version tag or HEAD for an unpublished draft"'
+description = "Generate local Forgejo release-note drafts (calls OpenAI; never publishes)"
+usage = '''
+arg "[target]" default="HEAD" help="HEAD for pre-tag drafts, or an existing version tag"
+flag "--label <label>" help="Version label for output filenames only; does not change the git range"
+'''
+shell = "bash -c"
 env = { _.file = { path = ".env", redact = true } }
-run = 'bash scripts/release-notes.sh "$usage_version"'
+run = '''
+set -euo pipefail
+target="${usage_target:-HEAD}"
+label="${usage_label:-}"
+number='(0|[1-9][0-9]*)'
+identifier='(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+version="^v$number\\.$number\\.$number(-$identifier(\\.$identifier)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+if [[ "$target" != HEAD && ! "$target" =~ $version ]] ||
+   [[ -n "$label" && ! "$label" =~ $version ]]; then
+  echo "Expected HEAD or a v-prefixed semantic version; --label must be a version" >&2
+  exit 1
+fi
+# Communique silently falls back to HEAD for missing refs; reject mistyped tags.
+git --no-pager rev-parse --verify --end-of-options "$target^{commit}" >/dev/null
+: "${OPENAI_API_KEY:?Set OPENAI_API_KEY for Communiqué (generation uses paid API calls)}"
+# Even dry-run enables GitHub reads/tools when this token is present.
+unset GITHUB_TOKEN
+output=".robin/releases/${label:-$target}"
+mkdir -p .robin/releases
+set --
+if [[ -n "${COMMUNIQUE_MODEL:-}" ]]; then
+  set -- --model "$COMMUNIQUE_MODEL"
+fi
+python3 - "$target" "$@" --dry-run \
+  --output "$output.md" --draft "$output.draft.json" \
+  --review-report "$output.review.md" --migration-guide "$output.migration.md" <<'PY'
+import json
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+import tomllib
 
-[tasks.release-build]
-description = "Build and package the CLI for the current release platform"
-run = "bash scripts/package-release.sh"
+
+def git(*args):
+    return subprocess.check_output(['git', '--no-pager', *args], text=True)
+
+
+target, *options = sys.argv[1:]
+tags = git('tag', '--merged', target, '--list').splitlines()
+baselines = [tag for tag in tags if tag != target]
+if target in tags:
+    commit = git('rev-parse', '--verify', target + '^{commit}').strip()
+    baselines = [tag for tag in baselines
+                 if git('rev-parse', '--verify', tag + '^{commit}').strip() != commit]
+with tempfile.TemporaryDirectory(prefix='robin-notes-') as directory:
+    command = ['communique']
+    root = None
+    if not baselines:
+        root = git('rev-list', '--max-parents=0', target).splitlines()[0]
+        details = git('show', '--root', '--no-ext-diff', '--no-textconv',
+                      '--format=fuller', '--patch', root, '--')
+        source = Path('communique.toml').read_text(encoding='utf-8')
+        config = tomllib.loads(source)
+        context = config.get('context', '') + (
+            '\n\n## First-release root commit supplement\n'
+            'The following root commit is release input, omitted by the upstream root..target log.\n'
+            'Review its metadata and full diff alongside that log.\n'
+            'Automatic coverage reconciliation excludes this root; manual review is required.\n\n'
+            + details)
+        augmented, count = re.subn(r'(?ms)^context\s*=\s*""".*?^"""',
+                                  lambda _: 'context = ' + json.dumps(context, ensure_ascii=False),
+                                  source, count=1)
+        if count != 1 or tomllib.loads(augmented) != dict(config, context=context):
+            sys.exit('Cannot safely augment the context stanza in communique.toml')
+        path = Path(directory) / 'communique.toml'
+        path.write_text(augmented, encoding='utf-8')
+        path.chmod(0o600)
+        command += ['--config', str(path)]
+        print(f'WARNING: First-release root supplement added for {root}. '
+              'Automatic coverage excludes this commit; review it manually.', file=sys.stderr, flush=True)
+    result = subprocess.call(command + ['generate', target, *options])
+    if result:
+        sys.exit(result)
+    if root:
+        report = Path(options[options.index('--review-report') + 1])
+        with report.open('a', encoding='utf-8') as stream:
+            stream.write(f'\n\n> First-release root supplement: `{root}` was supplied as context. '
+                         'Automatic coverage excludes this commit; manually verify its changes.\n')
+PY
+# Upstream hardcodes GitHub commit links in its coverage report. Only commit
+# links map safely; never translate mirror PR/issue numbers to Forgejo numbers.
+python3 - "$output" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+base = sys.argv[1]
+mirror = 'https://github.com/mac95sb/robin'
+canonical = 'https://git.maclong.dev/mac/robin'
+for suffix in ('.md', '.draft.json', '.review.md', '.migration.md'):
+    path = Path(base + suffix)
+    text = path.read_text(encoding='utf-8')
+    if not text.strip():
+        sys.exit(f'Empty artifact: {path}')
+    text = re.sub(re.escape(mirror) + r'/commit/([0-9a-fA-F]{7,40})(?![0-9a-fA-F])',
+                  canonical + r'/commit/\1', text)
+    path.write_text(text, encoding='utf-8')
+    if re.search(r'(?:https?://)?github\.com/mac95sb/robin', text, re.IGNORECASE):
+        sys.exit(f'Unresolved GitHub mirror link in {path}; review manually before copying notes')
+PY
+printf 'Draft artifacts: %s{.md,.draft.json,.review.md,.migration.md}\n' "$output"
+printf '%s\n' 'Review claims, coverage, migration steps, and links. Nothing was published or committed.'
+printf '%s\n' 'Before tagging: manually copy approved notes to .forgejo/workflows/release-notes/<version>.md and commit them.'
+'''
+
+[bootstrap.packages]
+"brew:rednafi/rexdiff" = "latest"

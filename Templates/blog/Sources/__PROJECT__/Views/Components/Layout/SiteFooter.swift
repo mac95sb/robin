@@ -11,7 +11,7 @@ struct SiteFooter: Component {
         SiteLabel { Text { "Built with Robin. Made to be your own." }.margin(.zero) }
         Navigation {
           SiteLabel {
-            Link("https://github.com/mac95sb/robin/tree/main/Templates/blog") { "Source" }
+            Link("https://git.maclong.dev/mac/robin/src/branch/main/Templates/blog") { "Source" }
           }
           SiteLabel { Link(localizedPath("/")) { "Back to journal" } }
         }

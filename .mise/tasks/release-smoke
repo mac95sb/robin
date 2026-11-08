@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+#MISE description="Smoke an extracted release outside the checkout; optionally test all six starters"
+"""Usage: mise run release-smoke -- ARCHIVE [--test-starters].
+
+The default check does not resolve dependencies or compile starters. The opt-in
+check uses packaged Source, not the remote dependency or checkout, and one scratch
+path for all six test suites. SwiftPM may download external dependencies.
+"""
+import argparse
+import hashlib
+import json
+import os
+import re
+from pathlib import Path
+import subprocess
+import tarfile
+import tempfile
+
+STARTERS = ('blank', 'blog', 'marketing', 'dashboard', 'api-service', 'realtime-chat')
+REMOTE = '.package(url: "https://git.maclong.dev/mac/robin.git", branch: "main")'
+LOCAL = '.package(name: "robin", path: "../..")'
+SITE = 'https://release-smoke.example'
+
+
+def extract(archive, destination):
+    with tarfile.open(archive, 'r:gz') as bundle:
+        for member in bundle.getmembers():
+            path = Path(member.name)
+            if path.is_absolute() or '..' in path.parts or not (member.isfile() or member.isdir()):
+                raise ValueError(f'Unsafe archive member: {member.name}')
+        bundle.extractall(destination)
+
+
+def source_digest(source):
+    digest = hashlib.sha256()
+    for path in sorted(source.rglob('*')):
+        if path.is_file() and '.build' not in path.parts and '.swiftpm' not in path.parts:
+            digest.update(str(path.relative_to(source)).encode() + b'\0')
+            digest.update(hashlib.sha256(path.read_bytes()).digest())
+    return digest.hexdigest()
+
+
+def run(arguments, cwd, environment):
+    subprocess.run([str(a) for a in arguments], cwd=cwd, env=environment, check=True, timeout=1800)
+
+
+def release_dependency(metadata):
+    if not isinstance(metadata.get('version'), str) or type(metadata.get('publishable')) is not bool:
+        raise ValueError('Invalid release metadata')
+    if not metadata['publishable']:
+        return REMOTE
+    version = metadata['version'].removeprefix('v')
+    number = r'(0|[1-9][0-9]*)'
+    identifier = r'(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+    if not re.fullmatch(rf'{number}\.{number}\.{number}(-{identifier}(\.{identifier})*)?'
+                        r'(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?', version):
+        raise ValueError('Invalid release version')
+    requirement = 'exact' if '-' in version.split('+', 1)[0] else 'from'
+    return f'.package(url: "https://git.maclong.dev/mac/robin.git", {requirement}: "{version}")'
+
+
+def verify_project(template, project, name, remote):
+    for original in template.rglob('*'):
+        relative_path = original.relative_to(template)
+        if (not original.is_file() or relative_path.parts[0] in ('.build', '.swiftpm', '.robin')
+                or str(relative_path) == 'Package.resolved'):
+            continue
+        relative = str(relative_path).replace('__PROJECT__', name)
+        generated = project / relative
+        expected = original.read_bytes()
+        try:
+            expected = (expected.decode().replace('__PROJECT__', name).replace(LOCAL, remote)
+                        .replace('https://robin.maclong.dev', SITE).encode())
+        except UnicodeDecodeError:
+            pass
+        if not generated.is_file() or generated.read_bytes() != expected:
+            raise ValueError(f'Generated file differs: {generated}')
+    manifest = (project / 'Package.swift').read_text()
+    if manifest.count(remote) != 1 or '__PROJECT__' in manifest:
+        raise ValueError(f'Unexpected generated dependency or placeholder: {project}')
+
+
+def smoke(archive, test_starters=False):
+    archive = Path(archive).resolve()
+    checkout = Path(__file__).resolve().parent.parent.parent
+    temp_root = Path(tempfile.gettempdir()).resolve()
+    if temp_root == checkout or checkout in temp_root.parents:
+        temp_root = Path('/tmp')
+    with tempfile.TemporaryDirectory(prefix='robin-release-', dir=temp_root) as temporary:
+        root = Path(temporary).resolve()
+        extracted = root / 'distribution'
+        extracted.mkdir()
+        extract(archive, extracted)
+        metadata = json.loads((extracted / 'release.json').read_text())
+        remote = release_dependency(metadata)
+        if not metadata['commit'] or not metadata['source_sha256']:
+            raise ValueError('Missing release provenance')
+        if source_digest(extracted / 'Source') != metadata['source_sha256']:
+            raise ValueError('Packaged source digest does not match release provenance')
+        environment = os.environ.copy()
+        environment.pop('ROBIN_TEMPLATES', None)
+        environment.pop('SWIFT_PACKAGE_PATH', None)
+        projects = root / 'projects'
+        projects.mkdir()
+        binary = extracted / 'robin'
+        run([binary, '--help'], projects, environment)
+        for starter in STARTERS:
+            template = extracted / 'Templates' / starter
+            # A unique probe proves executable-relative lookup won over #filePath fallback.
+            probe = template / '.release-smoke-probe'
+            probe.write_text(f'{root}:{starter}\n')
+            name = 'Check' + starter.replace('-', '')
+            run([binary, 'init', name, '--template', starter, '--site-url', SITE], projects, environment)
+            project = projects / name
+            verify_project(template, project, name, remote)
+            if test_starters:
+                manifest = project / 'Package.swift'
+                dependency = '.package(name: "robin", path: ' + json.dumps(str(extracted / 'Source')) + ')'
+                manifest.write_text(manifest.read_text().replace(remote, dependency))
+                # Preserve the package's locked external versions where possible.
+                lock = extracted / 'Source' / 'Package.resolved'
+                (project / 'Package.resolved').write_bytes(lock.read_bytes())
+                run(['swift', 'test', '--package-path', project,
+                     '--scratch-path', root / 'starter-build'], projects, environment)
+            print(f'PASS {starter}' + (' (generated + tested)' if test_starters else ' (generated)'), flush=True)
+        print(f"PASS extracted release: {metadata['version']} ({metadata['platform']})", flush=True)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('archive', type=Path)
+    parser.add_argument('--test-starters', action='store_true')
+    args = parser.parse_args()
+    smoke(args.archive, args.test_starters)
