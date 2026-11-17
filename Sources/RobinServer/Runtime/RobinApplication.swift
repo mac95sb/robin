@@ -67,6 +67,11 @@ extension RobinApplication {
       } else {
         let runtime = try await ServerRuntime.start(
           application, host: address.host, port: address.port, middleware: middleware)
+        if let listeningAddress = await runtime.localAddress {
+          print(
+            "Serving on http://\(listeningAddress.host):\(listeningAddress.port) (press Ctrl-C to stop)"
+          )
+        }
         try await runtime.run()
       }
     } catch {
