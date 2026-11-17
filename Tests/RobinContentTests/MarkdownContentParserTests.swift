@@ -55,6 +55,80 @@ struct MarkdownContentParserTests {
     #expect(throws: ContentCollectionError.invalidPage) { try collection.page(2, size: 1) }
   }
 
+  @Test func decodesApplicationMetadataFromYamlFrontMatter() throws {
+    struct Recipe: Decodable {
+      struct Ingredient: Decodable {
+        let name: String
+        let amount: String
+      }
+
+      let description: String
+      let ingredients: [Ingredient]
+    }
+
+    let decoded = try ContentFrontMatter.decode(
+      Recipe.self,
+      from: """
+        ---
+        title: "Roasted tomatoes"
+        date: 2026-09-04T10:00:00Z
+        tags:
+          - dinner
+          - "make ahead"
+        description: |
+          Slow-roasted
+          with herbs.
+        ingredients:
+          - name: tomatoes
+            amount: "1 kg"
+        ---
+        ## Method
+        """,
+      file: "recipes/tomatoes.md")
+
+    #expect(decoded.frontMatter.title == "Roasted tomatoes")
+    #expect(decoded.frontMatter.tags == ["dinner", "make ahead"])
+    #expect(decoded.additional.description == "Slow-roasted\nwith herbs.\n")
+    #expect(decoded.additional.ingredients.map(\.name) == ["tomatoes"])
+    #expect(decoded.body == "## Method")
+  }
+
+  @Test func frontMatterErrorsIncludeFileAndFieldContext() {
+    struct Metadata: Decodable {
+      let required: String
+    }
+
+    #expect(throws: FrontMatterDecodingError.self) {
+      try ContentFrontMatter.decode(
+        Metadata.self,
+        from: """
+          ---
+          date: not-a-date
+          required: present
+          ---
+          Body
+          """,
+        file: "pages/example.md")
+    }
+
+    do {
+      _ = try ContentFrontMatter.decode(
+        Metadata.self,
+        from: """
+          ---
+          date: not-a-date
+          required: present
+          ---
+          Body
+          """,
+        file: "pages/example.md")
+      Issue.record("Expected invalid date to fail")
+    } catch {
+      #expect(error.localizedDescription.contains("pages/example.md"))
+      #expect(error.localizedDescription.contains("date"))
+    }
+  }
+
   @Test func realMarkdownBecomesTypedNodesAndRejectsRawHTML() throws {
     let url = try #require(
       Bundle.module.url(forResource: "long-form", withExtension: "md", subdirectory: "Fixtures")

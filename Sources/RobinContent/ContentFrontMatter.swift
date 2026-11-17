@@ -1,5 +1,6 @@
 import Foundation
 import RobinCore
+import Yams
 
 /// Typed metadata parsed from a Markdown document's front matter.
 public struct ContentFrontMatter: Equatable, Sendable {
@@ -60,53 +61,130 @@ public struct ContentFrontMatter: Equatable, Sendable {
 }
 
 extension ContentFrontMatter {
+  /// Decodes Robin's shared fields and an application's metadata from the same YAML document.
+  ///
+  /// The returned body is the Markdown source after the closing front matter delimiter.
+  public static func decode<Additional: Decodable>(
+    _ type: Additional.Type,
+    from source: String,
+    file: String? = nil
+  ) throws -> Decoded<Additional> {
+    let (yaml, body) = split(source)
+    guard let yaml else {
+      throw FrontMatterDecodingError(
+        file: file, message: "Missing opening or closing --- delimiter.")
+    }
+
+    do {
+      let parser = try Parser(yaml: yaml)
+      let node = try parser.singleRoot() ?? Node([:])
+      let decoder = YAMLDecoder()
+      let values = try decoder.decode(SharedFields.self, from: node)
+      let additional = try decoder.decode(type, from: node)
+      let formatter = ISO8601DateFormatter()
+      let publishedAt = try parseDate(values.date, field: "date", file: file, formatter: formatter)
+      let modifiedAt = try parseDate(
+        values.modified, field: "modified", file: file, formatter: formatter)
+      return Decoded(
+        frontMatter: ContentFrontMatter(
+          title: values.title, summary: values.summary, slug: values.slug, locale: values.locale,
+          publishedAt: publishedAt, modifiedAt: modifiedAt, draft: values.draft ?? false,
+          tags: values.tags ?? []),
+        additional: additional,
+        body: body)
+    } catch let error as FrontMatterDecodingError {
+      throw error
+    } catch {
+      throw FrontMatterDecodingError(file: file, message: String(describing: error))
+    }
+  }
+
   package static func parse(_ source: String) -> (Self, String, [ContentDiagnostic]) {
+    let (yaml, body) = split(source)
+    guard let yaml else { return (.init(), source, []) }
+    do {
+      let parser = try Parser(yaml: yaml)
+      let node = try parser.singleRoot() ?? Node([:])
+      let values = try YAMLDecoder().decode(SharedFields.self, from: node)
+      let formatter = ISO8601DateFormatter()
+      return (
+        Self(
+          title: values.title, summary: values.summary, slug: values.slug, locale: values.locale,
+          publishedAt: try parseDate(values.date, field: "date", file: nil, formatter: formatter),
+          modifiedAt: try parseDate(
+            values.modified, field: "modified", file: nil, formatter: formatter),
+          draft: values.draft ?? false, tags: values.tags ?? []),
+        body, []
+      )
+    } catch {
+      return (.init(), body, [.invalidFrontMatter(String(describing: error))])
+    }
+  }
+
+  private static func split(_ source: String) -> (String?, String) {
     let lines = source.split(separator: "\n", omittingEmptySubsequences: false)
     guard lines.first?.trimmingCharacters(in: .whitespaces) == "---",
       let end = lines.dropFirst().firstIndex(where: {
         $0.trimmingCharacters(in: .whitespaces) == "---"
       })
-    else { return (.init(), source, []) }
-
-    var values: [String: String] = [:]
-    var diagnostics: [ContentDiagnostic] = []
-    for line in lines[1..<end] {
-      let parts = line.split(separator: ":", maxSplits: 1).map(String.init)
-      guard parts.count == 2 else {
-        diagnostics.append(.invalidFrontMatter(String(line)))
-        continue
-      }
-      values[parts[0].trimmingCharacters(in: .whitespaces)] =
-        parts[1].trimmingCharacters(in: .whitespaces).unquoted
-    }
-    let formatter = ISO8601DateFormatter()
-    let publishedAt = values["date"].flatMap(formatter.date)
-    let modifiedAt = values["modified"].flatMap(formatter.date)
-    if values["date"] != nil, publishedAt == nil { diagnostics.append(.invalidFrontMatter("date")) }
-    if values["modified"] != nil, modifiedAt == nil {
-      diagnostics.append(.invalidFrontMatter("modified"))
-    }
-    let tags =
-      values["tags"].map {
-        $0.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
-          .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces).unquoted }
-      } ?? []
-    let body = lines[lines.index(after: end)...].joined(separator: "\n")
+    else { return (nil, source) }
     return (
-      Self(
-        title: values["title"], summary: values["summary"], slug: values["slug"],
-        locale: values["locale"], publishedAt: publishedAt, modifiedAt: modifiedAt,
-        draft: values["draft"]?.lowercased() == "true", tags: tags),
-      body, diagnostics
+      lines[1..<end].joined(separator: "\n"),
+      lines[lines.index(after: end)...].joined(separator: "\n")
     )
+  }
+
+  private static func parseDate(
+    _ value: String?, field: String, file: String?, formatter: ISO8601DateFormatter
+  ) throws -> Date? {
+    guard let value else { return nil }
+    guard let date = formatter.date(from: value) else {
+      throw FrontMatterDecodingError(
+        file: file, message: "Invalid ISO 8601 date in field '\(field)': \(value)")
+    }
+    return date
   }
 }
 
-extension String {
-  fileprivate var unquoted: String {
-    guard count >= 2, let first, let last, first == last, first == "\"" || first == "'" else {
-      return self
-    }
-    return String(dropFirst().dropLast())
+/// A decoded front matter result with application metadata and the remaining Markdown body.
+public struct DecodedFrontMatter<Additional: Decodable> {
+  public let frontMatter: ContentFrontMatter
+  public let additional: Additional
+  public let body: String
+
+  fileprivate init(frontMatter: ContentFrontMatter, additional: Additional, body: String) {
+    self.frontMatter = frontMatter
+    self.additional = additional
+    self.body = body
+  }
+}
+
+extension ContentFrontMatter {
+  public typealias Decoded<Additional: Decodable> = DecodedFrontMatter<Additional>
+}
+
+private struct SharedFields: Decodable {
+  let title: String?
+  let summary: String?
+  let slug: String?
+  let locale: String?
+  let date: String?
+  let modified: String?
+  let draft: Bool?
+  let tags: [String]?
+}
+
+/// An error decoding document front matter.
+public struct FrontMatterDecodingError: Error, LocalizedError {
+  public let file: String?
+  public let message: String
+
+  public var errorDescription: String? {
+    "\(file.map { "\($0): " } ?? "")front matter: \(message)"
+  }
+
+  fileprivate init(file: String?, message: String) {
+    self.file = file
+    self.message = message
   }
 }

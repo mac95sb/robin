@@ -63,6 +63,7 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-collections.git", from: "1.3.0"),
     .package(url: "https://github.com/apple/swift-system.git", from: "1.8.0"),
     .package(url: "https://github.com/swiftlang/swift-markdown.git", from: "0.8.0"),
+    .package(url: "https://github.com/jpsim/Yams.git", from: "6.2.2"),
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "603.0.0"),
     .package(url: "https://github.com/swiftlang/swift-docc-plugin.git", from: "1.5.0"),
   ],
@@ -112,6 +113,7 @@ let package = Package(
       dependencies: [
         "RobinHTML",
         .product(name: "Markdown", package: "swift-markdown"),
+        .product(name: "Yams", package: "Yams"),
       ],
       swiftSettings: lowLevelFeatures
     ),
