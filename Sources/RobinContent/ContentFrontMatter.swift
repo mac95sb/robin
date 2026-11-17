@@ -61,8 +61,10 @@ public struct ContentFrontMatter: Equatable, Sendable {
 }
 
 extension ContentFrontMatter {
-  /// Decodes Robin's shared fields and an application's metadata from the same YAML document.
+  /// Decodes Robin's shared fields and application metadata from the same YAML document.
   ///
+  /// Use this throwing API when invalid front matter must stop processing, such as during a static
+  /// build. `MarkdownContentParser.parse(_:)` instead returns frontmatter failures as diagnostics.
   /// The returned body is the Markdown source after the closing front matter delimiter.
   public static func decode<Additional: Decodable>(
     _ type: Additional.Type,
@@ -90,7 +92,7 @@ extension ContentFrontMatter {
           title: values.title, summary: values.summary, slug: values.slug, locale: values.locale,
           publishedAt: publishedAt, modifiedAt: modifiedAt, draft: values.draft ?? false,
           tags: values.tags ?? []),
-        additional: additional,
+        metadata: additional,
         body: body)
     } catch let error as FrontMatterDecodingError {
       throw error
@@ -149,12 +151,13 @@ extension ContentFrontMatter {
 /// A decoded front matter result with application metadata and the remaining Markdown body.
 public struct DecodedFrontMatter<Additional: Decodable> {
   public let frontMatter: ContentFrontMatter
-  public let additional: Additional
+  /// Application-specific metadata decoded from the same YAML document.
+  public let metadata: Additional
   public let body: String
 
-  fileprivate init(frontMatter: ContentFrontMatter, additional: Additional, body: String) {
+  fileprivate init(frontMatter: ContentFrontMatter, metadata: Additional, body: String) {
     self.frontMatter = frontMatter
-    self.additional = additional
+    self.metadata = metadata
     self.body = body
   }
 }

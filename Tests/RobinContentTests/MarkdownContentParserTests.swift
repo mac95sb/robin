@@ -88,8 +88,8 @@ struct MarkdownContentParserTests {
 
     #expect(decoded.frontMatter.title == "Roasted tomatoes")
     #expect(decoded.frontMatter.tags == ["dinner", "make ahead"])
-    #expect(decoded.additional.description == "Slow-roasted\nwith herbs.\n")
-    #expect(decoded.additional.ingredients.map(\.name) == ["tomatoes"])
+    #expect(decoded.metadata.description == "Slow-roasted\nwith herbs.\n")
+    #expect(decoded.metadata.ingredients.map(\.name) == ["tomatoes"])
     #expect(decoded.body == "## Method")
   }
 
